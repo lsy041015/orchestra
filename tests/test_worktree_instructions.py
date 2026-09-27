@@ -45,9 +45,9 @@ class WorktreeInstructionTests(unittest.TestCase):
                               env={**os.environ, "BRANCH_NAME": "codex/test-worktree"})
 
     def assert_selected(self, result, expected):
-        line = next(line for line in result.stdout.splitlines() if line.startswith("SELECTED="))
-        # Git Bash prints C:/... while Python uses C:\...; compare the directories.
-        self.assertTrue(os.path.samefile(line[len("SELECTED="):], expected), line)
+        # The skill prints bash's physical spelling (/c/... in Git Bash,
+        # /private/var/... on macOS), so compare against bash's own `pwd -P`.
+        self.assertIn(f"SELECTED={self.bash_path(expected)}\n", result.stdout)
 
     def bash_path(self, path):
         return subprocess.run([BASH, "-c", 'cd -- "$1" && pwd -P', "_", str(path)], check=True,
