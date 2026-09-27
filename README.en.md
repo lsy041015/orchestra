@@ -4,6 +4,8 @@
 
 <p align="center"><a href="README.md">한국어</a> · <b>English</b></p>
 
+<p align="center"><a href="https://github.com/lsy041015/orchestra/actions/workflows/tests.yml"><img src="https://github.com/lsy041015/orchestra/actions/workflows/tests.yml/badge.svg" alt="tests"></a></p>
+
 # Orchestra
 
 > **The conductor plans. The right model plays.**
@@ -14,8 +16,8 @@ A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by J
 Not an official OpenAI, Anthropic or Superpowers release. The Claude and Codex logos in the banner
 only indicate the tools this plugin works with; the marks belong to their owners.
 
-> **Status: experimental (v0.2.0).** Used daily on Windows. macOS/Linux have not been re-checked for
-> this version, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
+> **Status: experimental (v0.2.0).** Used daily on Windows; tests run in CI on Ubuntu, macOS and
+> Windows. Real orchestrator use on macOS/Linux is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
 
@@ -144,7 +146,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
 | `gpt-6-luna` + `ultra` | ⚠️ accepted by the API although the model list tops out at `max`; the level actually applied is unknown |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
-| All five test files in `tests/` | ✅ Windows + Git Bash (one symlink check skips without symlink rights) |
+| All five test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
 
 Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer. Model
@@ -159,11 +161,12 @@ python3 tests/test_task_brief.py
 python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
+(cd examples/piano && node --test)
 claude plugin validate .
 ```
 
-Issues and PRs: <https://github.com/lsy041015/orchestra/issues>. macOS/Linux results are especially
-welcome.
+Issues and PRs: <https://github.com/lsy041015/orchestra/issues>. Reports from real orchestrator use on
+macOS/Linux are especially welcome.
 
 ## Credits and license
 
