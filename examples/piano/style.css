@@ -1,0 +1,111 @@
+:root {
+  color: #28231e;
+  background: #f5f0e7;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+button { font: inherit; cursor: pointer; }
+
+button:focus-visible { outline: 3px solid #d97757; outline-offset: 4px; z-index: 3; }
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 18px;
+  text-align: center;
+}
+
+.eyebrow, .hint {
+  font: 600 11px/1.5 Arial, sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #877e72;
+}
+
+.eyebrow { margin: 0 0 12px; }
+
+h1 { margin: 0; font-size: clamp(42px, 8vw, 76px); font-weight: 400; letter-spacing: -0.04em; }
+
+.subtitle { margin: 10px 0 42px; color: #6e655c; font-size: clamp(15px, 3vw, 18px); }
+
+.keyboard {
+  position: relative;
+  display: flex;
+  width: min(760px, 100%);
+  height: clamp(190px, 28vw, 270px);
+  padding: 0;
+  filter: drop-shadow(0 15px 14px #28231e20);
+}
+
+.key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 19px;
+  font: 600 13px/1 Arial, sans-serif;
+  transition: background-color 80ms ease;
+}
+
+.key.white {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid #b9afa1;
+  border-radius: 0 0 7px 7px;
+  background: #fffdf8;
+  color: #655b50;
+}
+
+.key.white ~ .key.white { border-left: 0; }
+
+.key.black {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: var(--left);
+  transform: translateX(-50%);
+  width: 7.5%;
+  height: 61%;
+  padding-bottom: 14px;
+  border: 1px solid #171411;
+  border-radius: 0 0 5px 5px;
+  background: #28231e;
+  color: #fffdf8;
+  font-size: 11px;
+}
+
+.key.is-active, .key.black.is-active { background: #d97757; color: #28231e; }
+.key.is-striking { animation: strike 180ms ease-out; }
+
+@keyframes strike {
+  from { background-color: #b65336; }
+  to { background-color: #d97757; }
+}
+
+.play {
+  margin-top: 42px;
+  padding: 14px 25px;
+  border: 1px solid #28231e;
+  border-radius: 4px;
+  background: #28231e;
+  color: #fffdf8;
+  font: 600 14px/1 Arial, sans-serif;
+}
+
+.play:hover { background: #4a3d34; }
+.play:disabled { opacity: 0.55; cursor: default; }
+.hint { margin: 20px 0 0; letter-spacing: 0.09em; }
+
+@media (max-width: 480px) {
+  .page { padding: 40px 18px; }
+  .subtitle { margin-bottom: 34px; }
+  .key { padding-bottom: 14px; font-size: 11px; }
+  .key.black { font-size: 9px; padding-bottom: 11px; }
+  .hint { max-width: 280px; line-height: 1.8; }
+}
