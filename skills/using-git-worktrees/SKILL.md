@@ -95,14 +95,26 @@ For an internal location, check exactly that location. Do not test `.worktrees`
 and `worktrees` as alternatives after `LOCATION` has been chosen:
 
 ```bash
-repo_root=$(git rev-parse --show-toplevel)
+# Portable stand-in for GNU `realpath -m` (macOS realpath has no -m): resolve
+# the longest existing prefix with `pwd -P` and keep the missing tail as is.
+resolve_path() {
+  local path=$1 tail=
+  while [ "$path" != / ] && [ "${path%/}" != "$path" ]; do path=${path%/}; done
+  while [ ! -d "$path" ]; do
+    tail="/${path##*/}$tail"
+    path=${path%/*}
+    [ -n "$path" ] || path=/
+  done
+  printf '%s%s\n' "$(CDPATH= cd -- "$path" && pwd -P)" "$tail"
+}
+repo_root=$(resolve_path "$(git rev-parse --show-toplevel)")
 # Resolve a relative LOCATION against repo_root, then append / only for this
 # directory probe. The selected directory need not exist yet.
 case "$LOCATION" in
   /*) selected="$LOCATION" ;;
   *) selected="$repo_root/$LOCATION" ;;
 esac
-selected=$(realpath -m -- "$selected")
+selected=$(resolve_path "$selected")
 case "$selected" in
   "$repo_root"|"$repo_root"/*)
     probe="$selected"
