@@ -1,17 +1,17 @@
 ---
-name: relay-orchestrator
+name: orchestrator
 description: Claude Code only. Routes tasks to Claude or Codex workers by difficulty tier.
 ---
 
-# Relay Orchestrator
+# Orchestra Orchestrator
 
-This skill extends `relay:subagent-driven-development`. The main session keeps
+This skill extends `orchestra:subagent-driven-development`. The main session keeps
 planning, review, re-review, diagnosis, and integration. Workers only implement.
 This skill replaces that workflow's worker selection and fix loop.
 
 ## 1. Tiered task list
 
-Get an approved plan first, using `relay:writing-plans` if none exists. Then
+Get an approved plan first, using `orchestra:writing-plans` if none exists. Then
 show the user one compact table:
 
 | # | Task | Tier | Files |
@@ -29,7 +29,7 @@ Keep a one-file edit or a lookup inline instead of listing it.
 
 ## 2. Model choice
 
-Before asking the user, read `~/.claude/relay.json` and `<project>/.relay.json`;
+Before asking the user, read `~/.claude/orchestra.json` and `<project>/.orchestra.json`;
 ignore either file if it does not exist. Merge `routing` by key, with project
 values taking precedence. A project `options` array replaces the user array;
 otherwise use the user array. The values use this schema:
@@ -48,8 +48,8 @@ otherwise use the user array. The values use this schema:
 ```
 
 Routing values have the form `<codex|claude> <model>/<effort>`. Claude supports
-`high` (use `relay:implementer`) and `medium` (use
-`relay:implementer-medium`). Use the `ui` key for separately routed UI tasks
+`high` (use `orchestra:implementer`) and `medium` (use
+`orchestra:implementer-medium`). Use the `ui` key for separately routed UI tasks
 and `hard` for other hard tasks. If every tier in the task table has a routing
 value, skip questions and show the mapping on one line. Ask with
 `AskUserQuestion` only for tiers without a value, using the merged `options`
@@ -66,8 +66,8 @@ Label every worker so the task list shows its engine, model, and effort:
 
 | Effort | subagent_type |
 |--------|---------------|
-| high | `relay:implementer` |
-| medium | `relay:implementer-medium` |
+| high | `orchestra:implementer` |
+| medium | `orchestra:implementer-medium` |
 
 Pass `model` (`opus` / `sonnet` / `haiku`). Effort comes from the agent
 definition. For another effort, tell the user it needs a new agent file.
@@ -80,7 +80,7 @@ definition. For another effort, tell the user it needs a new agent file.
 node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --effort <effort> --cwd "<project>" --brief "<ledger>/task-N-codex-prompt.md" --allowed "<files>"
 ```
 
-Fill `relay:subagent-driven-development/implementer-prompt.md` for the task,
+Fill `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
 `<ledger>/task-N-codex-prompt.md`:
 

@@ -11,12 +11,12 @@ planning, exploration, diagnosis, review, re-review, integration, and final
 verification. A delegated call is for a bounded implementation worker only.
 Do not dispatch a reviewer, analyst, planner, explorer, or nested helper.
 
-The worker is the plugin agent `relay:implementer`, whose definition pins
+The worker is the plugin agent `orchestra:implementer`, whose definition pins
 `model: claude-sonnet-5` and `effort: high`. Dispatch it explicitly:
 
 ```text
 Agent(
-  subagent_type="relay:implementer",
+  subagent_type="orchestra:implementer",
   description="Implement task 2",
   prompt="<goal, exact scope, acceptance checks, tests, and report path>"
 )
@@ -40,7 +40,7 @@ If two failed fix attempts have the same root cause, stop retrying. The main
 agent changes the diagnosis or plan, or fixes the small issue inline; do not
 create a fresh worker merely to obtain different eyes. Explicitly requested
 independent parallel implementation is the only exception to the one-worker
-default: send multiple `Agent` calls in one message, each `relay:implementer`
+default: send multiple `Agent` calls in one message, each `orchestra:implementer`
 with disjoint files and state.
 
 ## Waiting and evidence
@@ -54,5 +54,5 @@ test output.
 
 Before using worktree or branch operations, use read-only git inspection to
 distinguish a linked worktree, an ordinary checkout, and detached HEAD. Apply
-`relay:using-git-worktrees` for isolation and preserve unrelated user changes.
+`orchestra:using-git-worktrees` for isolation and preserve unrelated user changes.
 Do not delete a workspace or alter a shared branch without authorization.

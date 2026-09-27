@@ -13,7 +13,7 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 ## Step 1: Verify Tests
 
-Apply **relay:verification-before-completion** to the
+Apply **orchestra:verification-before-completion** to the
 state you are about to integrate. Inspect matching evidence for the project's
 required checks, including its full suite when required. Run only missing,
 invalidated, or still-unverified checks.
@@ -171,16 +171,16 @@ Step 2, from before that directory change.
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
-**If the Git administrative directory has a Relay ownership marker matching
-the physical worktree path:** Relay created this worktree and may clean it up:
+**If the Git administrative directory has a Orchestra ownership marker matching
+the physical worktree path:** Orchestra created this worktree and may clean it up:
 
 ```bash
-if [ -f "$GIT_DIR/relay-owned-worktree" ] &&
-   [ "$(cat "$GIT_DIR/relay-owned-worktree")" = "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
+if [ -f "$GIT_DIR/orchestra-owned-worktree" ] &&
+   [ "$(cat "$GIT_DIR/orchestra-owned-worktree")" = "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
   git worktree remove "$WORKTREE_PATH"
   git worktree prune  # Clean up stale registrations after removal
 else
-  echo "Worktree was not created by Relay; leaving it in place."
+  echo "Worktree was not created by Orchestra; leaving it in place."
 fi
 ```
 
@@ -228,7 +228,7 @@ its branch in place. If your platform provides a workspace-exit tool, use it.
 | "They seem done with this feature — I'll offer to discard it" | The menu is complete as written. Discard happens only when your human partner asks for it in so many words. |
 | "'Yeah, get rid of it' counts as confirmation" | Only the typed word `discard` authorizes deletion. |
 | "The PR is up, so the worktree is clutter now" | PR feedback gets fixed in that worktree. It stays until the work lands. |
-| "This other worktree looks stale — I'll clean it too" | Clean up only worktrees with a matching Relay ownership marker. Directory names do not prove ownership. |
+| "This other worktree looks stale — I'll clean it too" | Clean up only worktrees with a matching Orchestra ownership marker. Directory names do not prove ownership. |
 | "Removal refused — `--force` is just finishing the cleanup" | The refusal means files exist only in that worktree. `--force` destroys them permanently. Show your human partner and ask. |
 | "The merged-result failure is probably flaky" | A failing merged result stops everything. Branch and worktree stay put while you investigate. |
 | "The base branch is obviously main" | Confirm the fork point or ask. Merging into the wrong base is expensive to undo. |

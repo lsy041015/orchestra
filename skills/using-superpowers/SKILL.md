@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting a Relay development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
+description: Use when starting a Orchestra development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
 ---
 
 <SUBAGENT-STOP>
@@ -15,7 +15,7 @@ instructions apply after the user's request and the host's actual tool rules;
 those sources win when they conflict. Announce the skill you are using, then
 follow its required workflow.
 
-## Roles in Relay
+## Roles in Orchestra
 
 The main session keeps the model and reasoning effort selected by the user.
 This skill does not select, switch, or override either setting. The main agent
@@ -23,7 +23,7 @@ handles intake, brainstorming and planning, design decisions, code
 review and re-review, diagnosis, integration, and final verification.
 
 The only delegated role is an implementation worker. Dispatch it with
-the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `relay:implementer` agent = `claude-sonnet-5` / `high`) and no inherited history. Give it a bounded,
+the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`) and no inherited history. Give it a bounded,
 reviewable implementation result, the exact files it may touch, acceptance
 criteria, tests, and report path. The worker implements, tests, self-reviews,
 and investigates failures within that task. It never delegates an independent
@@ -49,4 +49,4 @@ hardware calibration and other safety requirements from the relevant skills.
 This edition runs on Codex and Claude Code. Use `references/codex-tools.md` on
 Codex and `references/claude-code-tools.md` on Claude Code for exact tool syntax. The other platform files are retained as source
 compatibility notes and are not active routing or delegation instructions.
-Internal skill links use the `relay:` namespace.
+Internal skill links use the `orchestra:` namespace.

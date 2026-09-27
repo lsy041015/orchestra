@@ -16,7 +16,7 @@ subagent.
    recipe, and rerun the affected scenario. Do not silently declare success
    from reading the document.
 
-Use `relay:test-driven-development` for the general RED,
+Use `orchestra:test-driven-development` for the general RED,
 GREEN, and refactor discipline. A delegated implementation worker may help
 exercise a behavior only when the main agent has already authorized that implementation
 task; never create a review, analysis, or evaluation worker for this test.

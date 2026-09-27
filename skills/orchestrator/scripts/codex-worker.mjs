@@ -73,12 +73,12 @@ async function snapshot(cwd) {
 }
 
 function spawnCodex(args, cwd, prompt) {
-  const injected = process.env.RELAY_CODEX_BIN !== undefined;
+  const injected = process.env.ORCHESTRA_CODEX_BIN !== undefined;
   // Windows needs a shell for codex.cmd. Every arg is validated and space-free,
   // so one joined string is safe and avoids Node's DEP0190 warning.
   const viaShell = !injected && process.platform === 'win32';
   const command = injected ? process.execPath : viaShell ? `codex ${args.join(' ')}` : 'codex';
-  const commandArgs = injected ? [process.env.RELAY_CODEX_BIN, ...args] : viaShell ? [] : args;
+  const commandArgs = injected ? [process.env.ORCHESTRA_CODEX_BIN, ...args] : viaShell ? [] : args;
   return new Promise((resolve) => {
     const child = spawn(command, commandArgs, {
       cwd,

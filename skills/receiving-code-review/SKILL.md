@@ -48,4 +48,4 @@ show the technical evidence; do not silently replace it.
   If later evidence changes the ruling, correct it and continue without
   performative apology.
 
-Internal references use the `relay:` namespace.
+Internal references use the `orchestra:` namespace.

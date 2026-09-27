@@ -8,7 +8,7 @@ description: Use when creating, editing, or verifying a skill before it is enabl
 Treat process documentation like behavior: define a pressure case, observe
 the baseline, write the smallest rule that closes the observed failure, and
 verify the rule against the same case. This is TDD applied to a skill. Use
-`relay:test-driven-development` for the RED/GREEN discipline
+`orchestra:test-driven-development` for the RED/GREEN discipline
 and `anthropic-best-practices.md` for general authoring guidance.
 
 The main session owns design, baseline analysis, review, and acceptance.
@@ -94,7 +94,7 @@ Move heavy reference material, reusable scripts, or templates into supporting
 files and link them directly from `SKILL.md`. Keep references one level deep.
 Use tables for repeated fields, flowcharts only for non-obvious branches, and
 examples that are complete enough to run or copy. Internal links in this
-edition use the `relay:` namespace.
+edition use the `orchestra:` namespace.
 
 ## Verification before deployment
 

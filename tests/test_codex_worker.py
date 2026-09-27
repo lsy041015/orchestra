@@ -8,7 +8,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKER = ROOT / "skills/relay-orchestrator/scripts/codex-worker.mjs"
+WORKER = ROOT / "skills/orchestrator/scripts/codex-worker.mjs"
 FAKE = ROOT / "tests/fake_codex.mjs"
 PROMPT = "Implement the requested change.\n"
 
@@ -33,7 +33,7 @@ class CodexWorkerTests(unittest.TestCase):
         cwd = Path(cwd or self.root)
         brief = Path(brief or self.brief)
         env = os.environ.copy()
-        env.update(RELAY_CODEX_BIN=str(FAKE), FAKE_MODE=mode)
+        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode)
         return subprocess.run([
             "node", str(WORKER), "--model", model, "--effort", "high",
             "--cwd", str(cwd), "--brief", str(brief), "--allowed", "a.txt", *extra,

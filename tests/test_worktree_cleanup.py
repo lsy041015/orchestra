@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Relay removes only worktrees it created."""
+"""Orchestra removes only worktrees it created."""
 from pathlib import Path
 import re
 import subprocess
@@ -32,7 +32,7 @@ class WorktreeCleanupTests(unittest.TestCase):
                                           "--git-dir"], check=True, capture_output=True,
                                          text=True).stdout.strip()
                 if owned:
-                    (Path(git_dir) / "relay-owned-worktree").write_text(str(worktree) + "\n")
+                    (Path(git_dir) / "orchestra-owned-worktree").write_text(str(worktree) + "\n")
                 script = f'set -eu\nGIT_DIR="{git_dir}"\nWORKTREE_PATH="{worktree}"\n' + cleanup
                 result = subprocess.run(["bash", "-c", script], cwd=repo,
                                         capture_output=True, text=True)

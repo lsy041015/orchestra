@@ -10,18 +10,18 @@ worth delegating. The main agent remains the controller: it decides scope, reads
 plan, reviews every change, and integrates the result. The implementer is an
 implementation worker, not a second controller.
 
-Use `relay:executing-plans` when the user chose inline work,
+Use `orchestra:executing-plans` when the user chose inline work,
 the change is tiny, or the host has no usable worker tool. Use
-`relay:dispatching-parallel-agents` only for explicitly
+`orchestra:dispatching-parallel-agents` only for explicitly
 requested independent parallel implementation.
 
 ## Invariants
 
 - The main session keeps the user's selected model and reasoning effort; this
   workflow does not switch or override either setting.
-- `relay:relay-orchestrator`가 로드되면 워커 선택과 수정 루프는 그 스킬을 따른다.
+- `orchestra:orchestrator`가 로드되면 워커 선택과 수정 루프는 그 스킬을 따른다.
 - Every worker is created with
-  the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `relay:implementer` agent = `claude-sonnet-5` / `high`).
+  the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`).
 - Workers never spawn workers, reviewers, analysts, planners, or helpers. They
   may self-review their diff and investigate implementation failures as part
   of the assigned task.
@@ -41,7 +41,7 @@ comparison instead; the Git helpers do not apply. Do not initialize a
 repository or create commits merely to satisfy workflow bookkeeping.
 
 1. Confirm the approved plan and its Global Constraints. Use
-   `relay:using-git-worktrees` to create or verify an
+   `orchestra:using-git-worktrees` to create or verify an
    isolated workspace; never assume a clean baseline.
 2. Resolve this plan's workspace with `scripts/sdd-workspace PLAN_FILE` and
    use its `progress.md` ledger. A ledger for another plan, or the old flat
@@ -152,7 +152,7 @@ merge base when there is a committed range and reviews it with
 staged and unstaged diffs plus untracked task files directly. If the work is
 entirely uncommitted, skip the commit-only helper; do not force a dummy commit.
 No final reviewer is created.
-The main agent applies `relay:verification-before-completion` to the
+The main agent applies `orchestra:verification-before-completion` to the
 required final checks and the combined state. Check every ledger Ruling and
 deferred Minor, and record any final fix. A remaining Critical or Important
 issue is either corrected inline or sent as a concrete follow-up to the
@@ -160,7 +160,7 @@ existing implementer worker; the main agent re-reviews the actual fix. There is 
 review agent or unlimited fix cycle.
 
 Report verification evidence, failures, and environment limits.
-Use `relay:finishing-a-development-branch` only after the
+Use `orchestra:finishing-a-development-branch` only after the
 requested integration decision is ready. Never delete the plan workspace
 until the ledger and required artifacts are preserved or the user authorized
 the cleanup.
@@ -172,8 +172,8 @@ Task 2: add retry behavior
 Brief: /workspace/.superpowers/sdd/retry/task-2-brief.md
 Allowed files: src/retry.ts, test/retry.test.ts
 Acceptance: bounded retries, abort preserved, focused test command
-Worker: Codex gpt-6-luna / xhigh / fork_turns=none | Claude Code relay:implementer (claude-sonnet-5 / high)
+Worker: Codex gpt-6-luna / xhigh / fork_turns=none | Claude Code orchestra:implementer (claude-sonnet-5 / high)
 Report: /workspace/.superpowers/sdd/retry/task-2-report.md
 ```
 
-Internal skill links use the `relay:` namespace.
+Internal skill links use the `orchestra:` namespace.

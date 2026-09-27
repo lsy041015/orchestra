@@ -70,7 +70,7 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.assertEqual(Path(actual.stdout.strip()), expected)
         git_dir = subprocess.run(["git", "-C", str(expected), "rev-parse", "--git-dir"],
                                  check=True, capture_output=True, text=True).stdout.strip()
-        self.assertEqual((Path(git_dir) / "relay-owned-worktree").read_text().strip(),
+        self.assertEqual((Path(git_dir) / "orchestra-owned-worktree").read_text().strip(),
                          str(expected))
 
 
