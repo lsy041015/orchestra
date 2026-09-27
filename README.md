@@ -5,7 +5,7 @@
 | 호스트 | 구현자 프리셋 |
 |---|---|
 | Codex | `gpt-6-luna` · `reasoning_effort = "xhigh"` · `fork_turns = "none"` |
-| Claude Code | `relay:implementer` 에이전트 · `model: claude-sonnet-5` · `effort: high` |
+| Claude Code | `relay:implementer` (high) · `relay:implementer-medium` (medium) · `model: claude-sonnet-5` |
 
 [Jesse Vincent의 Superpowers](https://github.com/obra/superpowers) 6.4.1을 기반으로 한 개인 포크이며, 공식 OpenAI·Anthropic 또는 Superpowers 배포판은 아닙니다.
 
@@ -21,7 +21,7 @@
 
 메인은 작은 수정이나 읽기 전용 작업을 직접 처리할 수 있습니다. 구현자를 만들면 필요한 목표·파일·제약·검증 기준만 전달하고(이전 대화 기록은 넘기지 않음), 관련 수정에는 같은 구현자를 재사용합니다. 독립된 작업의 병렬 구현은 사용자가 명시적으로 요청한 경우에만 수행합니다. 별도 리뷰어·계획자·진단 에이전트와 중첩 위임은 사용하지 않습니다.
 
-이 플러그인은 **15개 스킬, 보조 스크립트, Claude Code용 구현자 에이전트 1개**로 구성됩니다. MCP 서버, 외부 계정 연결, 자동 실행 훅은 포함하지 않습니다. 모델 선택은 스킬이 에이전트에게 요청하는 운영 규칙이며, 플러그인이 메인 대화의 모델을 바꾸지는 않습니다.
+이 플러그인은 **16개 스킬, 보조 스크립트, Claude Code용 구현자 에이전트 2개**로 구성됩니다. MCP 서버, 외부 계정 연결, 자동 실행 훅은 포함하지 않습니다. 모델 선택은 스킬이 에이전트에게 요청하는 운영 규칙이며, 플러그인이 메인 대화의 모델을 바꾸지는 않습니다.
 
 | 용도 | 스킬 |
 |---|---|
@@ -42,9 +42,13 @@ relay/
 ├── .agents/plugins/         # Codex 마켓플레이스
 │   └── marketplace.json
 ├── agents/
-│   └── implementer.md       # Claude Code 구현자 (claude-sonnet-5 / high)
+│   ├── implementer.md        # Claude Code 구현자 (claude-sonnet-5 / high)
+│   └── implementer-medium.md # Claude Code 구현자 (claude-sonnet-5 / medium)
 ├── skills/                  # 양쪽 공용 스킬 (SKILL.md 포맷 동일)
 │   ├── */agents/openai.yaml # Codex UI 표시 정보 (Claude Code는 무시)
+│   ├── relay-orchestrator/
+│   │   ├── SKILL.md
+│   │   └── scripts/codex-worker.mjs
 │   └── using-superpowers/references/
 │       ├── codex-tools.md       # Codex 호출 문법 (spawn_agent, followup_task)
 │       └── claude-code-tools.md # Claude Code 호출 문법 (Agent, SendMessage)
@@ -83,6 +87,37 @@ Agent(subagent_type="relay:implementer", description="Implement task 2",
 claude plugin marketplace update relay
 claude plugin install relay@relay
 ```
+
+### Relay Orchestrator (Claude + Codex)
+
+`relay:relay-orchestrator`는 승인된 작업 계획을 난이도별로 나누고 Claude 또는 Codex 워커에 라우팅합니다. Codex 작업에는 Codex CLI 설치와 `codex login`, Node.js 18 이상이 필요합니다. 실행 전 `codex --version`으로 CLI를 확인합니다.
+
+사용자 설정은 `~/.claude/relay.json`, 프로젝트 설정은 `<project>/.relay.json`에 둡니다. 프로젝트의 `routing` 값은 키별로 사용자 설정보다 우선하고, 프로젝트에 `options`가 있으면 사용자 `options`를 대체합니다.
+
+```json
+{
+  "routing": {
+    "easy": "codex gpt-6-luna/medium",
+    "medium": "claude sonnet/high",
+    "hard": "claude opus/high",
+    "ui": "claude opus/high"
+  },
+  "options": ["codex gpt-6-luna/medium", "codex gpt-6-luna/high",
+              "claude sonnet/high", "claude opus/high"]
+}
+```
+
+Claude 라우팅의 `high`는 `relay:implementer`, `medium`은 `relay:implementer-medium`을 사용합니다.
+
+사용 예:
+
+```text
+Relay Orchestrator로 승인된 계획을 Easy/Medium/Hard 작업으로 나눠줘.
+설정된 라우팅에 따라 작업 목록에 [engine model/effort] 라벨을 표시해줘.
+완료된 변경 파일, 테스트 결과와 Codex 범위 검사 결과를 확인해줘.
+```
+
+작업 목록에는 `[Codex gpt-6-luna/medium] Task 1: ...`처럼 실행 엔진·모델·추론 수준을 표시합니다. 진행 중인 작업은 `TaskStop <task id>`로 취소하며, 해당 작업은 `BLOCKED`로 기록됩니다. Codex 워커는 실행 전후 Git 상태와 파일 SHA-1을 비교해 변경된 경로를 `--allowed` 목록과 대조합니다. 허용 목록 밖의 경로는 `Scope: outside allowed: ...`로 보고하며 메인 세션에서 검토합니다. Git 저장소가 아니면 `Scope: unchecked (not a git repo)`로 표시합니다.
 
 ## 설치 — Codex
 
@@ -150,12 +185,13 @@ Codex:
 
 ```bash
 python3 tests/test_task_brief.py
+python3 tests/test_codex_worker.py
 python3 tests/test_worktree_instructions.py
 python3 tests/test_worktree_cleanup.py
 python3 tests/test_sdd_safety.py
 ```
 
-Linux·macOS에서 회귀 검사 **16개**, 스킬 frontmatter 검사 **15개**, Bash 문법 검사 **8개**를 통과했습니다. **Windows(Git Bash)에서는 현재 일부 실패합니다** — cp949 기본 인코딩(`PYTHONUTF8=1`로 일부 완화), 심볼릭 링크 생성 권한, CRLF 줄바꿈 차이 때문이며 스킬 로직 결함은 아닙니다. 테스트는 모든 스킬의 실제 모델 위임, 모든 실패 복구 경로를 검증하지 않습니다.
+Linux·macOS에서 회귀 검사 **16개**, 스킬 frontmatter 검사 **15개**, Bash 문법 검사 **8개**를 통과했습니다. **Windows(Git Bash)에서는 현재 일부 실패합니다** — cp949 기본 인코딩(`PYTHONUTF8=1`로 일부 완화), 심볼릭 링크 생성 권한, CRLF 줄바꿈 차이 때문이며 스킬 로직 결함은 아닙니다. `tests/test_codex_worker.py`(8개)는 Windows에서 통과했고, `codex-worker.mjs`는 실제 Codex CLI 0.156.1로 신규 실행·thread 재개·범위 검사를 Windows에서 확인했습니다(macOS·Linux 실측 전). 테스트는 모든 스킬의 실제 모델 위임, 모든 실패 복구 경로를 검증하지 않습니다.
 
 실행 경로에 따라 Git·Bash가 필요합니다. Git worktree 대체 절차는 GNU `realpath -m`을 사용하므로 해당 명령이 없는 환경에서는 호스트의 기본 worktree 기능을 우선 사용하세요. 시각적 설계 보조에는 Node.js가, 긴 세션 진단의 일부 경로에는 별도 `context-mode` 도구가 필요할 수 있습니다.
 

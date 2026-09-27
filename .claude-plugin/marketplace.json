@@ -1,5 +1,6 @@
 {
   "name": "relay",
+  "description": "Relay: plan and review in the main session, delegate bounded coding to Claude or Codex workers.",
   "owner": {
     "name": "lsy041015",
     "url": "https://github.com/lsy041015"
@@ -8,7 +9,7 @@
     {
       "name": "relay",
       "source": "./",
-      "description": "Main session plans and reviews; Sonnet 5 high implementer subagent codes bounded tasks."
+      "description": "Main session plans and reviews; tiered workers run on Claude subagents or the Codex CLI."
     }
   ]
 }

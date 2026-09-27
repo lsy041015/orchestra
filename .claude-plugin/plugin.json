@@ -1,7 +1,7 @@
 {
   "name": "relay",
-  "version": "6.4.1+claude.20260926",
-  "description": "Superpowers 6.4.1 fork: the main session plans and reviews; a Sonnet 5 (high effort) implementer subagent handles bounded coding tasks.",
+  "version": "6.4.1+claude.20260927",
+  "description": "Superpowers 6.4.1 fork: the main session plans and reviews; tiered workers run on Claude subagents or the Codex CLI.",
   "author": {
     "name": "lsy041015",
     "url": "https://github.com/lsy041015"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/lsy041015/relay",
   "repository": "https://github.com/lsy041015/relay",
   "license": "MIT",
-  "keywords": ["brainstorming", "subagent-driven-development", "planning", "tdd", "debugging", "code-review", "workflow"]
+  "keywords": ["brainstorming", "subagent-driven-development", "planning", "tdd", "debugging", "code-review", "workflow", "codex", "orchestration"]
 }

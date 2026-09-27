@@ -19,6 +19,7 @@ requested independent parallel implementation.
 
 - The main session keeps the user's selected model and reasoning effort; this
   workflow does not switch or override either setting.
+- `relay:relay-orchestrator`가 로드되면 워커 선택과 수정 루프는 그 스킬을 따른다.
 - Every worker is created with
   the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `relay:implementer` agent = `claude-sonnet-5` / `high`).
 - Workers never spawn workers, reviewers, analysts, planners, or helpers. They
