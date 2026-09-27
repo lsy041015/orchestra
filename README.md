@@ -16,7 +16,7 @@
 공식 OpenAI·Anthropic·Superpowers 배포판이 아니며, 배너의 Claude·Codex 로고는 연동 대상을 표시하는 용도로만 씁니다.
 각 상표는 해당 소유자의 것입니다.
 
-> **상태: 실험판 (v0.2.0).** 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
+> **상태: 실험판 (v0.2.1).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
 > 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---

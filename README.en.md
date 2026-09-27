@@ -16,7 +16,7 @@ A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by J
 Not an official OpenAI, Anthropic or Superpowers release. The Claude and Codex logos in the banner
 only indicate the tools this plugin works with; the marks belong to their owners.
 
-> **Status: experimental (v0.2.0).** Used daily on Windows; tests run in CI on Ubuntu, macOS and
+> **Status: experimental (v0.2.1).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
 > Windows. Real orchestrator use on macOS/Linux is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
