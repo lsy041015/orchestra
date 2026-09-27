@@ -4,7 +4,7 @@
     "url": "https://github.com/lsy041015"
   },
   "description": "Codex workflow skills based on Superpowers 6.4.1: the chosen main model plans and reviews; an optional GPT-6 Luna xhigh worker implements bounded tasks.",
-  "homepage": "https://github.com/lsy041015/relay",
+  "homepage": "https://github.com/lsy041015/orchestra",
   "interface": {
     "brandColor": "#F59E0B",
     "capabilities": [
@@ -19,11 +19,11 @@
       "\uc2b9\uc778\ub41c \uacc4\ud68d\uc744 \uad6c\ud604\ud558\uace0 \uba54\uc778 \uc138\uc158\uc5d0\uc11c \uacb0\uacfc\ub97c \uac80\uc99d\ud574\uc918."
     ],
     "developerName": "lsy041015 (Superpowers fork)",
-    "displayName": "Relay",
+    "displayName": "Orchestra",
     "logo": "./.codex-plugin/assets/logo.png",
     "longDescription": "Experimental skills-only Codex fork of Superpowers 6.4.1. The main session keeps the user-selected model and reasoning effort for planning, review, and verification. When appropriate, one focused GPT-6 Luna xhigh worker handles bounded code changes. No MCP server or measured weekly quota savings.",
     "shortDescription": "Chosen main model plans and reviews; Luna implements bounded tasks",
-    "websiteURL": "https://github.com/lsy041015/relay"
+    "websiteURL": "https://github.com/lsy041015/orchestra"
   },
   "keywords": [
     "brainstorming",
@@ -36,8 +36,8 @@
     "workflow"
   ],
   "license": "MIT",
-  "name": "relay",
-  "repository": "https://github.com/lsy041015/relay",
+  "name": "orchestra",
+  "repository": "https://github.com/lsy041015/orchestra",
   "skills": "./skills/",
-  "version": "6.4.1+codex.20260926"
+  "version": "0.1.0"
 }

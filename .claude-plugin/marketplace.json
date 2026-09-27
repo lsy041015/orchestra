@@ -1,13 +1,13 @@
 {
-  "name": "relay",
-  "description": "Relay: plan and review in the main session, delegate bounded coding to Claude or Codex workers.",
+  "name": "orchestra",
+  "description": "Orchestra: plan and review in the main session, delegate bounded coding to Claude or Codex workers.",
   "owner": {
     "name": "lsy041015",
     "url": "https://github.com/lsy041015"
   },
   "plugins": [
     {
-      "name": "relay",
+      "name": "orchestra",
       "source": "./",
       "description": "Main session plans and reviews; tiered workers run on Claude subagents or the Codex CLI."
     }

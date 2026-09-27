@@ -1,14 +1,14 @@
 {
-  "name": "relay",
+  "name": "orchestra",
   "interface": {
-    "displayName": "Relay"
+    "displayName": "Orchestra"
   },
   "plugins": [
     {
-      "name": "relay",
+      "name": "orchestra",
       "source": {
         "source": "url",
-        "url": "https://github.com/lsy041015/relay.git",
+        "url": "https://github.com/lsy041015/orchestra.git",
         "ref": "main"
       },
       "policy": {

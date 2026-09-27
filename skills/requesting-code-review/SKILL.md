@@ -5,7 +5,7 @@ description: Use when a completed change needs a requirements and quality review
 
 # Requesting Code Review
 
-In the Relay workflow, requesting review means preparing an evidence-based
+In the Orchestra workflow, requesting review means preparing an evidence-based
 review pass for the main session. It does not create a reviewer agent.
 The main agent reviews the actual diff, traces relevant call paths, and performs any
 necessary re-review after the existing implementer worker fixes it.
@@ -35,7 +35,7 @@ independent review when the main agent performed the review.
    security, data loss, accessibility, calibration and hardware safety,
    compatibility, tests, and scope. Read outside the diff only for a named
    concrete risk.
-4. Apply `relay:verification-before-completion` to the
+4. Apply `orchestra:verification-before-completion` to the
    reported evidence and current change. Inspect actual logs; reuse valid
    results and rerun only checks with missing, invalidated, or uncertain
    evidence.
