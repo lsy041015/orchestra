@@ -4,6 +4,8 @@
 
 <p align="center"><b>한국어</b> · <a href="README.en.md">English</a></p>
 
+<p align="center"><a href="https://github.com/lsy041015/orchestra/actions/workflows/tests.yml"><img src="https://github.com/lsy041015/orchestra/actions/workflows/tests.yml/badge.svg" alt="tests"></a></p>
+
 # 오케스트라 (Orchestra)
 
 > **지휘는 비싼 모델이, 연주는 알맞은 모델이.**
@@ -15,7 +17,7 @@
 각 상표는 해당 소유자의 것입니다.
 
 > **상태: 실험판 (v0.2.0).** 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
-> macOS·Linux 실측과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
+> 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
 
@@ -582,7 +584,7 @@ orchestra/
 | 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ 1회 실측 ([Orchestra Piano](docs/demo/piano/README.md)). 이 실행은 세 티어 모두 Codex였고 Claude 워커 경로는 포함되지 않음 |
 | 전체 테스트 5개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
-| macOS·Linux 테스트 | ⚠️ 원본 기준 통과 기록만 있음. v0.2.0은 아직 재확인 안 함 |
+| CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |
 | 사용량 절감 효과 | ❌ 측정 안 됨, 보장 안 함 |
 
 **Codex CLI 실측** (2026-09-27, Windows 11, Codex CLI 0.156.1, ChatGPT 로그인). 모델·effort는 Codex 세션 기록
@@ -618,7 +620,7 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 > 그 워커들이 Claude Code 안에서 하나의 팀처럼 보이고 조작되며, 결과는 메인 세션이 증거로 검증한다."**
 
 ### 가까운 목표
-- [ ] macOS·Linux GitHub Actions에서 전체 테스트 실행
+- [x] macOS·Linux·Windows GitHub Actions에서 전체 테스트 실행
 - [x] Windows에서 기존 회귀 테스트가 통과하도록 인코딩·CRLF·심볼릭 링크 처리 개선 (v0.2.0)
 - [ ] 상태줄 스크립트의 크로스플랫폼(Node) 버전을 `extras/`로 제공
 - [ ] `codex-worker.mjs`에 이벤트 로그 저장 옵션 (리뷰 시 Codex가 실행한 명령 확인용)
@@ -644,7 +646,7 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 ## 19. 기여와 이슈
 
 - 버그와 제안: [Issues](https://github.com/lsy041015/orchestra/issues)
-- 특히 반가운 기여: macOS·Linux 실측 결과, Windows 테스트 수정, 다른 CLI 워커 연결
+- 특히 반가운 기여: macOS·Linux에서 오케스트레이터를 실제로 써 본 결과, Windows 테스트 수정, 다른 CLI 워커 연결
 - PR 전에 저장소 루트에서:
 
 ```bash
@@ -653,6 +655,7 @@ python3 tests/test_task_brief.py
 python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
+(cd examples/piano && node --test)
 claude plugin validate .
 ```
 
