@@ -457,7 +457,7 @@ claude plugin install orchestra@orchestra
 
 ```bash
 claude plugin marketplace update orchestra
-claude plugin install orchestra@orchestra
+claude plugin update orchestra@orchestra
 ```
 
 로컬 개발판:
@@ -514,6 +514,10 @@ Claude: Task 1 리뷰 통과 → ledger 기록
 워커는 모두 `DONE`을 돌려줬지만 메인 세션 리뷰가 5건을 더 잡았습니다: 계획 누락 1건, 잘못된 검증 명령 1건,
 테두리 겹침, 콘솔 오류, 반복 음이 보이지 않는 문제. 각 작업은 수정 라운드 1번(`--resume`)으로 끝났습니다.
 타임라인, 발견 사항, 브라우저 검증, Codex 토큰 사용량은 [실행 기록](docs/demo/piano/README.md)에 있습니다.
+
+같은 계획을 **Claude 워커로만** 한 번 더 돌린 [비교 기록](docs/demo/piano/comparison.md)도 있습니다.
+두 결과물 모두 같은 검증을 통과했고 걸린 시간도 비슷했습니다(12분 26초 대 13분 28초). 수정 라운드는 Claude 쪽이 1번 적었습니다.
+대신 Codex로 돌리면 워커가 Claude 한도를 전혀 쓰지 않고, Codex 7일 한도도 1% 미만만 썼습니다(각 1회 측정).
 
 ---
 
@@ -581,11 +585,11 @@ orchestra/
 
 | 항목 | 상태 |
 |---|---|
-| 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ 1회 실측 ([Orchestra Piano](docs/demo/piano/README.md)). 이 실행은 세 티어 모두 Codex였고 Claude 워커 경로는 포함되지 않음 |
+| 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ Codex 워커로 1회, Claude 워커로 1회 실측 ([실행 기록](docs/demo/piano/README.md), [비교](docs/demo/piano/comparison.md)) |
 | 전체 테스트 5개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |
-| 사용량 절감 효과 | ❌ 측정 안 됨, 보장 안 함 |
+| 사용량 비교 | ⚠️ 작은 작업 1개로 한 번 비교([비교](docs/demo/piano/comparison.md)). Codex 워커는 Claude 한도를 쓰지 않고 Codex 7일 한도 1% 미만 사용. 일반적인 절감률은 주장하지 않음 |
 
 **Codex CLI 실측** (2026-09-27, Windows 11, Codex CLI 0.156.1, ChatGPT 로그인). 모델·effort는 Codex 세션 기록
 (`~/.codex/sessions/.../rollout-*.jsonl`의 `turn_context`)에서 실제 적용값을 확인했습니다.
@@ -634,7 +638,7 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 ### 먼 목표
 - [ ] Gemini CLI 등 다른 CLI 에이전트를 같은 계약(브리프 → 상태 블록 → 범위 검사)으로 연결
 - [ ] 팀 공유용 `.orchestra.json` 프리셋 (예: "속도 우선", "품질 우선", "한도 절약")
-- [ ] 사용량 비교 방법론과 실제 측정 결과 공개
+- [ ] 사용량 비교 방법론과 실제 측정 결과 공개 (첫 비교: [Orchestra Piano](docs/demo/piano/comparison.md), 더 큰 작업으로 반복 필요)
 
 방향을 정할 때 지키는 것:
 - **작게 유지합니다.** 새 의존성, MCP 서버, 자동 훅은 꼭 필요할 때만.

@@ -3,6 +3,14 @@
 All notable changes to Orchestra. Versions match `.claude-plugin/plugin.json`
 and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
+## [Unreleased]
+
+### Docs
+- Update instructions now use `claude plugin update orchestra@orchestra`;
+  `plugin install` does not upgrade an existing install.
+- `docs/demo/piano/comparison.md`: the same plan rebuilt with Claude workers
+  only, compared with the Codex-worker run (time, fix rounds, findings, tokens).
+
 ## [0.2.1] - 2026-09-28
 
 ### Fixed
@@ -57,6 +65,7 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.2.1...HEAD
 [0.2.1]: https://github.com/lsy041015/orchestra/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/lsy041015/orchestra/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lsy041015/orchestra/releases/tag/v0.1.0

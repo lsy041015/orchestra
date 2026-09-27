@@ -94,7 +94,7 @@ Codex 세션 기록(`~/.codex/sessions/.../rollout-*.jsonl`)의 마지막 `token
 
 ## 7. 이 기록의 한계
 
-- 사용자가 세 티어를 모두 Codex로 골라서 **Claude 워커 경로(`orchestra:implementer`)는 이 실행에 없습니다.**
+- 사용자가 세 티어를 모두 Codex로 골라서 **Claude 워커 경로(`orchestra:implementer`)는 이 실행에 없습니다.** 같은 계획을 Claude 워커로 돌린 결과는 [비교 기록](comparison.md)에 있습니다.
 - 소리는 사람이 직접 듣고 확인하지 않았습니다. 오실레이터 호출과 타이밍은 테스트로, 하이라이트는 브라우저로 확인했습니다.
 - 이 세션에 설치된 플러그인은 0.1.0이었기 때문에, 메인 세션은 저장소의 v0.2.0 `skills/orchestrator/SKILL.md`와
   `codex-worker.mjs`를 직접 따랐습니다.
