@@ -501,6 +501,18 @@ Claude: Task 1 리뷰 통과 → ledger 기록
         Scope: ok, 테스트 통과. 커밋까지 끝났습니다. 푸시할까요?
 ```
 
+### 13.1 실제 실행 기록: Orchestra Piano
+
+<p align="center"><img src="docs/demo/piano/piano-demo.gif" alt="오케스트라가 만든 웹 피아노가 환희의 송가를 연주하는 모습" width="640"></p>
+
+위 예시 대화 말고, 실제로 한 번 끝까지 돌린 결과입니다. 한 옥타브 웹 피아노([`examples/piano/`](examples/piano/))를
+작업 3개로 나눠 Codex 워커 3개(`gpt-6-luna/medium`, `gpt-6-sol/medium`, `gpt-6-sol/high`)에 배정했습니다.
+두 작업은 병렬로 돌렸고, 워커 전체 경과는 13분 28초였습니다.
+
+워커는 모두 `DONE`을 돌려줬지만 메인 세션 리뷰가 5건을 더 잡았습니다: 계획 누락 1건, 잘못된 검증 명령 1건,
+테두리 겹침, 콘솔 오류, 반복 음이 보이지 않는 문제. 각 작업은 수정 라운드 1번(`--resume`)으로 끝났습니다.
+타임라인, 발견 사항, 브라우저 검증, Codex 토큰 사용량은 [실행 기록](docs/demo/piano/README.md)에 있습니다.
+
 ---
 
 ## 14. 포함된 스킬
@@ -567,6 +579,7 @@ orchestra/
 
 | 항목 | 상태 |
 |---|---|
+| 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ 1회 실측 ([Orchestra Piano](docs/demo/piano/README.md)). 이 실행은 세 티어 모두 Codex였고 Claude 워커 경로는 포함되지 않음 |
 | 전체 테스트 5개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | macOS·Linux 테스트 | ⚠️ 원본 기준 통과 기록만 있음. v0.2.0은 아직 재확인 안 함 |

@@ -136,7 +136,7 @@ console errors; screenshots at 1280×720 and 390×844 with `?pressed=E4,G4`.
 
 ## Verification
 
-1. `node --test examples/piano/` → all pass.
+1. `node --test "examples/piano/*.test.mjs"` → all pass (Node 18+; `examples/piano/package.json` sets `"type": "module"`).
 2. Headless Chrome over `python -m http.server`: DOM has 13
    `button[data-note]`, `E4` and `G4` carry `is-active` with `?pressed=E4,G4`,
    console shows no errors; desktop and mobile screenshots saved to

@@ -48,6 +48,18 @@ Workers show up in the Claude Code task list with their engine, model and effort
 `[Codex gpt-6-luna/high] Task 3: retry helper`. Cancel one with `TaskStop`, or say
 "switch Task 3 to claude opus".
 
+## A real run
+
+<p align="center"><img src="docs/demo/piano/piano-demo.gif" alt="A web piano built by Orchestra playing Ode to Joy" width="640"></p>
+
+One unedited end-to-end run: a one-octave web piano ([`examples/piano/`](examples/piano/)) split
+into three tasks and routed to three Codex workers (`gpt-6-luna/medium`, `gpt-6-sol/medium`,
+`gpt-6-sol/high`), two of them in parallel, 13 min 28 s of worker time. Every worker reported
+`DONE`, and main-session review still found five issues: a plan gap, a wrong verification command,
+doubled key borders, a console error, and invisible repeated notes. Each task needed one
+`--resume` fix round. Timeline, findings, browser checks and Codex token usage are in the
+[run record](docs/demo/piano/README.md) (Korean). Claude workers were not part of this run.
+
 ## Install
 
 Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and for Codex
@@ -125,6 +137,7 @@ actually applied were read from Codex's session log (`turn_context`).
 
 | Case | Result |
 |---|---|
+| Full orchestrator flow (plan → dispatch → review → fix → ledger) | ✅ once, [Orchestra Piano](docs/demo/piano/README.md); all tiers on Codex, no Claude worker |
 | New runs on `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.5` (low) | ✅ requested model/effort applied, `Status: DONE`, `Scope: ok` |
 | `--resume` on the same thread with effort low → medium | ✅ same thread, second turn logged as `gpt-6-luna/medium` |
 | Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` |
