@@ -1,7 +1,7 @@
 {
   "name": "orchestra",
-  "version": "0.1.0",
-  "description": "Superpowers 6.4.1 fork: the main session plans and reviews; tiered workers run on Claude subagents or the Codex CLI.",
+  "version": "0.2.0",
+  "description": "Superpowers 6.4.1 fork: the main session plans and reviews; each difficulty tier is implemented by a Claude subagent or a Codex CLI worker you choose.",
   "author": {
     "name": "lsy041015",
     "url": "https://github.com/lsy041015"
@@ -9,5 +9,15 @@
   "homepage": "https://github.com/lsy041015/orchestra",
   "repository": "https://github.com/lsy041015/orchestra",
   "license": "MIT",
-  "keywords": ["brainstorming", "subagent-driven-development", "planning", "tdd", "debugging", "code-review", "workflow", "codex", "orchestration"]
+  "keywords": [
+    "brainstorming",
+    "subagent-driven-development",
+    "planning",
+    "tdd",
+    "debugging",
+    "code-review",
+    "workflow",
+    "codex",
+    "orchestration"
+  ]
 }

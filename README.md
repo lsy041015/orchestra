@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="assets/orchestra-banner.png" alt="Orchestra — Claude × Codex" width="100%">
+</p>
+
+<p align="center"><b>한국어</b> · <a href="README.en.md">English</a></p>
+
 # 오케스트라 (Orchestra)
 
 > **지휘는 비싼 모델이, 연주는 알맞은 모델이.**
@@ -5,9 +11,10 @@
 > **Claude 서브에이전트** 또는 **Codex CLI(GPT)** 워커에게 맡기는 스킬 플러그인입니다.
 
 [Jesse Vincent의 Superpowers](https://github.com/obra/superpowers) 6.4.1을 기반으로 한 개인 포크입니다.
-공식 OpenAI·Anthropic·Superpowers 배포판이 아닙니다.
+공식 OpenAI·Anthropic·Superpowers 배포판이 아니며, 배너의 Claude·Codex 로고는 연동 대상을 표시하는 용도로만 씁니다.
+각 상표는 해당 소유자의 것입니다.
 
-> **상태: 실험판 (v0.1.0).** 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
+> **상태: 실험판 (v0.2.0).** 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
 > macOS·Linux 실측과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
@@ -216,7 +223,9 @@
 ```
 
 - 값 형식은 `<codex|claude> <model>/<effort>` 입니다.
-- **Codex effort**: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` (Codex CLI 0.156.1에서 확인).
+- **Codex effort**: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
+  모델마다 지원 범위가 다릅니다. 예를 들어 `gpt-6-luna`는 `minimal`을 거부하고, 이때 워커는
+  `Status: BLOCKED`와 Codex의 오류 문장을 그대로 돌려줍니다(Codex CLI 0.156.1에서 확인).
 - **Claude effort**: `high` → `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
   Claude Code는 호출마다 effort를 바꿀 수 없고 에이전트 정의에서만 정해지므로, 다른 effort가 필요하면
   `agents/`에 에이전트 파일을 하나 더 만들어야 합니다.
@@ -281,10 +290,10 @@ node "<orchestrator 스킬 폴더>/scripts/codex-worker.mjs" \
 | 인자 | 필수 | 검증 |
 |---|---|---|
 | `--model` | ✔ | `^[A-Za-z0-9._-]+$` |
-| `--effort` | ✔ | none·minimal·low·medium·high·xhigh·max 중 하나 |
-| `--cwd` | ✔ | 존재하는 디렉터리 |
+| `--effort` | ✔ | none·minimal·low·medium·high·xhigh·max·ultra 중 하나 |
+| `--cwd` | ✔ | 존재하는 디렉터리. 저장소의 하위 폴더여도 됨 |
 | `--brief` | ✔ | 존재하는 파일. 내용은 **stdin**으로 Codex에 전달 |
-| `--allowed` | ✔ | 쉼표 구분, cwd 기준 상대 경로. 비어 있으면 거부 |
+| `--allowed` | ✔ | 쉼표 구분, cwd 기준 상대 경로. `/`로 끝나면 그 폴더 전체 허용(`test/fixtures/`). 비어 있으면 거부 |
 | `--resume` | | `^[A-Za-z0-9-]+$` (Codex thread id) |
 
 검증에 실패하면 Codex를 실행하지 않고 **exit 2**로 끝납니다.
@@ -305,12 +314,16 @@ Scope: ok | outside allowed: a.txt, b.txt | unchecked (not a git repo)
 - 성공: exit 0.
 - 실패(Codex 종료 코드 ≠ 0, `turn.failed`/`error` 이벤트, 응답 메시지 없음): 첫 부분이
   `Status: BLOCKED` + `Unresolved: <오류 또는 stderr 마지막 20줄>`로 바뀌고 exit 1.
+  API 거부는 JSON 덩어리 대신 한 줄 문장으로 보여줍니다. 예:
+  `Unresolved: The 'gpt-x' model is not supported when using Codex with a ChatGPT account.`
 - `Scope: outside allowed`는 exit 0을 유지합니다. **판단은 메인 세션의 몫**이고, 리뷰 지적으로 처리합니다.
 
 ### 8.4 범위 검사는 어떻게 하나
 1. 실행 전 `git status --porcelain=v1 -z -uall`로 변경·신규 파일 목록을 얻고 각 파일의 SHA-1을 기록합니다.
 2. 실행 후 같은 방식으로 다시 기록합니다.
 3. 해시가 달라졌거나 한쪽에만 있는 경로 = "바뀐 파일". 여기서 `--allowed`를 뺀 것이 `outside`입니다.
+- 경로는 저장소 루트 기준으로 표시합니다. `--cwd`가 `pkg/`이고 `--allowed a.txt`면 `pkg/a.txt`가 허용되고,
+  위반은 `outside allowed: pkg/extra.txt`처럼 나옵니다.
 - 실행 **전부터** 수정돼 있던 파일은 내용이 그대로면 잡히지 않습니다. 사용자의 기존 작업을 워커 탓으로 돌리지 않습니다.
 - 이름 변경 항목은 새 경로 기준으로 봅니다. 서브모듈처럼 폴더로 보이는 항목도 실행을 멈추지 않습니다.
 - `.gitignore`된 파일은 검사 대상이 아닙니다. 그래서 ledger(`.superpowers/sdd/…`, 자동으로 무시됨)에 쓰는 리포트는 범위 위반이 아닙니다.
@@ -318,7 +331,12 @@ Scope: ok | outside allowed: a.txt, b.txt | unchecked (not a git repo)
 
 ### 8.5 thread id로 재개
 Codex는 작업마다 thread id를 남깁니다. 수정 라운드에서는 `--resume <thread_id>`로 **그 작업의 대화를 정확히 이어갑니다.**
-"가장 최근 세션"을 추측하지 않으므로 **같은 디렉터리에서 Codex 워커 여러 개를 병렬로** 돌려도 섞이지 않습니다.
+"가장 최근 세션"을 추측하지 않으므로 **같은 디렉터리에서 Codex 워커 여러 개를 병렬로** 돌려도 대화가 섞이지 않습니다.
+재개할 때 `--effort`를 바꿀 수 있습니다(예: 첫 실행 low → 수정 라운드 medium, 실측 확인).
+
+단, 범위 검사는 체크아웃 전체를 비교하므로, 같은 체크아웃에서 동시에 도는 다른 워커가 바꾼 파일도
+`Scope: outside allowed`에 나옵니다. 오케스트레이터는 **동시에 도는 다른 워커의 허용 목록에 있는 파일만** 무시하고
+나머지는 리뷰 지적으로 처리합니다. 완전히 분리하려면 워커마다 worktree를 따로 쓰세요.
 
 ### 8.6 운영체제별 처리
 - 경로는 인자로 넘기지 않고 `cwd` 옵션과 stdin으로 전달합니다. 공백이 들어간 경로도 안전합니다.
@@ -390,7 +408,7 @@ Task 2: complete (workspace changes, review clean, tests: claude plugin validate
 | 하고 싶은 것 | 방법 |
 |---|---|
 | 진행 확인 | 작업 목록 확인, 또는 "워커 진행 상황 알려줘" |
-| 취소 | `TaskStop <task id>` → 해당 작업은 `BLOCKED`로 기록 |
+| 취소 | `TaskStop <task id>` → Codex와 Codex가 실행 중이던 명령까지 프로세스 트리째 종료(Windows 실측), 작업은 `BLOCKED`로 기록 |
 | 모델 교체 | "Task N을 <모델>로 바꿔" → 현재 워커 종료 후 새 브리프로 재배정 |
 | 기본 라우팅 변경 | `~/.claude/orchestra.json` 또는 `.orchestra.json` 수정 |
 
@@ -419,7 +437,7 @@ orchestra orchestrator-distribution  done 1/3  |  Codex gpt-6-luna/max x2 11m
 | Git, Bash | 계획·worktree·ledger 스크립트 | `git --version` |
 | Python 3 | 테스트 실행 | `python3 --version` |
 | Node.js 18+ | Codex 워커 | `node --version` |
-| Codex CLI + 로그인 | Codex 워커 | `codex --version`, `codex login` |
+| Codex CLI + 로그인 | Codex 워커 | `codex --version`, `codex login status` (로그인은 `codex login`) |
 
 Codex CLI가 없거나 로그인되지 않았으면 오케스트레이터는 **Codex 티어를 Claude로 돌릴지 사용자에게 묻습니다.** 임의로 다른 모델로 바꾸지 않습니다.
 
@@ -508,6 +526,8 @@ orchestra/
 ├── .claude-plugin/            # Claude Code 플러그인 매니페스트 + 마켓플레이스
 ├── .codex-plugin/             # Codex 플러그인 매니페스트
 ├── .agents/plugins/           # Codex 마켓플레이스
+├── README.en.md               # 영어 요약판
+├── assets/orchestra-banner.png
 ├── agents/
 │   ├── implementer.md         # Claude 구현자 (claude-sonnet-5 / high)
 │   └── implementer-medium.md  # Claude 구현자 (claude-sonnet-5 / medium)
@@ -547,16 +567,28 @@ orchestra/
 
 | 항목 | 상태 |
 |---|---|
-| `tests/test_codex_worker.py` (8개) | ✅ Windows 통과 |
-| `codex-worker.mjs` 실제 실행 | ✅ Windows + Codex CLI 0.156.1: 새 실행, 같은 thread id 재개, 허용 밖 파일 탐지 확인 |
-| `claude plugin validate .` | ✅ 경고 없이 통과 |
-| 기존 회귀 테스트 (task-brief, worktree, sdd-safety) | ⚠️ Linux·macOS 통과 기록 있음. **Windows(Git Bash)에서는 원본 때부터 일부 실패**: cp949 인코딩(`PYTHONUTF8=1`로 일부 완화), 심볼릭 링크 권한, CRLF |
-| macOS·Linux에서 오케스트레이터 실측 | ❌ 아직 |
+| 전체 테스트 5개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
+| `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
+| macOS·Linux 테스트 | ⚠️ 원본 기준 통과 기록만 있음. v0.2.0은 아직 재확인 안 함 |
 | 사용량 절감 효과 | ❌ 측정 안 됨, 보장 안 함 |
+
+**Codex CLI 실측** (2026-09-27, Windows 11, Codex CLI 0.156.1, ChatGPT 로그인). 모델·effort는 Codex 세션 기록
+(`~/.codex/sessions/.../rollout-*.jsonl`의 `turn_context`)에서 실제 적용값을 확인했습니다.
+
+| 경우 | 결과 |
+|---|---|
+| `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.5` (effort low) 새 실행 | ✅ 네 모델 모두 지정한 모델·effort로 실행, `Status: DONE`, `Scope: ok`, 16–24초 |
+| 같은 thread `--resume` + effort 변경 (low → medium) | ✅ 같은 thread id, 두 번째 턴이 `gpt-6-luna/medium`으로 기록 |
+| `--cwd`가 하위 폴더 + 허용 밖 파일 생성 | ✅ `Scope: outside allowed: pkg/extra.txt` |
+| 없는 모델 | ✅ `Status: BLOCKED`, 한 줄 오류, exit 1 |
+| 지원하지 않는 effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED`, 지원 목록이 담긴 오류, exit 1 |
+| `gpt-6-luna` + `ultra` | ⚠️ 모델 목록에는 `max`까지만 있지만 API가 거부하지 않고 실행됨. 실제로 어떤 수준이 적용됐는지는 확인 불가 |
+| 실행 중 `TaskStop` | ✅ 워커·Codex·Codex가 돌리던 명령까지 모두 종료, 남은 프로세스 없음 |
 
 알려진 한계:
 - 오케스트레이터는 **스킬이 에이전트에게 요청하는 운영 규칙**입니다. 호스트 모델이 규칙을 어기는 것을 기술적으로 막지는 못합니다. 범위 검사와 메인 세션 리뷰가 그 빈틈을 줄입니다.
-- 범위 검사는 `.gitignore`된 파일의 변경을 보지 못합니다.
+- 범위 검사는 `.gitignore`된 파일의 변경을 보지 못합니다. 그런 경로를 다루는 작업은 diff와 리포트로 확인합니다.
+- 같은 체크아웃에서 병렬로 도는 워커끼리는 서로의 변경이 `Scope`에 보입니다([8.5](#85-thread-id로-재개) 참고).
 - 모델 이름(`gpt-6-luna`, `claude-sonnet-5`)은 시간이 지나면 바뀝니다. 설정 파일과 에이전트 frontmatter만 고치면 됩니다.
 - Codex 워커의 실시간 세부 진행은 TUI에 나오지 않습니다(의도된 선택).
 
@@ -574,7 +606,7 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 
 ### 가까운 목표
 - [ ] macOS·Linux GitHub Actions에서 전체 테스트 실행
-- [ ] Windows에서 기존 회귀 테스트가 통과하도록 인코딩·CRLF·심볼릭 링크 처리 개선
+- [x] Windows에서 기존 회귀 테스트가 통과하도록 인코딩·CRLF·심볼릭 링크 처리 개선 (v0.2.0)
 - [ ] 상태줄 스크립트의 크로스플랫폼(Node) 버전을 `extras/`로 제공
 - [ ] `codex-worker.mjs`에 이벤트 로그 저장 옵션 (리뷰 시 Codex가 실행한 명령 확인용)
 

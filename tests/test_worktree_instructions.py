@@ -16,7 +16,7 @@ class WorktreeInstructionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         blocks = [body for _, body in re.findall(
-            r"^([ \t]*)```bash\n(.*?)^\1```[ \t]*$", SKILL.read_text(), re.S | re.M)]
+            r"^([ \t]*)```bash\n(.*?)^\1```[ \t]*$", SKILL.read_text(encoding="utf-8"), re.S | re.M)]
         cls.selection = next(body for body in blocks if "LOCATION=.worktrees" in body)
         cls.safety = next(body for body in blocks if "repo_root=" in body and "check-ignore" in body)
         cls.creation = next(body for body in blocks if " worktree add " in body)
@@ -28,7 +28,7 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.subdir = self.root / "src"
         self.subdir.mkdir()
         (self.root / "worktrees").mkdir()
-        (self.root / ".gitignore").write_text("worktrees/\n")
+        (self.root / ".gitignore").write_text("worktrees/\n", encoding="utf-8")
         subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True)
 
     def run_flow(self, cwd, create=False):
@@ -36,24 +36,33 @@ class WorktreeInstructionTests(unittest.TestCase):
         if create:
             script += "\n" + self.creation
         script += '\nprintf "SELECTED=%s\\n" "$selected"'
-        return subprocess.run(["bash", "-c", script], cwd=cwd, capture_output=True, text=True,
+        return subprocess.run(["bash", "-c", script], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
                               env={**os.environ, "BRANCH_NAME": "codex/test-worktree"})
+
+    def assert_selected(self, result, expected):
+        line = next(line for line in result.stdout.splitlines() if line.startswith("SELECTED="))
+        # Git Bash prints C:/... while Python uses C:\...; compare the directories.
+        self.assertTrue(os.path.samefile(line[len("SELECTED="):], expected), line)
+
+    def bash_path(self, path):
+        return subprocess.run(["bash", "-c", 'cd -- "$1" && pwd -P', "_", str(path)], check=True,
+                              capture_output=True, text=True, encoding="utf-8").stdout.strip()
 
     def test_existing_directory_selected_from_any_cwd(self):
         for cwd in (self.root, self.subdir):
             with self.subTest(cwd=cwd.name):
                 result = self.run_flow(cwd)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn(f"SELECTED={self.root}/worktrees\n", result.stdout)
+                self.assert_selected(result, self.root / "worktrees")
 
     def test_preferred_directory_requires_its_own_ignore_rule(self):
         (self.root / ".worktrees").mkdir()
         result = self.run_flow(self.subdir)
         self.assertEqual(result.returncode, 1, result.stderr)
-        (self.root / ".gitignore").write_text("worktrees/\n.worktrees/\n")
+        (self.root / ".gitignore").write_text("worktrees/\n.worktrees/\n", encoding="utf-8")
         result = self.run_flow(self.subdir)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"SELECTED={self.root}/.worktrees\n", result.stdout)
+        self.assert_selected(result, self.root / ".worktrees")
 
     def test_creation_uses_selected_root_from_subdirectory(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
@@ -66,12 +75,12 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.assertTrue((expected / ".git").is_file())
         self.assertFalse((self.root / ".worktrees").exists())
         actual = subprocess.run(["git", "-C", str(expected), "rev-parse", "--show-toplevel"],
-                                check=True, capture_output=True, text=True)
-        self.assertEqual(Path(actual.stdout.strip()), expected)
+                                check=True, capture_output=True, text=True, encoding="utf-8")
+        self.assertTrue(os.path.samefile(actual.stdout.strip(), expected))
         git_dir = subprocess.run(["git", "-C", str(expected), "rev-parse", "--git-dir"],
-                                 check=True, capture_output=True, text=True).stdout.strip()
-        self.assertEqual((Path(git_dir) / "orchestra-owned-worktree").read_text().strip(),
-                         str(expected))
+                                 check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+        self.assertEqual((Path(git_dir) / "orchestra-owned-worktree").read_text(encoding="utf-8").strip(),
+                         self.bash_path(expected))
 
 
 if __name__ == "__main__":

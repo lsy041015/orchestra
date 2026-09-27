@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Claude Code only. Routes tasks to Claude or Codex workers by difficulty tier.
+description: Use in Claude Code when an approved plan should be split into difficulty tiers and each tier delegated to a Claude subagent or a Codex CLI worker with a user-chosen model and effort. Not for Codex-hosted sessions.
 ---
 
 # Orchestra Orchestrator
@@ -8,6 +8,9 @@ description: Claude Code only. Routes tasks to Claude or Codex workers by diffic
 This skill extends `orchestra:subagent-driven-development`. The main session keeps
 planning, review, re-review, diagnosis, and integration. Workers only implement.
 This skill replaces that workflow's worker selection and fix loop.
+
+Claude Code only. In a Codex-hosted session, use
+`orchestra:subagent-driven-development` instead.
 
 ## 1. Tiered task list
 
@@ -47,11 +50,19 @@ otherwise use the user array. The values use this schema:
 }
 ```
 
-Routing values have the form `<codex|claude> <model>/<effort>`. Claude supports
-`high` (use `orchestra:implementer`) and `medium` (use
-`orchestra:implementer-medium`). Use the `ui` key for separately routed UI tasks
-and `hard` for other hard tasks. If every tier in the task table has a routing
-value, skip questions and show the mapping on one line. Ask with
+Routing values have the form `<codex|claude> <model>/<effort>`.
+- Claude: `<model>` is a model alias the `Agent` tool accepts (for example
+  `sonnet`, `opus`, `haiku`). Effort `high` uses `orchestra:implementer` and
+  `medium` uses `orchestra:implementer-medium`.
+- Codex: `<model>` is any model your Codex CLI account can use; `<effort>` is
+  one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
+  Not every model supports every effort; Codex reports an unsupported pair as a
+  failed run.
+
+Use the `ui` key for separately routed UI tasks and `hard` for other hard
+tasks. If a file is not valid JSON or a value does not match the form, tell the
+user which one and ask instead of guessing. If every tier in the task table has
+a routing value, skip questions and show the mapping on one line. Ask with
 `AskUserQuestion` only for tiers without a value, using the merged `options`
 array or the four example choices above when it is absent. The user may enter
 another model through `Other`. Record the final mapping in the ledger as
@@ -69,8 +80,8 @@ Label every worker so the task list shows its engine, model, and effort:
 | high | `orchestra:implementer` |
 | medium | `orchestra:implementer-medium` |
 
-Pass `model` (`opus` / `sonnet` / `haiku`). Effort comes from the agent
-definition. For another effort, tell the user it needs a new agent file.
+Pass `model` from the routing value. Effort comes from the agent definition;
+for another effort, tell the user it needs a new agent file.
 
 **Codex worker**: the main session calls `Bash` directly with
 `run_in_background: true` and no `timeout` parameter. Set the description to
@@ -79,6 +90,10 @@ definition. For another effort, tell the user it needs a new agent file.
 ```text
 node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --effort <effort> --cwd "<project>" --brief "<ledger>/task-N-codex-prompt.md" --allowed "<files>"
 ```
+
+`--allowed` is a comma-separated list relative to `--cwd`; end an entry with
+`/` to allow a whole directory, for example `src/retry.ts,test/fixtures/`.
+`--cwd` may be a subdirectory of the repository.
 
 Fill `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
@@ -92,32 +107,44 @@ status block.
 ```
 
 When the background task completes, notify the user and record its
-`Codex thread:` output in the ledger. Codex workers may run in parallel when
-their files do not overlap.
+`Codex thread:` output in the ledger.
+
+Codex workers may run in parallel when their files do not overlap. The scope
+check compares the whole checkout, so a file changed by another worker running
+at the same time also appears in `Scope: outside allowed`. Ignore a listed file
+only when it belongs to a concurrent worker's allowed list; otherwise treat it
+as a finding. Separate worktrees avoid this overlap.
 
 ## 4. Review and fix loop
 
-Review every result from the actual diff. After each Codex run, check that it
-started no stray processes and touched no files outside its allowed list. Treat
-`Scope: outside allowed` as a review finding.
+Review every result from the actual diff. After each Codex run:
+- Treat `Scope: outside allowed` as a review finding (see the parallel rule
+  above). The check does not see `.gitignore`d paths; review those from the
+  diff and the worker report when the task touches them.
+- Check for processes left running from the project directory: on Windows,
+  `Get-CimInstance Win32_Process | Where-Object CommandLine -like '*<project>*'`;
+  elsewhere, `ps -eo pid,args | grep -F "<project>"`. Ask before stopping a
+  process the user may own.
 
 For a Claude worker, send findings to that worker. For a Codex worker, write
 findings to `<ledger>/task-N-codex-fix-K.md` using the re-review prompt format,
 then rerun the worker with the same `--model`, `--effort`, `--cwd` and
-`--allowed`, plus `--resume <thread>` and that fix brief. If the scope
-is outside allowed, treat it as a review finding before dispatching another
-fix. After two failed fix rounds with the same root cause, the main session
-writes a `Ruling:` and replans or fixes inline.
+`--allowed`, plus `--resume <thread>` and that fix brief. After two failed fix
+rounds with the same root cause, the main session writes a `Ruling:` and
+replans or fixes inline.
 
 ## Codex prerequisites
 
-Codex tasks require the Codex CLI, a successful `codex login`, and Node.js 18 or
-later. Check `codex --version` before dispatch. If it fails, ask whether to
-route the affected Codex tier to a Claude worker.
+Codex tasks require the Codex CLI, a ChatGPT or API login, Git for the scope
+check, and Node.js 18 or later. Before the first Codex dispatch, run
+`codex --version` and `codex login status`. If either fails, or a run returns
+`Status: BLOCKED` because the model or effort is unavailable, show the error
+and ask whether to pick another Codex model or route the tier to a Claude
+worker. Never switch models silently.
 
 ## User controls
 
 The user can confirm tasks from the task list, cancel a task with
-`TaskStop <task id>` (record the task as `BLOCKED`), or say
-"switch Task N to <model>". Finish or stop the current worker before changing
-the model, then dispatch again with a fresh brief.
+`TaskStop <task id>` (this stops the Codex process tree; record the task as
+`BLOCKED`), or say "switch Task N to <model>". Finish or stop the current worker
+before changing the model, then dispatch again with a fresh brief.

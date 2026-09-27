@@ -19,7 +19,8 @@ requested independent parallel implementation.
 
 - The main session keeps the user's selected model and reasoning effort; this
   workflow does not switch or override either setting.
-- `orchestra:orchestrator`가 로드되면 워커 선택과 수정 루프는 그 스킬을 따른다.
+- When `orchestra:orchestrator` is loaded, follow it for worker selection and
+  the fix loop.
 - Every worker is created with
   the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`).
 - Workers never spawn workers, reviewers, analysts, planners, or helpers. They

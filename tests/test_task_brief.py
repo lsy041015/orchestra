@@ -22,12 +22,12 @@ class TaskBriefTests(unittest.TestCase):
     def run_helper(self, text, task="1", output=None):
         self.plan.write_bytes(text.encode("utf-8"))
         return subprocess.run(["bash", str(HELPER), str(self.plan), task,
-                               str(output or self.output)], capture_output=True, text=True)
+                               str(output or self.output)], capture_output=True, text=True, encoding="utf-8")
 
     def assert_success(self, text, expected, task="1"):
         result = self.run_helper(text, task)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.output.read_text(), expected)
+        self.assertEqual(self.output.read_text(encoding="utf-8"), expected)
 
     def test_canonical_korean_and_legacy_headings(self):
         for heading in ("### Task 1: 입력 검증", "# Task 1 - Legacy"):
@@ -104,16 +104,21 @@ class TaskBriefTests(unittest.TestCase):
 
     def test_plan_aliases_cannot_be_output(self):
         text = "### Task 1: Valid\nBODY\n"
-        self.plan.write_text(text)
+        self.plan.write_text(text, encoding="utf-8")
         link = self.root / "plan-link.md"
         hardlink = self.root / "plan-hardlink.md"
-        link.symlink_to(self.plan)
         hardlink.hardlink_to(self.plan)
-        for output in (self.plan, link, hardlink):
+        outputs = [self.plan, hardlink]
+        try:
+            link.symlink_to(self.plan)
+            outputs.append(link)
+        except OSError:  # Windows without Developer Mode
+            pass
+        for output in outputs:
             with self.subTest(output=output.name):
                 result = self.run_helper(text, output=output)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(self.plan.read_text(), text)
+                self.assertEqual(self.plan.read_text(encoding="utf-8"), text)
 
     def test_directory_output_is_rejected_without_writes(self):
         directory = self.root / "output-directory"
