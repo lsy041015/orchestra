@@ -3,10 +3,15 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+
+# Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
+# System32\bash.exe before Git Bash.
+BASH = shutil.which("bash") or "bash"
 
 SKILL = (Path(sys.argv.pop(1)) if len(sys.argv) > 1 else
          Path(__file__).resolve().parents[1] / "skills/using-git-worktrees/SKILL.md").resolve()
@@ -36,7 +41,7 @@ class WorktreeInstructionTests(unittest.TestCase):
         if create:
             script += "\n" + self.creation
         script += '\nprintf "SELECTED=%s\\n" "$selected"'
-        return subprocess.run(["bash", "-c", script], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
+        return subprocess.run([BASH, "-c", script], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
                               env={**os.environ, "BRANCH_NAME": "codex/test-worktree"})
 
     def assert_selected(self, result, expected):
@@ -45,7 +50,7 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.assertTrue(os.path.samefile(line[len("SELECTED="):], expected), line)
 
     def bash_path(self, path):
-        return subprocess.run(["bash", "-c", 'cd -- "$1" && pwd -P', "_", str(path)], check=True,
+        return subprocess.run([BASH, "-c", 'cd -- "$1" && pwd -P', "_", str(path)], check=True,
                               capture_output=True, text=True, encoding="utf-8").stdout.strip()
 
     def test_existing_directory_selected_from_any_cwd(self):
