@@ -60,7 +60,11 @@ into three tasks and routed to three Codex workers (`gpt-6-luna/medium`, `gpt-6-
 `DONE`, and main-session review still found five issues: a plan gap, a wrong verification command,
 doubled key borders, a console error, and invisible repeated notes. Each task needed one
 `--resume` fix round. Timeline, findings, browser checks and Codex token usage are in the
-[run record](docs/demo/piano/README.md) (Korean). Claude workers were not part of this run.
+[run record](docs/demo/piano/README.md) (Korean).
+
+The same plan was then rebuilt with **Claude workers only** ([comparison](docs/demo/piano/comparison.md), Korean).
+Both results passed the same checks in similar time (12 min 26 s vs 13 min 28 s), and the Claude run needed one fewer fix round.
+The Codex run used no Claude quota for workers and under 1% of the 7-day Codex quota. That is one run each, not a general saving.
 
 ## Install
 
@@ -72,8 +76,8 @@ claude plugin marketplace add lsy041015/orchestra
 claude plugin install orchestra@orchestra
 ```
 
-Start a new session afterwards. Update with `claude plugin marketplace update orchestra` followed by
-the install command again.
+Start a new session afterwards. Update with `claude plugin marketplace update orchestra` and then
+`claude plugin update orchestra@orchestra`.
 
 Codex as the host (shared skills only; `orchestrator` is Claude Code only):
 
@@ -139,7 +143,7 @@ actually applied were read from Codex's session log (`turn_context`).
 
 | Case | Result |
 |---|---|
-| Full orchestrator flow (plan → dispatch → review → fix → ledger) | ✅ once, [Orchestra Piano](docs/demo/piano/README.md); all tiers on Codex, no Claude worker |
+| Full orchestrator flow (plan → dispatch → review → fix → ledger) | ✅ once with Codex workers and once with Claude workers ([record](docs/demo/piano/README.md), [comparison](docs/demo/piano/comparison.md)) |
 | New runs on `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.5` (low) | ✅ requested model/effort applied, `Status: DONE`, `Scope: ok` |
 | `--resume` on the same thread with effort low → medium | ✅ same thread, second turn logged as `gpt-6-luna/medium` |
 | Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` |
