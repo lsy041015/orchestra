@@ -15,7 +15,7 @@ class WorktreeCleanupTests(unittest.TestCase):
     def test_cleanup_requires_ownership_marker(self):
         blocks = [body for _, body in re.findall(
             r"^([ \t]*)```bash\n(.*?)^\1```[ \t]*$",
-            SKILL.read_text(), re.S | re.M)]
+            SKILL.read_text(encoding="utf-8"), re.S | re.M)]
         cleanup = next(body for body in blocks if 'git worktree remove "$WORKTREE_PATH"' in body)
         for owned in (False, True):
             with self.subTest(owned=owned), tempfile.TemporaryDirectory(prefix="worktree-cleanup-") as temp:
@@ -30,12 +30,16 @@ class WorktreeCleanupTests(unittest.TestCase):
                                 "user", str(worktree)], check=True)
                 git_dir = subprocess.run(["git", "-C", str(worktree), "rev-parse",
                                           "--git-dir"], check=True, capture_output=True,
-                                         text=True).stdout.strip()
+                                         text=True, encoding="utf-8").stdout.strip()
                 if owned:
-                    (Path(git_dir) / "orchestra-owned-worktree").write_text(str(worktree) + "\n")
+                    # Same command the creation step uses, so the marker matches
+                    # bash's own path spelling (/c/... under Git Bash).
+                    subprocess.run(["bash", "-c", 'cd -- "$1" && pwd -P > "$2"', "_",
+                                    str(worktree), str(Path(git_dir) / "orchestra-owned-worktree")],
+                                   check=True)
                 script = f'set -eu\nGIT_DIR="{git_dir}"\nWORKTREE_PATH="{worktree}"\n' + cleanup
                 result = subprocess.run(["bash", "-c", script], cwd=repo,
-                                        capture_output=True, text=True)
+                                        capture_output=True, text=True, encoding="utf-8")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((worktree / ".git").exists(), not owned)
 

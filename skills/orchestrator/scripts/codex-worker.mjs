@@ -4,7 +4,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-const efforts = new Set(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
+const efforts = new Set(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra']);
 const flags = new Set(['--model', '--effort', '--cwd', '--brief', '--allowed', '--resume']);
 
 function parseArgs(args) {
@@ -31,27 +31,42 @@ function parseArgs(args) {
   if (!existsSync(brief) || !statSync(brief).isFile()) throw new Error('Invalid --brief');
   const allowed = values['--allowed'].split(',').map((item) => item.trim()).filter(Boolean);
   if (!allowed.length) throw new Error('Invalid --allowed');
-  return { model: values['--model'], effort: values['--effort'], cwd, brief,
-    allowed: new Set(allowed.map((item) => path.relative(cwd,
-      path.resolve(cwd, item.replace(/[\\/]/g, path.sep))).replace(/\\/g, '/'))),
+  return { model: values['--model'], effort: values['--effort'], cwd, brief, allowed,
     resume: values['--resume'] };
 }
 
-function gitStatus(cwd) {
+function git(cwd, args) {
   return new Promise((resolve) => {
-    const child = spawn('git', ['-C', cwd, 'status', '--porcelain=v1', '-z', '-uall'],
-      { windowsHide: true });
+    const child = spawn('git', ['-C', cwd, ...args], { windowsHide: true });
     const chunks = [];
     child.stdout.on('data', (chunk) => chunks.push(chunk));
     child.on('error', () => resolve(null));
-    child.on('close', (code) => resolve(code === 0 ? Buffer.concat(chunks) : null));
+    child.on('close', (code) => resolve(code === 0 ? Buffer.concat(chunks).toString('utf8') : null));
   });
 }
 
-async function snapshot(cwd) {
-  const output = await gitStatus(cwd);
+// git status prints paths from the repository root, not from --cwd, so the
+// allowed list is converted to root-relative paths. A trailing slash marks a
+// directory whose whole subtree is allowed.
+async function repoScope(cwd, allowed) {
+  const output = await git(cwd, ['rev-parse', '--show-cdup']);
   if (output === null) return null;
-  const fields = output.toString('utf8').split('\0');
+  const root = path.resolve(cwd, output.trim());
+  const files = new Set();
+  const dirs = [];
+  for (const item of allowed) {
+    const rel = path.relative(root, path.resolve(cwd, item.replace(/[\\/]/g, path.sep)))
+      .replace(/\\/g, '/');
+    if (/[\\/]$/.test(item)) dirs.push(rel ? `${rel}/` : '');
+    else files.add(rel);
+  }
+  return { root, allows: (file) => files.has(file) || dirs.some((dir) => file.startsWith(dir)) };
+}
+
+async function snapshot(root) {
+  const output = await git(root, ['status', '--porcelain=v1', '-z', '-uall']);
+  if (output === null) return null;
+  const fields = output.split('\0');
   const files = new Map();
   for (let i = 0; i < fields.length; i++) {
     const entry = fields[i];
@@ -61,7 +76,7 @@ async function snapshot(cwd) {
     const normalized = file.replace(/\\/g, '/');
     let hash = 'deleted';
     try {
-      hash = createHash('sha1').update(readFileSync(path.resolve(cwd, file))).digest('hex');
+      hash = createHash('sha1').update(readFileSync(path.resolve(root, file))).digest('hex');
     } catch (error) {
       // Submodules show up as directories (EISDIR); keep the entry instead of aborting the run.
       hash = error.code === 'ENOENT' ? 'deleted' : error.code;
@@ -98,6 +113,17 @@ function spawnCodex(args, cwd, prompt) {
   });
 }
 
+// Codex wraps API rejections (unknown model, unsupported effort) as a
+// pretty-printed JSON string; keep only the human-readable message.
+function apiMessage(text) {
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.error?.message || parsed.message || text;
+  } catch {
+    return text;
+  }
+}
+
 function parseEvents(stdout) {
   let thread = 'unknown';
   let message;
@@ -114,8 +140,8 @@ function parseEvents(stdout) {
         hasMessage = true;
       } else if (event.type === 'turn.failed' || event.type === 'error') {
         hasFailure = true;
-        failure = typeof event.error === 'string' ? event.error :
-          event.error?.message || event.message || event.item?.error?.message;
+        failure = apiMessage(typeof event.error === 'string' ? event.error :
+          event.error?.message || event.message || event.item?.error?.message);
       }
     } catch {}
   }
@@ -148,7 +174,8 @@ async function main() {
     return;
   }
 
-  const before = await snapshot(options.cwd);
+  const repo = await repoScope(options.cwd, options.allowed);
+  const before = repo === null ? null : await snapshot(repo.root);
   const args = ['exec'];
   if (options.resume) args.push('resume', options.resume);
   args.push('--json', '-m', options.model, '-c', `model_reasoning_effort=${options.effort}`);
@@ -158,9 +185,9 @@ async function main() {
 
   const run = await spawnCodex(args, options.cwd, prompt);
   const events = parseEvents(run.stdout);
-  const after = before === null ? null : await snapshot(options.cwd);
+  const after = before === null ? null : await snapshot(repo.root);
   const outside = after === null ? [] : Array.from(new Set([...before.keys(), ...after.keys()]))
-    .filter((file) => before.get(file) !== after.get(file) && !options.allowed.has(file))
+    .filter((file) => before.get(file) !== after.get(file) && !repo.allows(file))
     .sort();
   const scope = before === null ? 'unchecked (not a git repo)' :
     (outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok');

@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -29,15 +30,19 @@ class CodexWorkerTests(unittest.TestCase):
                         "-c", "user.email=fixture@example.invalid", "commit", "-q",
                         "-m", "baseline"], check=True)
 
-    def run_worker(self, *extra, mode="ok", cwd=None, brief=None, model="gpt-6-luna"):
+    def run_worker(self, *extra, mode="ok", cwd=None, brief=None, model="gpt-6-luna",
+                   effort="high", allowed="a.txt"):
         cwd = Path(cwd or self.root)
         brief = Path(brief or self.brief)
         env = os.environ.copy()
         env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode)
         return subprocess.run([
-            "node", str(WORKER), "--model", model, "--effort", "high",
-            "--cwd", str(cwd), "--brief", str(brief), "--allowed", "a.txt", *extra,
-        ], cwd=ROOT, env=env, capture_output=True, text=True)
+            "node", str(WORKER), "--model", model, "--effort", effort,
+            "--cwd", str(cwd), "--brief", str(brief), "--allowed", allowed, *extra,
+        ], cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8")
+
+    def scope(self, result):
+        return next(line for line in result.stdout.splitlines() if line.startswith("Scope:"))
 
     def test_success_prints_message_thread_scope(self):
         result = self.run_worker()
@@ -60,8 +65,31 @@ class CodexWorkerTests(unittest.TestCase):
         (self.root / "c.txt").write_text("preexisting\n", encoding="utf-8")
         result = self.run_worker(mode="touch")
         self.assertEqual(result.returncode, 0, result.stderr)
-        scope = next(line for line in result.stdout.splitlines() if line.startswith("Scope:"))
-        self.assertEqual(scope, "Scope: outside allowed: b.txt")
+        self.assertEqual(self.scope(result), "Scope: outside allowed: b.txt")
+
+    def test_subdirectory_cwd_scope_is_relative_to_cwd(self):
+        sub = self.root / "pkg"
+        sub.mkdir()
+        (sub / "b.txt").write_text("dirty before the run\n", encoding="utf-8")
+        result = self.run_worker(mode="touch", cwd=sub)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.scope(result), "Scope: outside allowed: pkg/b.txt")
+
+    def test_allowed_directory_entry_covers_new_files(self):
+        result = self.run_worker(mode="nested", allowed="a.txt,ou/")
+        self.assertEqual(self.scope(result), "Scope: outside allowed: out/deep/c.txt")
+        shutil.rmtree(self.root / "out")
+        result = self.run_worker(mode="nested", allowed="a.txt, out/")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.scope(result), "Scope: ok")
+
+    def test_accepts_every_codex_effort(self):
+        for effort in ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"):
+            with self.subTest(effort=effort):
+                result = self.run_worker(effort=effort)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+                self.assertIn(f"model_reasoning_effort={effort}", args)
 
     def test_resume_uses_thread_id(self):
         result = self.run_worker("--resume", "t-123")
@@ -81,6 +109,14 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertIn("Status: BLOCKED", result.stdout)
         self.assertIn("Unresolved: Codex reported a failure", result.stdout)
         self.assertNotIn("Status: DONE", result.stdout)
+
+    def test_api_error_json_is_reduced_to_its_message(self):
+        result = self.run_worker(mode="api-error")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines()[:2], [
+            "Status: BLOCKED",
+            "Unresolved: Unsupported value: 'minimal' is not supported with the 'gpt-6-luna' model.",
+        ])
 
     def test_rejects_bad_model(self):
         for model in ("x; rm", "gpt-model\n"):

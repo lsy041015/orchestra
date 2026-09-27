@@ -53,7 +53,9 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-if ! awk -v target="$n" -v error_file="$err" '
+# BINMODE=3 stops Windows gawk (Git Bash) from dropping CR bytes; other awks
+# ignore it.
+if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
   function report(message) {
     if (!invalid) print message > error_file
     invalid = 1

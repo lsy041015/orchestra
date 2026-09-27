@@ -1,0 +1,6 @@
+interface:
+  display_name: "Orchestrator (Claude Code only)"
+  short_description: "Claude Code only: route plan tiers to Claude or Codex"
+
+policy:
+  allow_implicit_invocation: false
