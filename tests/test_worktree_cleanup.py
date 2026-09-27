@@ -2,9 +2,14 @@
 """Orchestra removes only worktrees it created."""
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
+
+# Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
+# System32\bash.exe before Git Bash.
+BASH = shutil.which("bash") or "bash"
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,11 +39,11 @@ class WorktreeCleanupTests(unittest.TestCase):
                 if owned:
                     # Same command the creation step uses, so the marker matches
                     # bash's own path spelling (/c/... under Git Bash).
-                    subprocess.run(["bash", "-c", 'cd -- "$1" && pwd -P > "$2"', "_",
+                    subprocess.run([BASH, "-c", 'cd -- "$1" && pwd -P > "$2"', "_",
                                     str(worktree), str(Path(git_dir) / "orchestra-owned-worktree")],
                                    check=True)
                 script = f'set -eu\nGIT_DIR="{git_dir}"\nWORKTREE_PATH="{worktree}"\n' + cleanup
-                result = subprocess.run(["bash", "-c", script], cwd=repo,
+                result = subprocess.run([BASH, "-c", script], cwd=repo,
                                         capture_output=True, text=True, encoding="utf-8")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((worktree / ".git").exists(), not owned)

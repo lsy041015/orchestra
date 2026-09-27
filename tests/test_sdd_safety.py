@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Regression tests for SDD workspace safety and task completion."""
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
+
+# Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
+# System32\bash.exe before Git Bash.
+BASH = shutil.which("bash") or "bash"
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +27,7 @@ class SddSafetyTests(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
 
     def run_script(self, script, *args):
-        return subprocess.run(["bash", str(script), *map(str, args)], cwd=self.root,
+        return subprocess.run([BASH, str(script), *map(str, args)], cwd=self.root,
                               capture_output=True, text=True, encoding="utf-8")
 
     def test_workspace_rejects_symlink_outside_repo(self):

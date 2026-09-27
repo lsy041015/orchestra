@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, node: '22' }
+          - { os: ubuntu-latest, node: '18' }  # README promises Node.js 18+
+          - { os: macos-latest, node: '22' }
+          - { os: windows-latest, node: '22' }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Versions
+        run: python --version && node --version && git --version && bash --version | head -1
+      - name: codex-worker
+        run: python tests/test_codex_worker.py
+      - name: task-brief
+        run: python tests/test_task_brief.py
+      - name: sdd safety
+        run: python tests/test_sdd_safety.py
+      - name: worktree cleanup
+        run: python tests/test_worktree_cleanup.py
+      - name: worktree instructions
+        run: python tests/test_worktree_instructions.py
+      - name: piano example
+        working-directory: examples/piano
+        run: node --test

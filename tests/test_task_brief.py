@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 """Run with python3 tests/test_task_brief.py [path/to/task-brief]."""
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+
+# Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
+# System32\bash.exe before Git Bash.
+BASH = shutil.which("bash") or "bash"
 
 HELPER = (Path(sys.argv.pop(1)) if len(sys.argv) > 1 else
           Path(__file__).resolve().parents[1] / "skills/subagent-driven-development/scripts/task-brief").resolve()
@@ -21,7 +26,7 @@ class TaskBriefTests(unittest.TestCase):
 
     def run_helper(self, text, task="1", output=None):
         self.plan.write_bytes(text.encode("utf-8"))
-        return subprocess.run(["bash", str(HELPER), str(self.plan), task,
+        return subprocess.run([BASH, str(HELPER), str(self.plan), task,
                                str(output or self.output)], capture_output=True, text=True, encoding="utf-8")
 
     def assert_success(self, text, expected, task="1"):
