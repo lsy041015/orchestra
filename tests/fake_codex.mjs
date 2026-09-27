@@ -1,0 +1,27 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const cwd = process.cwd();
+writeFileSync(join(cwd, 'argv.json'), JSON.stringify(process.argv.slice(2)));
+writeFileSync(join(cwd, 'stdin.txt'), readFileSync(0, 'utf8'));
+
+if (process.env.FAKE_MODE === 'fail') {
+  process.stderr.write('boom\n');
+  process.exitCode = 3;
+} else if (process.env.FAKE_MODE === 'event-fail') {
+  for (const event of [
+    { type: 'thread.started', thread_id: 't-123' },
+    { type: 'item.completed', item: { type: 'agent_message', text: 'Status: DONE' } },
+    { type: 'turn.failed' },
+  ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+} else {
+  if (process.env.FAKE_MODE === 'touch') {
+    writeFileSync(join(cwd, 'a.txt'), 'a\n');
+    writeFileSync(join(cwd, 'b.txt'), 'b\n');
+  }
+  for (const event of [
+    { type: 'thread.started', thread_id: 't-123' },
+    { type: 'item.completed', item: { type: 'agent_message', text: 'Status: DONE\nChanged files: a.txt' } },
+    { type: 'turn.completed' },
+  ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+}
