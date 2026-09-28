@@ -46,6 +46,9 @@ order and keep the change at the stated scope.
 - Keep focused tests near the task and run the task's final verification before
   marking it complete. Record the command, result, and relevant evidence in
   the ledger. Commit only when the plan or repository workflow requires it.
+- In Git, `scripts/task-start PLAN_FILE N` prints the task's brief path and
+  BASE in one call, and `scripts/task-done PLAN_FILE N BASE -- <test command>`
+  runs the final check and appends `Task N: complete` only when it passes.
 
 Do not stop between tasks to ask whether to continue. Stop for an irreversible
 or security-sensitive operation, an external side effect requiring approval,
