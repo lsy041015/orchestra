@@ -4,6 +4,10 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
+// cmd.exe and CreateProcess search the current directory before PATH, so a
+// codex.cmd or git.exe inside the project would run instead of the real tool.
+if (process.platform === 'win32') process.env.NoDefaultCurrentDirectoryInExePath = '1';
+
 const efforts = new Set(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra']);
 const flags = new Set(['--model', '--effort', '--cwd', '--brief', '--allowed', '--resume']);
 
@@ -29,19 +33,31 @@ function parseArgs(args) {
   const brief = path.resolve(values['--brief']);
   if (!existsSync(cwd) || !statSync(cwd).isDirectory()) throw new Error('Invalid --cwd');
   if (!existsSync(brief) || !statSync(brief).isFile()) throw new Error('Invalid --brief');
+  // The Codex sandbox writes only inside --cwd, and the report lives next to the brief.
+  const inside = path.relative(cwd, brief);
+  if (inside === '..' || inside.startsWith(`..${path.sep}`) || path.isAbsolute(inside)) {
+    throw new Error('Invalid --brief: it must be inside --cwd, where the Codex sandbox can write the report');
+  }
   const allowed = values['--allowed'].split(',').map((item) => item.trim()).filter(Boolean);
   if (!allowed.length) throw new Error('Invalid --allowed');
   return { model: values['--model'], effort: values['--effort'], cwd, brief, allowed,
     resume: values['--resume'] };
 }
 
+// Resolves { output } or { error: <first stderr line> }.
 function git(cwd, args) {
   return new Promise((resolve) => {
-    const child = spawn('git', ['-C', cwd, ...args], { windowsHide: true });
+    // No optional locks: a background status must not make the user's own git
+    // commands fail on index.lock.
+    const child = spawn('git', ['-C', cwd, ...args],
+      { windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
     const chunks = [];
+    let stderr = '';
     child.stdout.on('data', (chunk) => chunks.push(chunk));
-    child.on('error', () => resolve(null));
-    child.on('close', (code) => resolve(code === 0 ? Buffer.concat(chunks).toString('utf8') : null));
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.on('error', (error) => resolve({ error: error.message }));
+    child.on('close', (code) => resolve(code === 0 ? { output: Buffer.concat(chunks).toString('utf8') }
+      : { error: stderr.trim().split(/\r?\n/)[0] || `git exited with code ${code}` }));
   });
 }
 
@@ -49,9 +65,9 @@ function git(cwd, args) {
 // allowed list is converted to root-relative paths. A trailing slash marks a
 // directory whose whole subtree is allowed.
 async function repoScope(cwd, allowed) {
-  const output = await git(cwd, ['rev-parse', '--show-cdup']);
-  if (output === null) return null;
-  const root = path.resolve(cwd, output.trim());
+  const result = await git(cwd, ['rev-parse', '--show-cdup']);
+  if (result.error) return result;
+  const root = path.resolve(cwd, result.output.trim());
   const files = new Set();
   const dirs = [];
   for (const item of allowed) {
@@ -64,9 +80,9 @@ async function repoScope(cwd, allowed) {
 }
 
 async function snapshot(root) {
-  const output = await git(root, ['status', '--porcelain=v1', '-z', '-uall']);
-  if (output === null) return null;
-  const fields = output.split('\0');
+  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall']);
+  if (result.error) return result;
+  const fields = result.output.split('\0');
   const files = new Map();
   for (let i = 0; i < fields.length; i++) {
     const entry = fields[i];
@@ -84,7 +100,7 @@ async function snapshot(root) {
     files.set(normalized, hash);
     if (status.includes('R') || status.includes('C')) i++;
   }
-  return files;
+  return { files };
 }
 
 function spawnCodex(args, cwd, prompt) {
@@ -127,9 +143,8 @@ function apiMessage(text) {
 function parseEvents(stdout) {
   let thread = 'unknown';
   let message;
-  let hasMessage = false;
+  let failed = false;
   let failure;
-  let hasFailure = false;
   for (const line of stdout.split(/\r?\n/)) {
     try {
       const event = JSON.parse(line);
@@ -137,21 +152,22 @@ function parseEvents(stdout) {
         thread = event.thread_id;
       } else if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
         message = typeof event.item.text === 'string' ? event.item.text : '';
-        hasMessage = true;
       } else if (event.type === 'turn.failed' || event.type === 'error') {
-        hasFailure = true;
+        // Codex also reports stream retries it recovers from as `error`; only a
+        // failed turn or exit fails the run. The text still explains a failure.
+        if (event.type === 'turn.failed') failed = true;
         failure = apiMessage(typeof event.error === 'string' ? event.error :
-          event.error?.message || event.message || event.item?.error?.message);
+          event.error?.message || event.message || event.item?.error?.message) || failure;
       }
     } catch {}
   }
-  return { thread, message, hasMessage, failure, hasFailure };
+  return { thread, message, failed, failure };
 }
 
-function failureText(stderr, error, code, signal, hasFailure, hasMessage) {
+function failureText(stderr, error, code, signal, failed, hasMessage) {
   const tail = stderr.trimEnd().split(/\r?\n/).slice(-20).join('\n');
   return tail || error?.message ||
-    (hasFailure ? 'Codex reported a failure' : signal ? `Codex terminated by signal ${signal}` :
+    (failed ? 'Codex reported a failure' : signal ? `Codex terminated by signal ${signal}` :
       code === 0 && !hasMessage ? 'Codex returned no agent_message' : `Codex exited with code ${code}`);
 }
 
@@ -175,7 +191,7 @@ async function main() {
   }
 
   const repo = await repoScope(options.cwd, options.allowed);
-  const before = repo === null ? null : await snapshot(repo.root);
+  const before = repo.error ? repo : await snapshot(repo.root);
   const args = ['exec'];
   if (options.resume) args.push('resume', options.resume);
   args.push('--json', '-m', options.model, '-c', `model_reasoning_effort=${options.effort}`);
@@ -185,17 +201,29 @@ async function main() {
 
   const run = await spawnCodex(args, options.cwd, prompt);
   const events = parseEvents(run.stdout);
-  const after = before === null ? null : await snapshot(repo.root);
-  const outside = after === null ? [] : Array.from(new Set([...before.keys(), ...after.keys()]))
-    .filter((file) => before.get(file) !== after.get(file) && !repo.allows(file))
-    .sort();
-  const scope = before === null ? 'unchecked (not a git repo)' :
-    (outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok');
-  const failed = run.code !== 0 || events.hasFailure || !events.hasMessage;
-  const first = failed ? `Status: BLOCKED\nUnresolved: ${events.failure ||
-    failureText(run.stderr, run.error, run.code, run.signal, events.hasFailure, events.hasMessage)}` : events.message;
+  const after = before.error ? before : await snapshot(repo.root);
+  let scope;
+  if (before.error) {
+    scope = `unchecked (git: ${before.error})`;
+  } else if (after.error) {
+    scope = `unchecked (git status failed after the run: ${after.error})`;
+  } else {
+    const outside = Array.from(new Set([...before.files.keys(), ...after.files.keys()]))
+      .filter((file) => before.files.get(file) !== after.files.get(file) && !repo.allows(file))
+      .sort();
+    scope = outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok';
+  }
+
+  let reason;
+  if (run.code !== 0 || events.failed || events.message === undefined) {
+    reason = events.failure ||
+      failureText(run.stderr, run.error, run.code, run.signal, events.failed, events.message !== undefined);
+  } else if (!/^Status: /m.test(events.message)) {
+    reason = `Codex reply has no status block: ${events.message.trim().split(/\r?\n/)[0].slice(0, 200)}`;
+  }
+  const first = reason === undefined ? events.message : `Status: BLOCKED\nUnresolved: ${reason}`;
   process.stdout.write(`${first}\nCodex thread: ${events.thread}\nScope: ${scope}\n`);
-  if (failed) process.exitCode = 1;
+  if (reason !== undefined) process.exitCode = 1;
 }
 
 main().catch((error) => {

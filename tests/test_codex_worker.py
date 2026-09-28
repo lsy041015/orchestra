@@ -71,9 +71,21 @@ class CodexWorkerTests(unittest.TestCase):
         sub = self.root / "pkg"
         sub.mkdir()
         (sub / "b.txt").write_text("dirty before the run\n", encoding="utf-8")
-        result = self.run_worker(mode="touch", cwd=sub)
+        brief = sub / "brief.md"
+        brief.write_text(PROMPT, encoding="utf-8")
+        result = self.run_worker(mode="touch", cwd=sub, brief=brief)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.scope(result), "Scope: outside allowed: pkg/b.txt")
+
+    def test_brief_outside_cwd_is_rejected(self):
+        # The Codex sandbox writes only inside --cwd, so the report that lives
+        # next to the brief would be unwritable.
+        sub = self.root / "pkg"
+        sub.mkdir()
+        result = self.run_worker(cwd=sub)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--brief", result.stderr)
+        self.assertFalse((sub / "argv.json").exists())
 
     def test_allowed_directory_entry_covers_new_files(self):
         result = self.run_worker(mode="nested", allowed="a.txt,ou/")
@@ -110,6 +122,24 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertIn("Unresolved: Codex reported a failure", result.stdout)
         self.assertNotIn("Status: DONE", result.stdout)
 
+    def test_recovered_stream_error_is_not_a_failure(self):
+        result = self.run_worker(mode="retry-error")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith("Status: DONE\n"), result.stdout)
+
+    def test_reply_without_status_block_is_blocked(self):
+        result = self.run_worker(mode="no-status")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines()[:2], [
+            "Status: BLOCKED",
+            "Unresolved: Codex reply has no status block: Which file should I change?",
+        ])
+
+    def test_git_failure_after_run_is_not_reported_ok(self):
+        result = self.run_worker(mode="break-git")
+        self.assertTrue(self.scope(result).startswith("Scope: unchecked (git status failed after the run: "),
+                        result.stdout)
+
     def test_api_error_json_is_reduced_to_its_message(self):
         result = self.run_worker(mode="api-error")
         self.assertEqual(result.returncode, 1)
@@ -137,7 +167,26 @@ class CodexWorkerTests(unittest.TestCase):
             brief.write_text(PROMPT, encoding="utf-8")
             result = self.run_worker(mode="ok", cwd=cwd, brief=brief)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Scope: unchecked (not a git repo)", result.stdout)
+        self.assertTrue(self.scope(result).startswith("Scope: unchecked (git: "), result.stdout)
+
+    @unittest.skipUnless(os.name == "nt", "Windows command lookup")
+    def test_windows_ignores_codex_planted_in_cwd(self):
+        # cmd.exe and CreateProcess search the current directory before PATH
+        # unless NoDefaultCurrentDirectoryInExePath is set. Claude Code sets it;
+        # a plain terminal does not.
+        shim = Path(self.temp.name) / "bin"
+        shim.mkdir()
+        (shim / "codex.cmd").write_text(f'@node "{FAKE}" %*\r\n', encoding="utf-8")
+        (self.root / "codex.cmd").write_text(
+            '@echo {"type":"thread.started","thread_id":"planted"}\r\n', encoding="utf-8")
+        env = {k: v for k, v in os.environ.items()
+               if k.upper() not in ("NODEFAULTCURRENTDIRECTORYINEXEPATH", "ORCHESTRA_CODEX_BIN")}
+        env["PATH"] = str(shim) + os.pathsep + env.get("PATH", "")
+        result = subprocess.run([
+            "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
+            "--brief", str(self.brief), "--allowed", "a.txt",
+        ], cwd=self.root, env=env, capture_output=True, text=True, encoding="utf-8")
+        self.assertIn("Codex thread: t-123", result.stdout, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,20 @@ if (process.env.FAKE_MODE === 'fail') {
     { type: 'turn.failed', error: { message } },
   ]) process.stdout.write(`${JSON.stringify(event)}\n`);
   process.exitCode = 1;
+} else if (process.env.FAKE_MODE === 'retry-error') {
+  // A transient stream error that Codex recovers from within the same turn.
+  for (const event of [
+    { type: 'thread.started', thread_id: 't-123' },
+    { type: 'error', message: 'stream disconnected - retrying sampling request (1/5 in 200ms)...' },
+    { type: 'item.completed', item: { type: 'agent_message', text: 'Status: DONE\nChanged files: a.txt' } },
+    { type: 'turn.completed' },
+  ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+} else if (process.env.FAKE_MODE === 'no-status') {
+  for (const event of [
+    { type: 'thread.started', thread_id: 't-123' },
+    { type: 'item.completed', item: { type: 'agent_message', text: 'Which file should I change?' } },
+    { type: 'turn.completed' },
+  ]) process.stdout.write(`${JSON.stringify(event)}\n`);
 } else if (process.env.FAKE_MODE === 'event-fail') {
   for (const event of [
     { type: 'thread.started', thread_id: 't-123' },
@@ -29,6 +43,10 @@ if (process.env.FAKE_MODE === 'fail') {
   if (process.env.FAKE_MODE === 'touch') {
     writeFileSync(join(cwd, 'a.txt'), 'a\n');
     writeFileSync(join(cwd, 'b.txt'), 'b\n');
+  } else if (process.env.FAKE_MODE === 'break-git') {
+    // An out-of-scope edit, then a repository git can no longer read.
+    writeFileSync(join(cwd, 'b.txt'), 'b\n');
+    writeFileSync(join(cwd, '.git', 'HEAD'), 'garbage\n');
   } else if (process.env.FAKE_MODE === 'nested') {
     writeFileSync(join(cwd, 'a.txt'), 'a\n');
     mkdirSync(join(cwd, 'out', 'deep'), { recursive: true });
