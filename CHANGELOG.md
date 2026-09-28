@@ -5,6 +5,60 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-28
+
+Fixes from a pre-release review. Each item below was reproduced before the fix.
+
+### Fixed
+- `codex-worker.mjs`: when `git status` failed after the run, the scope check
+  printed `Scope: ok`. Any git failure (not a repository, dubious ownership,
+  a failure after the run) is now `Scope: unchecked (<reason>)`.
+- `codex-worker.mjs`: outside Claude Code on Windows, a `codex.cmd` or
+  `git.exe` inside the project ran instead of the real tool. The worker now
+  sets `NoDefaultCurrentDirectoryInExePath`.
+- `codex-worker.mjs`: an `error` event for a stream retry that Codex recovered
+  from made the run `BLOCKED`. A reply with no `Status:` line now does.
+- `using-git-worktrees`: after a failed `git worktree add`, the steps still
+  marked the existing directory as Orchestra-owned, so cleanup could delete
+  someone else's worktree. The steps now stop at the first failure. The path
+  variable is no longer named `path`, which zsh ties to `PATH`.
+- `finishing-a-development-branch`: after a failed checkout of the base branch,
+  the feature was merged into the current branch. The steps now stop at the
+  first failure, and `git pull --ff-only` runs only when there is an upstream.
+  `git worktree prune` is gone (it also dropped other worktrees). A new check
+  before the menu catches reviewed work that is not committed.
+- `sdd-workspace`: Git Bash wrote the plan marker as an absolute path. It is
+  repo-relative again, and old absolute markers still resolve.
+- Brainstorming companion: every page loaded a logo from primeradiant.com and
+  said "Superpowers". Pages now load nothing remote. Session files under
+  `.superpowers/brainstorm/`, including the saved key, are git-ignored.
+
+### Changed
+- Codex workers need the brief inside `--cwd`, normally the repository root,
+  because the sandbox writes only there. They never commit, since the sandbox
+  keeps `.git` read-only; the main session commits after review.
+- The READMEs no longer claim that subagents are structurally blocked for
+  Codex workers. Codex 0.156 keeps its agent tools even with
+  `features.multi_agent=false`, so for Codex this remains a brief rule.
+- Claude agents use the `sonnet` alias instead of `claude-sonnet-5`.
+  `orchestra:implementer` reports are capped at 40 lines (20 per fix), as the
+  medium agent's already were.
+- When `orchestra:orchestrator` is active, the other skills now defer to it
+  for worker choice, parallel runs and the fix loop. `writing-plans` offers
+  the orchestrator after a plan.
+- `using-git-worktrees` uses Claude Code's `EnterWorktree` only when the user
+  explicitly asks for a worktree.
+- Diagnosis prompts and templates say Orchestra instead of Superpowers.
+- The README banner and the Codex plugin icons carry no third-party logos.
+  Unused upstream logo files are removed.
+- The code of conduct is Orchestra's own. Reports go to this project's
+  maintainer, not to Prime Radiant.
+- `.gitattributes` keeps LF line endings on every platform.
+
+### Added
+- Regression tests for each fix above, including
+  `tests/test_brainstorm_companion.py`, which also runs in CI.
+
 ### Docs
 - Update instructions now use `claude plugin update orchestra@orchestra`;
   `plugin install` does not upgrade an existing install.
@@ -65,7 +119,8 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lsy041015/orchestra/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/lsy041015/orchestra/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/lsy041015/orchestra/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/lsy041015/orchestra/releases/tag/v0.1.0

@@ -13,10 +13,10 @@
 > **Claude subagent** or a **Codex CLI (GPT)** worker picked per difficulty tier.
 
 A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by Jesse Vincent.
-Not an official OpenAI, Anthropic or Superpowers release. The Claude and Codex logos in the banner
-only indicate the tools this plugin works with; the marks belong to their owners.
+Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude and Codex only indicate
+the tools this plugin works with; the marks belong to their owners.
 
-> **Status: experimental (v0.2.1).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
+> **Status: experimental (v0.3.0).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
 > Windows. Real orchestrator use on macOS/Linux is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
@@ -28,6 +28,9 @@ spends each subscription where it fits:
 1. **The main session owns judgment.** Planning, review, diagnosis and integration never leave it, and
    the plugin never changes its model or reasoning effort.
 2. **Workers only implement**, one bounded task each, inside an explicit list of allowed files.
+   Claude workers cannot start subagents (`disallowedTools: Agent`); for Codex workers that is a brief
+   rule, because Codex 0.156 keeps its agent tools even with `features.multi_agent=false`. Codex
+   workers never commit; the main session commits after review.
 3. **Every result is checked against evidence**: the real diff, real test output, and a mechanical
    scope check for Codex runs.
 
@@ -124,13 +127,17 @@ node skills/orchestrator/scripts/codex-worker.mjs \
 ```
 
 - Runs `codex exec --json … -s workspace-write` directly and passes the brief on stdin. Paths never
-  go through a shell, and every value that reaches the Windows shell is validated first.
-- `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory. `--cwd` may
-  be a subdirectory of the repository.
+  go through a shell, and every value that reaches the Windows shell is validated first. On Windows it also stops the current directory from being searched first, so a
+  `codex.cmd` or `git.exe` inside the project never runs in place of the real tool.
+- Use the repository root as `--cwd`. The sandbox writes only inside `--cwd` and keeps `.git`
+  read-only, so the brief (and the report next to it) must be inside `--cwd`, and Codex workers
+  cannot commit. `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory.
 - Output: Codex's final message (the status block), then `Codex thread: <id>` and
-  `Scope: ok | outside allowed: <repo-relative paths> | unchecked (not a git repo)`.
-- Failures (non-zero exit, `turn.failed`/`error` event, no message) become `Status: BLOCKED` with a
-  one-line reason and exit 1. Bad arguments exit 2 without starting Codex.
+  `Scope: ok | outside allowed: <repo-relative paths> | unchecked (<reason>)`. Any git failure
+  (not a repository, dubious ownership, a failure after the run) is reported as `unchecked`, never `ok`.
+- Failures (non-zero exit, `turn.failed`, no message, no `Status:` line in the reply) become
+  `Status: BLOCKED` with a one-line reason and exit 1. An `error` event alone is not a failure;
+  Codex also reports recovered stream retries that way. Bad arguments exit 2 without starting Codex.
 - The scope check hashes `git status` entries before and after the run, so files you had already
   modified are only flagged if Codex changes them. It cannot see `.gitignore`d paths, and parallel
   workers in the same checkout see each other's files; the orchestrator ignores only files that
@@ -146,16 +153,17 @@ actually applied were read from Codex's session log (`turn_context`).
 | Full orchestrator flow (plan → dispatch → review → fix → ledger) | ✅ once with Codex workers and once with Claude workers ([record](docs/demo/piano/README.md), [comparison](docs/demo/piano/comparison.md)) |
 | New runs on `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.5` (low) | ✅ requested model/effort applied, `Status: DONE`, `Scope: ok` |
 | `--resume` on the same thread with effort low → medium | ✅ same thread, second turn logged as `gpt-6-luna/medium` |
-| Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` |
+| Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` (scope only; the root ledger is not writable from there, so since v0.3.0 the brief must be inside `--cwd`) |
+| Codex sandbox boundary (`codex sandbox`, 2026-09-28) | ✅ writes inside `--cwd` work; outside `--cwd` and `.git` are denied; `git commit` fails on `index.lock` |
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
 | `gpt-6-luna` + `ultra` | ⚠️ accepted by the API although the model list tops out at `max`; the level actually applied is unknown |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
-| All five test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
+| All six test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
 
-Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer. Model
-names change over time, so update your config and the agent frontmatter. Live Codex progress is not
-streamed into the TUI by design.
+Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer. Claude
+workers use the `sonnet` alias, so they follow new Sonnet releases; change Codex model names in your
+routing config. Live Codex progress is not streamed into the TUI by design.
 
 ## Development
 
@@ -165,6 +173,7 @@ python3 tests/test_task_brief.py
 python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
+python3 tests/test_brainstorm_companion.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```
