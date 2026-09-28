@@ -29,7 +29,8 @@ brief. It does not promise zero setup cost or remove system and tool rules.
 The creation call's required settings are exactly `model =
 "gpt-6-luna"`, `reasoning_effort = "xhigh"`, and `fork_turns = "none"`.
 Never omit the model or effort when dispatching this role, and never silently
-substitute another model if the requested preset is unavailable. Continue inline
+substitute another model if the requested preset is unavailable. When the
+account lacks `gpt-6-luna`, use another model only after the user names one. Continue inline
 with the main session's selected model and effort when possible, and report the
 delegation limit.
 

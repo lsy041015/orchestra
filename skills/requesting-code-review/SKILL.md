@@ -25,7 +25,8 @@ independent review when the main agent performed the review.
 1. Record the correct base and head. Prefer the existing
    `subagent-driven-development/scripts/review-package` helper when the task
    has a committed range, so the commit list, stat, and full contextual diff
-   are one readable artifact. Always also inspect staged and unstaged `git diff` plus
+   are one readable artifact. The helper needs the plan file; without a plan,
+   read `git log BASE..HEAD` and `git diff BASE..HEAD` directly. Always also inspect staged and unstaged `git diff` plus
    `git ls-files --others --exclude-standard`, and read the task's untracked
    files directly, even when the task includes commits. If BASE equals HEAD,
    skip the commit-only helper; do not force a commit.
@@ -50,7 +51,8 @@ independent review when the main agent performed the review.
 
 If two failed fix attempts have the same root cause, stop retrying and record
 a main-agent `Ruling:`: change the plan, fix a small issue inline, or report the blocker.
-Do not create a fresh reviewer, a fresh implementer, or a higher-tier child.
+Do not create a fresh reviewer, a fresh implementer, or a higher-tier child,
+unless the user asks to switch the worker's model.
 
 ## Review report
 

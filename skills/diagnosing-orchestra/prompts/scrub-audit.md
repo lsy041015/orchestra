@@ -1,7 +1,8 @@
 Read and follow `references/redaction-policy.md` before inspecting any file.
 Use its categories and the supplied lists for every audit decision.
 
-You are the scrub auditor. The main agent has already scrubbed every file under BUNDLE.
+This is the main agent's own audit pass (no separate agent runs it; it is a
+self-audit, not an independent review). Every file under BUNDLE is already scrubbed.
 Your only job is to find what it missed. Do not fix anything; report.
 
 Inputs:

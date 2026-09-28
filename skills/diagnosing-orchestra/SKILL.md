@@ -28,14 +28,15 @@ Create a todo per applicable step and keep the original records read-only.
    `prompts/` as sequential main agent analysis passes: skill timeline, plan
    adherence, repeated work, stumbles, quality evidence, request conflicts,
    and cost/time. Use `references/context-safety.md` for every read. For a
-   long or unpredictable transcript, process and aggregate it with
-   context-mode; do not print whole records into context. Every finding must
+   long or unpredictable transcript, process it in bounded chunks as
+   `references/context-safety.md` describes; do not print whole records into context. Every finding must
    cite an absolute `path:line`.
 4. **Report.** Fill `templates/report.md` in order, verify that each citation
    proves the claim, show the report, and give its path. Do not infer a cause
    from a summary, model name, or token count that is absent from the records.
 5. **Issues.** When the report calls for a possible or likely issue, or the
-   user asks, search according to `references/github-issues.md`. Show matches.
+   user asks, show the search terms first and ask before searching, because they
+   leave the machine; then search according to `references/github-issues.md`. Show matches.
    If none match, draft `templates/issue.md`, show exact text, and create an
    issue only after the user's explicit approval.
 6. **Export.** Build a bundle only when requested. Ask the redaction level
@@ -75,6 +76,6 @@ Create a todo per applicable step and keep the original records read-only.
 | Ignored plan | plan-adherence and compaction events |
 | Skill never fired | skill-timeline |
 
-Internal skill links use the `orchestra:` namespace. The personal
-edition runs on Codex and Claude Code; no other host's delegation guide is an active
+Internal skill links use the `orchestra:` namespace. Orchestra
+runs on Codex and Claude Code; no other host's delegation guide is an active
 execution path.

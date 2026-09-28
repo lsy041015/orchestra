@@ -209,6 +209,10 @@ You MUST complete each phase before proceeding to the next.
 
    **Discuss with your human partner before attempting more fixes**
 
+   As an implementation worker, return `Status: BLOCKED` with this evidence
+   instead; the main session decides. The main session's own review-fix loop
+   stops sooner, after two failed rounds with the same root cause.
+
    This is NOT a failed hypothesis - this is a wrong architecture.
 
 ## Red Flags - STOP and Follow Process
@@ -228,7 +232,7 @@ If you catch yourself thinking:
 
 **ALL of these mean: STOP. Return to Phase 1.**
 
-**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
+**If 3+ fixes failed:** Question the architecture (see Phase 4, step 5)
 
 ## your human partner's Signals You're Doing It Wrong
 

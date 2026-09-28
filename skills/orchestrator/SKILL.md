@@ -64,10 +64,13 @@ Routing values have the form `<codex|claude> <model>/<effort>`.
 Use the `ui` key for separately routed UI tasks and `hard` for other hard
 tasks; without a `ui` value, UI tasks use `hard`. If a file is not valid JSON
 or a value does not match the form, tell the user which one and ask instead of
-guessing. If every tier in the task table has
-a routing value, skip questions and show the mapping on one line. Ask with
-`AskUserQuestion` only for tiers without a value, using the merged `options`
-array or the four example choices above when it is absent. The user may enter
+guessing. If every tier in the task table has a routing value, skip questions
+and show the mapping on one line. A cloned repository can ship its own
+`.orchestra.json`, and its values spend the user's quota: when any value comes
+from the project file, show it and get one confirmation for that project
+before the first dispatch. Ask with `AskUserQuestion` only for tiers without a
+value, using the merged `options` array or the four example choices above when
+it is absent. The user may enter
 another model through `Other`. Record the final mapping in the ledger as
 `Routing: Easy=..., Medium=..., Hard=..., UI=...` when UI is a separate tier.
 

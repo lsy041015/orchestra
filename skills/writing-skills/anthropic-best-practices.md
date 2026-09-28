@@ -2,8 +2,8 @@
 
 > Learn how to write effective Skills that agents can discover and use successfully.
 
-This upstream reference is retained for authoring patterns. The personal
-edition runs on Codex and Claude Code: its active role and model policy comes from
+This upstream reference is retained for authoring patterns. Orchestra
+runs on Codex and Claude Code: its active role and model policy comes from
 `orchestra:using-orchestra`. Do not use the Claude examples or
 model tables below as an operational routing or delegation instruction.
 
@@ -761,7 +761,7 @@ This approach ensures you're solving actual problems rather than anticipating re
 ### Develop Skills iteratively in the main session
 
 The main session designs, tests, and refines the Skill. It may observe a
-real task in the same session or use an already-authorized Luna implementation
+real task in the same session or use an already-authorized implementation
 worker for implementation behavior. Do not create a separate evaluator,
 reviewer, or analyst worker for this cycle.
 

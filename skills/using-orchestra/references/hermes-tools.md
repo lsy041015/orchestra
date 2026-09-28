@@ -1,6 +1,6 @@
 # Hermes Agent Compatibility Note
 
-This personal edition runs on Codex and Claude Code. These mappings are retained only for
+Orchestra runs on Codex and Claude Code. These mappings are retained only for
 readability when porting source documentation; they are not an active Hermes
 delegation guide.
 

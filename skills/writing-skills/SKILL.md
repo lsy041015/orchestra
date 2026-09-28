@@ -41,8 +41,9 @@ Prefer one clear rule and one concrete example over repeated warnings.
 Write realistic pressure scenarios that make the unwanted behavior tempting.
 Combine time, sunk cost, authority, exhaustion, or social pressure. Give the
 agent concrete options and a real action to choose. Run the scenario without
-the candidate rule when a baseline is meaningful; record the exact choice,
-rationalization, and evidence. If the control already behaves correctly, do
+the candidate rule when a baseline is meaningful: in a separate session you
+start yourself, or by asking the user to run it, since this edition creates
+no evaluator workers. Record the exact choice, rationalization, and evidence. If the control already behaves correctly, do
 not invent a rule to solve a problem that was not observed.
 
 ### GREEN: smallest rule
@@ -61,8 +62,9 @@ approval gates, and recovery rules explicit when the skill depends on them.
 When a scenario still fails, record the new rationalization verbatim, update
 the smallest section that closes it, and rerun the case. Do not pile up a
 second copy of the workflow or universal line/word/token caps that discard
-needed evidence. Remove contradictions rather than appending an override to
-an obsolete flow.
+needed evidence. (Worker report budgets, such as the implementer's 40 lines,
+are separate: full evidence stays in the report file and the diff.) Remove
+contradictions rather than appending an override to an obsolete flow.
 
 ## Content and structure
 
