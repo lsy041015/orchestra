@@ -65,7 +65,7 @@ Confirm before merging: merging into the wrong base is expensive to undo.
 ```
 Implementation complete. What would you like to do?
 
-1. Merge back to <base-branch> locally
+1. Merge back to <base-branch> locally (then remove this worktree and branch)
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 
@@ -94,13 +94,14 @@ is theirs.
 ### Option 1: Merge Locally
 
 ```bash
-# Get main repo root for CWD safety
-MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
+# Main worktree for CWD safety: the first `git worktree list` entry. In a bare
+# repository that entry has no work tree, so the checkout below fails there.
+MAIN_ROOT=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 
 # Merge first — verify success before removing anything. Stop at the first
 # failure: after a failed checkout, merge would land on the current branch.
-git checkout <base-branch> &&
+[ -n "$MAIN_ROOT" ] && cd "$MAIN_ROOT" &&
+  git checkout <base-branch> &&
   if git rev-parse --verify --quiet '@{upstream}' >/dev/null; then git pull --ff-only; fi &&
   git merge <feature-branch>
 
@@ -157,8 +158,8 @@ Type 'discard' to confirm.
 Wait for that exact confirmation. When it arrives:
 
 ```bash
-MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
-cd "$MAIN_ROOT"
+MAIN_ROOT=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+[ -n "$MAIN_ROOT" ] && cd "$MAIN_ROOT"
 ```
 
 Then clean up the worktree (Step 6). Force-delete the branch only if
@@ -172,25 +173,35 @@ git branch -D <feature-branch>
 
 **Runs for Option 1 and confirmed discards.** Options 2 and 3 always
 preserve the worktree. Both callers have already changed directory to the
-main repo root — worktree removal must run from outside the worktree —
-and use the `GIT_DIR`/`GIT_COMMON`/`WORKTREE_PATH` values captured in
-Step 2, from before that directory change.
+main repo root — worktree removal must run from outside the worktree.
+Shell variables do not survive between tool calls, so use the results of
+Step 2 as you recorded them, not as fresh commands from the new directory.
 
-**If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
+**If Step 2 found `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
 **If the Git administrative directory has an Orchestra ownership marker matching
-the physical worktree path:** Orchestra created this worktree and may clean it up:
+the physical worktree path:** Orchestra created this worktree and may clean it up.
+Write the worktree path from Step 2 into the first line:
 
 ```bash
-if [ -f "$GIT_DIR/orchestra-owned-worktree" ] &&
-   [ "$(cat "$GIT_DIR/orchestra-owned-worktree")" = "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
+WORKTREE_PATH="<worktree path from Step 2>"
+wt_git_dir=$(git -C "$WORKTREE_PATH" rev-parse --absolute-git-dir)
+ignored=$(git -C "$WORKTREE_PATH" status --porcelain --ignored | grep '^!!' || true)
+if [ ! -f "$wt_git_dir/orchestra-owned-worktree" ] ||
+   [ "$(cat "$wt_git_dir/orchestra-owned-worktree")" != "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
+  echo "Worktree was not created by Orchestra; leaving it in place."
+elif [ -n "$ignored" ]; then
+  # `git worktree remove` deletes ignored files (.env, local databases) silently.
+  printf 'Ignored files would be deleted with the worktree:\n%s\n' "$ignored"
+else
   # No `git worktree prune`: it also drops other worktrees whose folders are
   # only temporarily missing. `remove` already clears its own registration.
   git worktree remove "$WORKTREE_PATH"
-else
-  echo "Worktree was not created by Orchestra; leaving it in place."
 fi
 ```
+
+**If ignored files are listed:** show them and ask whether to move them into
+the main checkout, delete them with the worktree, or keep the worktree.
 
 **If removal is refused** (`contains modified or untracked files`): the
 worktree holds files that exist nowhere else — uncommitted plans, notes,
