@@ -42,7 +42,9 @@ slug=$(basename "$plan" .md)
 [ -n "$slug" ] && [ "$slug" != "." ] && [ "$slug" != ".." ] \
   || { echo "cannot derive a workspace name from: $plan" >&2; exit 2; }
 
-root=$(git rev-parse --show-toplevel)
+# Physical spelling, like plan_dir below: Git Bash prints C:/... from rev-parse
+# but /c/... from pwd -P, which would make every marker absolute.
+root=$(CDPATH= cd -- "$(git rev-parse --show-toplevel)" && pwd -P)
 base="$root/.superpowers/sdd"
 [ ! -L "$root/.superpowers" ] && [ ! -L "$base" ] || {
   echo "workspace path contains a symlink: $base" >&2
@@ -68,7 +70,9 @@ owns() {
     exit 2
   }
   if [ -e "$1/plan-path" ]; then
-    [ "$(cat "$1/plan-path")" = "$plan_id" ]
+    # Older Windows runs wrote the absolute spelling; keep resolving those.
+    marker=$(cat "$1/plan-path")
+    [ "$marker" = "$plan_id" ] || [ "$marker" = "$plan_abs" ]
   else
     mkdir -p "$1"
     printf '%s\n' "$plan_id" > "$1/plan-path"

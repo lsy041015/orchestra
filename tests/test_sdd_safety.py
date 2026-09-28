@@ -49,6 +49,28 @@ class SddSafetyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((base / ".gitignore").read_text(encoding="utf-8"), "# keep me\n*\n")
 
+    def test_workspace_marker_is_repo_relative_from_any_cwd(self):
+        # Git Bash spells the root C:/... in rev-parse but /c/... in pwd -P;
+        # both sides must use one spelling or the marker turns absolute.
+        (self.root / "docs").mkdir()
+        plan = self.root / "docs/plan.md"
+        plan.write_text("# Plan\n", encoding="utf-8")
+        first = self.run_script(WORKSPACE, plan)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        marker = self.root / ".superpowers/sdd/plan/plan-path"
+        self.assertEqual(marker.read_text(encoding="utf-8"), "docs/plan.md\n")
+        again = subprocess.run([BASH, str(WORKSPACE), "plan.md"], cwd=self.root / "docs",
+                               capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(again.stdout, first.stdout)
+        # A workspace whose marker holds the absolute spelling still belongs to the plan.
+        plan_abs = subprocess.run([BASH, "-c", 'cd -- "$1" && printf "%s/plan.md\\n" "$(pwd -P)"', "_",
+                                   str(self.root / "docs")], check=True, capture_output=True,
+                                  text=True, encoding="utf-8").stdout
+        marker.write_text(plan_abs, encoding="utf-8")
+        legacy = self.run_script(WORKSPACE, plan)
+        self.assertEqual(legacy.stdout, first.stdout, legacy.stderr)
+
     def test_task_done_records_successful_silent_command(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "commit",
