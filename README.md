@@ -697,3 +697,7 @@ claude plugin validate .
 - 원본: [Jesse Vincent의 Superpowers](https://github.com/obra/superpowers) 6.4.1. 원본 저작권과 [MIT 라이선스](LICENSE)를 보존했습니다. 원본 설명은 [UPSTREAM_README.md](UPSTREAM_README.md)에 있습니다.
 - 이 저장소는 작성자의 이전 포크 `relay`를 이어받아 이름을 바꾸고, Claude + Codex 오케스트레이션을 더한 것입니다.
 - 행동 강령: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+---
+
+<p align="center"><sub>LSY.KOR · <a href="https://github.com/lsy041015">다른 프로젝트 보기</a></sub></p>
