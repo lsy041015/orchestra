@@ -22,7 +22,7 @@ requested independent parallel implementation.
 - When `orchestra:orchestrator` is loaded, follow it for worker selection and
   the fix loop.
 - Every worker is created with
-  the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`).
+  the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset).
 - Workers never spawn workers, reviewers, analysts, planners, or helpers. They
   may self-review their diff and investigate implementation failures as part
   of the assigned task.
@@ -124,7 +124,7 @@ requirement that cannot be verified enters the fix loop.
 
 ### 4. Fix loop
 
-Send concrete findings to the same worker with `followup_task` (Codex) / `SendMessage` (Claude Code), using
+Send concrete findings to the same worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`), using
 `re-review-prompt.md` to define the scope. The worker appends a fix report,
 runs the covering tests, and returns the same status contract. The main agent reads the
 fix diff and re-reviews only the findings and touched code. New findings in the
@@ -173,7 +173,7 @@ Task 2: add retry behavior
 Brief: /workspace/.superpowers/sdd/retry/task-2-brief.md
 Allowed files: src/retry.ts, test/retry.test.ts
 Acceptance: bounded retries, abort preserved, focused test command
-Worker: Codex gpt-6-luna / xhigh / fork_turns=none | Claude Code orchestra:implementer (claude-sonnet-5 / high)
+Worker: Codex gpt-6-luna / xhigh / fork_turns=none | Claude Code orchestra:implementer (sonnet / high)
 Report: /workspace/.superpowers/sdd/retry/task-2-report.md
 ```
 

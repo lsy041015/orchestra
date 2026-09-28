@@ -11,8 +11,10 @@ planning, exploration, diagnosis, review, re-review, integration, and final
 verification. A delegated call is for a bounded implementation worker only.
 Do not dispatch a reviewer, analyst, planner, explorer, or nested helper.
 
-The worker is the plugin agent `orchestra:implementer`, whose definition pins
-`model: claude-sonnet-5` and `effort: high`. Dispatch it explicitly:
+Load `orchestra:*` skills with the `Skill` tool. The worker is the plugin agent
+`orchestra:implementer`, whose definition sets `model: sonnet` and
+`effort: high`; `orchestra:implementer-medium` is the same contract at medium
+effort. Dispatch it explicitly:
 
 ```text
 Agent(
@@ -22,16 +24,21 @@ Agent(
 )
 ```
 
-Do not pass a `model` override; the agent definition sets Sonnet 5 / high.
-The worker starts with no conversation history, so the prompt must be the
-complete brief. If the agent type is unavailable, never silently substitute
-another agent: continue inline in the main session and report the limit.
+Without `orchestra:orchestrator`, do not pass a `model` override; the agent
+definition sets Sonnet / high. When the orchestrator is active, follow its
+routing instead: it passes `model`, picks the agent by effort, and runs Codex
+tiers through `codex-worker.mjs` in a background `Bash` call. The worker
+starts with no conversation history, so the prompt must be the complete brief.
+If the agent type is unavailable, never silently substitute another agent:
+continue inline in the main session and report the limit.
 
 ## Fixes and lifecycle
 
 Record the worker's agent id/name. When the main agent's review finds a
 concrete defect, send the finding to the same worker with `SendMessage`;
 include the file, location, failure, acceptance condition, and covering test.
+A Codex CLI worker is a background `Bash` task that `SendMessage` cannot
+reach; follow the orchestrator's fix brief and `--resume <thread>` instead.
 A follow-up is a new implementation turn, not a new review seat. The worker
 appends its result and test evidence to the report. The main agent reviews the
 actual fix diff again.
@@ -39,9 +46,9 @@ actual fix diff again.
 If two failed fix attempts have the same root cause, stop retrying. The main
 agent changes the diagnosis or plan, or fixes the small issue inline; do not
 create a fresh worker merely to obtain different eyes. Explicitly requested
-independent parallel implementation is the only exception to the one-worker
+independent parallel implementation is one exception to the one-worker
 default: send multiple `Agent` calls in one message, each `orchestra:implementer`
-with disjoint files and state.
+with disjoint files and state. The orchestrator's tier routing is the other.
 
 ## Waiting and evidence
 

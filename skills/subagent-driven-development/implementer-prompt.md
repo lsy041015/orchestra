@@ -2,7 +2,7 @@
 
 Fill this template for one bounded implementation handoff. The controller
 must dispatch it with
-the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`).
+the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset).
 
 ```text
 You are the implementation worker for Task [N]: [TASK_NAME].

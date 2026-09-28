@@ -1,7 +1,7 @@
 ---
 name: implementer-medium
 description: Orchestra implementation worker at medium effort, for simple mechanical pre-planned tasks only. Same contract as orchestra:implementer. Use only when the main session dispatches a bounded task with an explicit brief, allowed files, acceptance checks, tests and report path.
-model: claude-sonnet-5
+model: sonnet
 effort: medium
 disallowedTools: Agent
 ---

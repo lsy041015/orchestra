@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting a Orchestra development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
+description: Use when starting an Orchestra development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
 ---
 
 <SUBAGENT-STOP>
@@ -23,13 +23,13 @@ handles intake, brainstorming and planning, design decisions, code
 review and re-review, diagnosis, integration, and final verification.
 
 The only delegated role is an implementation worker. Dispatch it with
-the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`) and no inherited history. Give it a bounded,
+the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset) and no inherited history. Give it a bounded,
 reviewable implementation result, the exact files it may touch, acceptance
 criteria, tests, and report path. The worker implements, tests, self-reviews,
 and investigates failures within that task. It never delegates an independent
 planning, diagnosis, or review role and never creates another worker.
 
-Use one worker by default and reuse it for related fixes with `followup_task` (Codex) / `SendMessage` (Claude Code).
+Use one worker by default and reuse it for related fixes with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`).
 Do not create a fresh reviewer, planner, explorer, analyst, or escalation
 worker. After two failed fix attempts with the same root cause, stop retrying and
 have the main agent re-evaluate the cause, scope, or implementation directly.
@@ -38,7 +38,9 @@ Small edits, lookups, reviews, re-reviews, diagnosis, and short verification
 can stay in the main session. Multiple implementer workers are allowed only when the
 user explicitly requests parallel implementation and the files and state are
 independent. Every such worker still uses the same host implementer
-preset and may not spawn children.
+preset and may not spawn children. In Claude Code, `orchestra:orchestrator`,
+when active, replaces these worker rules with its tier routing, one worker per
+task, and its parallel rule for Codex workers.
 
 Do not claim independent review, diagnosis, or validation that was not run.
 Keep TDD, systematic debugging, user-change protection, security checks,

@@ -44,7 +44,7 @@ independent review when the main agent performed the review.
    - Important: a required behavior, regression, or fragile implementation;
    - Minor: a useful polish item that does not block the task.
 6. Record the verdict and Minor items in the ledger. Send Critical or
-   Important fixes to the same worker with `followup_task` (Codex) / `SendMessage` (Claude Code), including file,
+   Important fixes to the same worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`), including file,
    location, cause, acceptance condition, and covering tests. The main agent performs
    the scoped re-review.
 
