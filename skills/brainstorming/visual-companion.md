@@ -55,7 +55,7 @@ without repeating it.
 
 **Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.orchestra/brainstorm/` for the session directory.
 
-**Note:** Pass the project root as `--project-dir` so mockups persist in `.orchestra/brainstorm/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. Remind the user to add `.orchestra/` to `.gitignore` if it's not already there.
+**Note:** Pass the project root as `--project-dir` so mockups persist in `.orchestra/brainstorm/` and survive server restarts. The script writes a `.gitignore` there, so screens, events and the saved key stay out of git. Without `--project-dir`, files go to a fresh temp directory and get cleaned up on stop.
 
 **Launching the server by platform:**
 
@@ -72,22 +72,6 @@ On Windows, the script auto-detects and switches to foreground mode (which block
 # Codex reaps background processes. The script auto-detects CODEX_CI and
 # switches to foreground mode. Run it normally — no extra flags needed.
 bash scripts/start-server.sh --project-dir /path/to/project --open
-```
-
-**Gemini CLI:**
-```bash
-# Use --foreground and set is_background: true on your shell tool call
-# so the process survives across turns
-bash scripts/start-server.sh --project-dir /path/to/project --open --foreground
-```
-
-**Copilot CLI:**
-```bash
-# Start it with Copilot CLI's non-blocking/background shell mechanism so the
-# server survives across turns. Keep --foreground so the harness, not the
-# script, owns backgrounding. The launcher is a .sh, so invoke it via bash
-# (on Windows, call Git Bash's bash.exe from the PowerShell tool).
-bash scripts/start-server.sh --project-dir /path/to/project --open --foreground
 ```
 
 **Other environments:** The server must keep running in the background across conversation turns. If your environment reaps detached processes, use `--foreground` and launch the command with your platform's background execution mechanism.
@@ -287,11 +271,13 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 
 ## Cleaning Up
 
+Pass the session directory: the parent of `state_dir` from the startup JSON.
+
 ```bash
-bash scripts/stop-server.sh $SESSION_DIR
+bash scripts/stop-server.sh "<state_dir without the trailing /state>"
 ```
 
-If the session used `--project-dir`, mockup files persist in `.orchestra/brainstorm/` for later reference. Only `/tmp` sessions get deleted on stop.
+If the session used `--project-dir`, mockup files persist in `.orchestra/brainstorm/` for later reference. Only temp sessions get deleted on stop.
 
 ## Reference
 

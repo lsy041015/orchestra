@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """The visual companion stays local and keeps its session files out of git."""
 from pathlib import Path
+import http.cookiejar
+import json
+import os
 import re
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
+import urllib.request
 
 # Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
 # System32\bash.exe before Git Bash.
@@ -14,17 +19,31 @@ BASH = shutil.which("bash") or "bash"
 SCRIPTS = Path(__file__).resolve().parents[1] / "skills/brainstorming/scripts"
 
 
+def frame(content):
+    return subprocess.run(
+        ["node", "-e", "process.stdout.write(require(process.argv[1]).wrapInFrame(process.argv[2]))",
+         str(SCRIPTS / "server.cjs"), content],
+        check=True, capture_output=True, text=True, encoding="utf-8").stdout
+
+
 class BrainstormCompanionTests(unittest.TestCase):
     def test_frame_loads_nothing_remote(self):
-        page = subprocess.run(
-            ["node", "-e", "process.stdout.write(require(process.argv[1]).wrapInFrame('<p>x</p>'))",
-             str(SCRIPTS / "server.cjs")],
-            check=True, capture_output=True, text=True, encoding="utf-8").stdout
+        page = frame("<p>x</p>")
         self.assertIn("Orchestra", page)
         self.assertNotIn("Superpowers", page)
         # The only absolute URL left is the project link.
         self.assertEqual(set(re.findall(r"https?://[^\s\"'<>)]+", page)),
                          {"https://github.com/lsy041015/orchestra"})
+
+    def test_frame_keeps_dollar_patterns_literal(self):
+        content = "<p>costs $$5, keeps $& and $' as typed</p>"
+        self.assertIn(content, frame(content))
+
+    def test_option_without_value_fails_fast(self):
+        result = subprocess.run([BASH, str(SCRIPTS / "start-server.sh"), "--project-dir"],
+                                capture_output=True, text=True, encoding="utf-8", timeout=20)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("error", result.stdout)
 
     def test_project_session_files_are_gitignored(self):
         with tempfile.TemporaryDirectory(prefix="brainstorm-") as temp:
@@ -39,6 +58,61 @@ class BrainstormCompanionTests(unittest.TestCase):
                     ignored = subprocess.run(["git", "-C", str(project), "check-ignore", "-q",
                                               f".orchestra/brainstorm/{name}"])
                     self.assertEqual(ignored.returncode, 0)
+
+    def serve(self, cwd, args, env=None, info_glob=None):
+        """Start a real companion, return its server-info and session dir."""
+        proc = subprocess.Popen([BASH, str(SCRIPTS / "start-server.sh"), *args, "--foreground",
+                                 "--idle-timeout-minutes", "1"],
+                                cwd=cwd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.addCleanup(lambda: proc.poll() is None and proc.kill())
+        for _ in range(200):
+            found = list(Path(info_glob[0]).glob(info_glob[1]))
+            if found:
+                info = json.loads(found[0].read_text(encoding="utf-8"))
+                session = found[0].parent.parent
+                self.addCleanup(self.stop, session, proc)
+                return info, session
+            time.sleep(0.1)
+        self.fail(f"no server-info under {info_glob}")
+
+    def stop(self, session, proc):
+        subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)], capture_output=True)
+        try:
+            proc.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+    def temp_dir(self, prefix):
+        # Registered before serve(), so its cleanup runs after the server stops
+        # (cleanups run last-in, first-out) and the PID file is still there.
+        temp = tempfile.TemporaryDirectory(prefix=prefix)
+        self.addCleanup(temp.cleanup)
+        return Path(temp.name)
+
+    def test_relative_project_dir_and_encoded_file_names(self):
+        project = self.temp_dir("brainstorm-rel-")
+        info, _ = self.serve(project, ["--project-dir", "."],
+                             info_glob=(project, ".orchestra/brainstorm/*/state/server-info"))
+        (Path(info["screen_dir"]) / "my logo.txt").write_text("hello", encoding="utf-8")
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        opener.open(info["url"], timeout=10).read()
+        base = info["url"].split("?")[0].rstrip("/")
+        body = opener.open(base + "/files/my%20logo.txt", timeout=10).read().decode("utf-8")
+        self.assertEqual(body, "hello")
+
+    def test_temporary_session_is_private_and_removed_on_stop(self):
+        tmp = self.temp_dir("brainstorm-tmp-")
+        env = {**os.environ, "TMPDIR": str(tmp).replace("\\", "/")}
+        _, session = self.serve(tmp, [], env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
+        # mktemp's random suffix, not the guessable "$$-<time>" name.
+        self.assertRegex(session.name, r"^brainstorm-[A-Za-z0-9]{6,}$")
+        subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)], capture_output=True)
+        for _ in range(50):
+            if not session.exists():
+                break
+            time.sleep(0.1)
+        self.assertFalse(session.exists())
 
 
 if __name__ == "__main__":

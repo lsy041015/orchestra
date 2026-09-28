@@ -7,7 +7,7 @@
 #
 # Options:
 #   --project-dir <path>  Store session files under <path>/.orchestra/brainstorm/
-#                         instead of /tmp. Files persist after server stops.
+#                         instead of a temp dir. Files persist after server stops.
 #   --host <bind-host>    Host/interface to bind (default: 127.0.0.1).
 #                         Use 0.0.0.0 in remote/containerized environments.
 #   --url-host <host>     Hostname shown in returned URL JSON.
@@ -27,9 +27,15 @@ BIND_HOST="127.0.0.1"
 URL_HOST=""
 IDLE_TIMEOUT_MINUTES=""
 while [[ $# -gt 0 ]]; do
+  # Without this check `shift 2` fails on a trailing option and the loop spins.
+  case "$1" in
+    --project-dir|--host|--url-host|--idle-timeout-minutes)
+      [[ $# -ge 2 ]] || { echo "{\"error\": \"Missing value for $1\"}"; exit 1; } ;;
+  esac
   case "$1" in
     --project-dir)
-      PROJECT_DIR="$2"
+      # Absolute now: the script changes directory before starting the server.
+      PROJECT_DIR="$(cd "$2" 2>/dev/null && pwd)" || { echo "{\"error\": \"No such directory: $2\"}"; exit 1; }
       shift 2
       ;;
     --host)
@@ -120,7 +126,8 @@ if [[ -n "$PROJECT_DIR" ]]; then
   export BRAINSTORM_PORT_FILE="${PROJECT_DIR}/.orchestra/brainstorm/.last-port"
   export BRAINSTORM_TOKEN_FILE="${PROJECT_DIR}/.orchestra/brainstorm/.last-token"
 else
-  SESSION_DIR="/tmp/brainstorm-${SESSION_ID}"
+  # mktemp: a fresh, unguessable directory that another local user cannot pre-create.
+  SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/brainstorm-XXXXXX")" || exit 1
 fi
 
 STATE_DIR="${SESSION_DIR}/state"
@@ -145,13 +152,6 @@ if ! [[ "$SERVER_ID" =~ ^[A-Za-z0-9_-]{32,64}$ ]]; then
 fi
 printf '%s\n' "$SERVER_ID" > "$SERVER_ID_FILE"
 chmod 600 "$SERVER_ID_FILE" 2>/dev/null || true
-
-# Kill any existing server
-if [[ -f "$PID_FILE" ]]; then
-  old_pid=$(cat "$PID_FILE")
-  kill "$old_pid" 2>/dev/null
-  rm -f "$PID_FILE"
-fi
 
 cd "$SCRIPT_DIR" || exit 1
 

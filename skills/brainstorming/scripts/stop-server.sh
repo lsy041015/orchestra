@@ -2,9 +2,9 @@
 # Stop the brainstorm server and clean up
 # Usage: stop-server.sh <session_dir>
 #
-# Kills the server process. Only deletes session directory if it's
-# under /tmp (ephemeral). Persistent directories (.orchestra/) are
-# kept so mockups can be reviewed later.
+# Kills the server process. Only deletes the session directory if it is a
+# temp session (${TMPDIR:-/tmp}/brainstorm-*). Persistent directories
+# (.orchestra/) are kept so mockups can be reviewed later.
 
 SESSION_DIR="$1"
 
@@ -109,8 +109,11 @@ if [[ -f "$PID_FILE" ]]; then
   rm -f "$PID_FILE" "$SERVER_ID_FILE" "${STATE_DIR}/server.log"
   mark_stopped "stop-server.sh"
 
-  # Only delete ephemeral /tmp directories
-  if [[ "$SESSION_DIR" == /tmp/* ]]; then
+  # Only delete ephemeral temp sessions. Compare physical paths: on Windows the
+  # JSON reports C:\...\Temp\brainstorm-* for what Git Bash calls /tmp.
+  tmp_root="$(cd "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P)"
+  session_real="$(cd "$SESSION_DIR" 2>/dev/null && pwd -P)"
+  if [[ -n "$tmp_root" && "$session_real" == "$tmp_root"/brainstorm-* ]]; then
     rm -rf "$SESSION_DIR"
   fi
 
