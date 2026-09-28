@@ -60,8 +60,9 @@ Routing values have the form `<codex|claude> <model>/<effort>`.
   failed run.
 
 Use the `ui` key for separately routed UI tasks and `hard` for other hard
-tasks. If a file is not valid JSON or a value does not match the form, tell the
-user which one and ask instead of guessing. If every tier in the task table has
+tasks; without a `ui` value, UI tasks use `hard`. If a file is not valid JSON
+or a value does not match the form, tell the user which one and ask instead of
+guessing. If every tier in the task table has
 a routing value, skip questions and show the mapping on one line. Ask with
 `AskUserQuestion` only for tiers without a value, using the merged `options`
 array or the four example choices above when it is absent. The user may enter
@@ -93,17 +94,20 @@ node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --
 
 `--allowed` is a comma-separated list relative to `--cwd`; end an entry with
 `/` to allow a whole directory, for example `src/retry.ts,test/fixtures/`.
-`--cwd` may be a subdirectory of the repository.
+Use the repository root as `--cwd`. The Codex sandbox writes only inside
+`--cwd`, so the brief and report in `<ledger>` must be inside it; the worker
+refuses a brief outside `--cwd`. Name subdirectory files in `--allowed`.
 
 Fill `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
 `<ledger>/task-N-codex-prompt.md`:
 
 ```text
-Never run git commit, push, reset or checkout unless the brief says so. Edit
-only allowed files. Never leave long-running servers or editors running. Keep
-the report at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's
-status block.
+Never run git commit, push, reset or checkout: the sandbox keeps .git
+read-only, and the main session commits after review. Edit only allowed
+files. Never leave long-running servers or editors running. Keep the report
+at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
+block.
 ```
 
 When the background task completes, notify the user and record its
@@ -121,15 +125,26 @@ Review every result from the actual diff. After each Codex run:
 - Treat `Scope: outside allowed` as a review finding (see the parallel rule
   above). The check does not see `.gitignore`d paths; review those from the
   diff and the worker report when the task touches them.
+- `Scope: unchecked (<reason>)` means no mechanical check ran: not a git
+  repository, git refused it (for example dubious ownership), or git failed
+  after the run. Review `git status` and the whole diff yourself, and tell the
+  user why the check was skipped.
+- Codex workers never commit. When the plan asks for commits, the main session
+  commits each task after its review is clean.
 - Check for processes left running from the project directory: on Windows,
   `Get-CimInstance Win32_Process | Where-Object CommandLine -like '*<project>*'`;
   elsewhere, `ps -eo pid,args | grep -F "<project>"`. Ask before stopping a
   process the user may own.
 
-For a Claude worker, send findings to that worker. For a Codex worker, write
-findings to `<ledger>/task-N-codex-fix-K.md` using the re-review prompt format,
-then rerun the worker with the same `--model`, `--effort`, `--cwd` and
-`--allowed`, plus `--resume <thread>` and that fix brief. After two failed fix
+For a Claude worker, send findings to that worker with `SendMessage`. For a
+Codex worker, write the follow-up fix described at the end of
+`implementer-prompt.md` (each finding with file and location, required
+behavior, covering tests, the report instruction) plus the Codex rules to
+`<ledger>/task-N-codex-fix-K.md`, then rerun the worker with the same
+`--model`, `--effort`, `--cwd` and `--allowed`, plus `--resume <thread>` and
+that fix brief. A reply without a status block comes back as
+`Status: BLOCKED` (`Codex reply has no status block`); resume the thread with
+the missing answer. After two failed fix
 rounds with the same root cause, the main session writes a `Ruling:` and
 replans or fixes inline.
 
