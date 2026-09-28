@@ -69,6 +69,17 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assert_selected(result, self.root / ".worktrees")
 
+    @unittest.skipUnless(os.name == "nt", "Windows drive paths")
+    def test_windows_drive_location_is_absolute(self):
+        external = Path(tempfile.mkdtemp(prefix="wt-external-"))
+        self.addCleanup(shutil.rmtree, external, True)
+        location = str(external).replace("\\", "/")
+        script = f'set -eu\nLOCATION="{location}"\n' + self.safety + '\nprintf "SELECTED=%s\\n" "$selected"'
+        result = subprocess.run([BASH, "-c", script], cwd=self.root, capture_output=True, text=True,
+                                encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assert_selected(result, external)
+
     def commit_baseline(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false",

@@ -116,7 +116,7 @@ repo_root=$(resolve_path "$(git rev-parse --show-toplevel)")
 # Resolve a relative LOCATION against repo_root, then append / only for this
 # directory probe. The selected directory need not exist yet.
 case "$LOCATION" in
-  /*) selected="$LOCATION" ;;
+  /*|[A-Za-z]:[\\/]*) selected="$LOCATION" ;;  # includes Windows drive paths
   *) selected="$repo_root/$LOCATION" ;;
 esac
 selected=$(resolve_path "$selected")
@@ -139,9 +139,9 @@ The `--` and quotes are required for spaces and option-like names. A
 directory-only pattern such as `.worktrees/` must match the same `probe`,
 including when the directory is not present yet. If the selected location is
 not ignored, add that exact directory pattern (relative to `repo_root`) to
-`.gitignore` and rerun the same check. Follow the repository's normal commit
-policy; do not create an arbitrary safety-only commit just to satisfy this
-check.
+`.gitignore`, tell the user you changed that tracked file, and rerun the same
+check. Follow the repository's normal commit policy; do not create an
+arbitrary safety-only commit just to satisfy this check.
 
 **Why critical:** Prevents accidentally committing worktree contents to repository.
 
@@ -162,7 +162,9 @@ git -C "$repo_root" worktree add -b "$BRANCH_NAME" -- "$wt_path" &&
 ```
 
 If `git worktree add` fails because the branch or path already exists, stop
-and report it; do not reuse or mark the existing directory.
+and report it; do not reuse or mark the existing directory. If only the marker
+write fails (a sandbox may protect `.git`), report that the worktree exists
+but finishing-a-development-branch will not remove it automatically.
 
 **Sandbox fallback:** If `git worktree add` fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
 
@@ -177,13 +179,16 @@ if [ -f package.json ]; then npm install; fi
 # Rust
 if [ -f Cargo.toml ]; then cargo build; fi
 
-# Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+# Python: only into an active virtual environment, never the global interpreter
+if [ -f requirements.txt ] && [ -n "${VIRTUAL_ENV:-}" ]; then pip install -r requirements.txt; fi
 if [ -f pyproject.toml ]; then poetry install; fi
 
 # Go
 if [ -f go.mod ]; then go mod download; fi
 ```
+
+With `requirements.txt` and no active virtual environment, ask before
+installing anything into the global Python interpreter.
 
 ## Step 3: Verify Clean Baseline
 
