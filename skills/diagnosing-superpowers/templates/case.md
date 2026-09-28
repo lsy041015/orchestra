@@ -9,7 +9,7 @@ Created: <ISO timestamp>
 expected, what happened, and the observable that matters: wall-clock,
 tokens, repeated actions, a specific unexpected action.>
 
-Goal is a superpowers bug report: yes | no
+Goal is an Orchestra bug report: yes | no
 
 ## Sessions
 
@@ -27,7 +27,7 @@ Session still running at read time: yes | no (mtime <ISO>, lines <N>)
 - OS: <name and version>
 - Harness: <name> <version>
 - Models seen: <model id — where (main / historical worker id)>
-- Superpowers install root: <path>; version <x.y.z>; git sha <sha or "not a checkout">
+- Orchestra install root: <path>; version <x.y.z>; git sha <sha or "not a checkout">
 - Skill files read or injected during the session:
 
 | Skill / source path | sha1 or unavailable | Provenance | Supporting location |

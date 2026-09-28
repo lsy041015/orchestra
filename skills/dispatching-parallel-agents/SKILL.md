@@ -8,7 +8,9 @@ description: Use only when the user explicitly requests independent implementati
 Parallel dispatch is an exception to the one-worker default. It is permitted
 only when the user explicitly asks for parallel implementation and each unit
 has disjoint files, interfaces, fixtures, and mutable state. The main agent first
-confirms those boundaries; otherwise work sequentially or inline.
+confirms those boundaries; otherwise work sequentially or inline. When
+`orchestra:orchestrator` is active, its own rule for parallel Codex workers
+with disjoint allowed files applies instead of this skill.
 
 Do not use this skill for exploration, planning, diagnosis, test triage,
 review, re-review, or a second opinion. Those remain in the main session.
@@ -19,7 +21,7 @@ A worker may not dispatch its own children.
 For every independent unit, provide a separate brief with its exact goal,
 allowed files, settled interfaces, acceptance checks, tests, and report path.
 Every call uses
-the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`). Make the calls concurrently only after confirming no
+the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset). Make the calls concurrently only after confirming no
 write or state dependency can overlap.
 
 When all workers return, the main agent reads every actual diff and report, checks for
@@ -28,7 +30,7 @@ overlap and integration conflicts, and applies
 state. Reuse a matching result only when its command, scope, environment, exit
 code, and actual log still apply; otherwise run the affected integration
 verification. Worker reports are evidence, not approval. Send a concrete fix to the same
-worker with `followup_task` (Codex) / `SendMessage` (Claude Code) when possible; do not create a reviewer or a fresh
+worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`) when possible; do not create a reviewer or a fresh
 fixer. If two failed fix attempts have the same root cause, the main agent stops retrying,
 records a Ruling, and changes the plan or fixes inline.
 

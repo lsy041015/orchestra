@@ -69,15 +69,18 @@ Fix gaps inline. Honor a user-requested plan approval gate and ask about any
 unresolved consequential decision. Otherwise the existing task authorization
 permits execution; creating a plan does not add a new approval requirement. Use `orchestra:subagent-driven-development`
 for bounded delegated work or `orchestra:executing-plans` for
-inline execution.
+inline execution. In Claude Code, also offer `orchestra:orchestrator`, which
+routes each difficulty tier to a Claude subagent or a Codex CLI worker with
+the model and effort the user picks.
 
 ## Execution handoff
 
 The main session owns the plan, task selection, and code review. When a
 task is clear and worth delegation, it creates one implementer worker
-with the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `claude-sonnet-5` / `high`) and a focused task
+with the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset) and a focused task
 brief. Related fixes return to that same worker. A second worker is permitted
-only for explicitly requested independent parallel implementation. Reviewers,
+only for explicitly requested independent parallel implementation or under
+the orchestrator's tier routing. Reviewers,
 planners, explorers, and diagnostic agents are not spawned.
 
 Keep the plan and progress ledger as the recovery record. If implementation

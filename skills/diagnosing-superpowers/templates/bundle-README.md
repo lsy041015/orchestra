@@ -1,7 +1,7 @@
-# Superpowers session diagnosis bundle
+# Orchestra session diagnosis bundle
 
 Session: <session-id>
-Harness: <name> <version> (<provenance label>)    Superpowers: <version> (<sha or "not a checkout">; <provenance label>)
+Harness: <name> <version> (<provenance label>)    Orchestra: <version> (<sha or "not a checkout">; <provenance label>)
 Redaction level: skeleton | evidence | full
 Built: <ISO timestamp>
 
@@ -12,11 +12,11 @@ location.
 
 ## What this is
 
-A scrubbed record of a coding-agent session that had superpowers installed
+A scrubbed record of a coding-agent session that had Orchestra installed
 and went wrong. It lets an agent or person who was not present decide
-whether superpowers contributed and, if so, what to change. The report
+whether Orchestra contributed and, if so, what to change. The report
 inside states what happened with `path:line` evidence. By design it
-contains no diagnosis of superpowers and no proposed fix; that is the
+contains no diagnosis of Orchestra and no proposed fix; that is the
 reader's job.
 
 ## Files
@@ -66,7 +66,7 @@ draft. Refresh scrub-log counts against final files excluding the log itself.
 Remove stale export statements; distinguish bundle preparation from archive
 delivery. Retain a mapping from historical anchors to included evidence.
 
-Record the independent privacy audit separately from evidence usefulness:
+Record the privacy self-audit (same agent, not an independent review) separately from evidence usefulness:
 - Privacy audit: CLEAN or unresolved misses.
 - Evidence support: supported or limited, with affected findings and reasons.
 

@@ -21,7 +21,7 @@ Do not perform agreement or blind implementation.
 6. Re-run the relevant checks, inspect the fix diff, and report the result.
 
 For a delegated task, send the concrete fix to the same implementer worker with
-`followup_task` (Codex) / `SendMessage` (Claude Code): include the finding, file and location, why it matters, the
+`followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`): include the finding, file and location, why it matters, the
 acceptance condition, and the covering test. The main agent performs the re-review.
 Small corrections may stay inline. Do not create a new reviewer, fixer,
 analyst, or model escalation. If two failed fix attempts have the same root cause,

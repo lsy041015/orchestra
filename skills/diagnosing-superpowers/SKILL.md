@@ -1,13 +1,13 @@
 ---
 name: diagnosing-superpowers
-description: Use when a Superpowers session has repeated work, ignored a plan, stumbled, produced poor results, or used unexpected time or tokens
+description: Use when an Orchestra session has repeated work, ignored a plan, stumbled, produced poor results, or used unexpected time or tokens
 ---
 
-# Diagnosing Superpowers
+# Diagnosing Orchestra Sessions
 
 The main agent performs the diagnosis. This skill reports what happened with transcript
 evidence; it does not create an analyst, audit, reviewer, or escalation agent,
-and it does not prescribe a Superpowers change. Dimension prompts are worksheets
+and it does not prescribe an Orchestra change. Dimension prompts are worksheets
 for the main agent's own passes.
 
 ## Workflow
@@ -58,7 +58,7 @@ Create a todo per applicable step and keep the original records read-only.
 - Human prompts are only the records the case identifies as human-typed.
   Hook output, system reminders, and tool results are not user requests. In a
   historical worker transcript, `user` is the parent agent.
-- Report Superpowers involvement in §7 and stop there. Do not diagnose the
+- Report Orchestra involvement in §7 and stop there. Do not diagnose the
   skill itself, propose a fix, or advise the user from transcript evidence.
 - Do not archive or publish a bundle, issue, or comment before its required
   approval. Keep sensitive values out of reports when they are not needed to
