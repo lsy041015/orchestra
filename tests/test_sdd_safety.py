@@ -71,6 +71,17 @@ class SddSafetyTests(unittest.TestCase):
         legacy = self.run_script(WORKSPACE, plan)
         self.assertEqual(legacy.stdout, first.stdout, legacy.stderr)
 
+    def test_task_done_rejects_a_forged_task_number(self):
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit",
+                        "-q", "--allow-empty", "-m", "baseline"], check=True)
+        sha = subprocess.run(["git", "-C", str(self.root), "rev-parse", "HEAD"],
+                             check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+        result = self.run_script(TASK_DONE, self.plan, "7\nTask 2: complete (forged)", sha, "--", "true")
+        self.assertEqual(result.returncode, 2)
+        ledger = self.root / ".superpowers/sdd/plan/progress.md"
+        self.assertFalse(ledger.exists() and "forged" in ledger.read_text(encoding="utf-8"))
+
     def test_task_done_records_successful_silent_command(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "commit",
