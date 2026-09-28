@@ -26,8 +26,8 @@ relationships. Mark substitutions inside quotations as redactions.
 
 If safe redaction removes a finding's support, record the affected finding
 and limitation. Do not retain sensitive values to satisfy an evidence check.
-If classification is ambiguous, report the category and location to your
-main session for clarification; do not invent a broader redaction category.
+If classification is ambiguous, record the category and location and ask
+the user for clarification; do not invent a broader redaction category.
 
 Omit opaque encrypted payload values that provide no inspectable evidence;
 retain usable event identity/linkage metadata and note the omission. Treat

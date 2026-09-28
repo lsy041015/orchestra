@@ -1,6 +1,6 @@
 # Gemini CLI Compatibility Note
 
-This personal edition runs on Codex and Claude Code. The table below is retained only as
+Orchestra runs on Codex and Claude Code. The table below is retained only as
 source compatibility information; it is not an active Gemini routing guide and
 does not authorize a non-implementation dispatch.
 

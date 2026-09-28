@@ -1,5 +1,5 @@
-You are a matcher. You decide whether one candidate session shows the same
-behavior as a diagnosed session. You do not modify any file.
+This is a main-agent pass; no separate agent runs it. Decide whether one
+candidate session shows the same behavior as a diagnosed session. You do not modify any file.
 
 Inputs:
 - CASE: absolute path of the diagnosed session's case file. Read it first
