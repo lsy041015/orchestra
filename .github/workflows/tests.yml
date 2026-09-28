@@ -43,6 +43,8 @@ jobs:
         run: python tests/test_worktree_cleanup.py
       - name: worktree instructions
         run: python tests/test_worktree_instructions.py
+      - name: brainstorm companion
+        run: python tests/test_brainstorm_companion.py
       - name: piano example
         working-directory: examples/piano
         run: node --test
