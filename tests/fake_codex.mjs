@@ -33,6 +33,10 @@ if (process.env.FAKE_MODE === 'fail') {
     { type: 'item.completed', item: { type: 'agent_message', text: 'Which file should I change?' } },
     { type: 'turn.completed' },
   ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+} else if (process.env.FAKE_MODE === 'hang') {
+  // A long run that only a signal ends.
+  writeFileSync(join(cwd, 'pid.txt'), String(process.pid));
+  setInterval(() => {}, 1000);
 } else if (process.env.FAKE_MODE === 'event-fail') {
   for (const event of [
     { type: 'thread.started', thread_id: 't-123' },

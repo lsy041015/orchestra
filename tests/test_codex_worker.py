@@ -3,8 +3,10 @@ from pathlib import Path
 import json
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -196,6 +198,35 @@ class CodexWorkerTests(unittest.TestCase):
             result = self.run_worker(mode="ok", cwd=cwd, brief=brief)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.scope(result).startswith("Scope: unchecked (git: "), result.stdout)
+
+    @unittest.skipIf(os.name == "nt", "POSIX signals; TaskStop kills the whole tree on Windows")
+    def test_sigterm_also_stops_codex(self):
+        env = os.environ.copy()
+        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE="hang")
+        worker = subprocess.Popen([
+            "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
+            "--brief", str(self.brief), "--allowed", "a.txt",
+        ], cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True, encoding="utf-8")
+        self.addCleanup(lambda: worker.poll() is None and worker.kill())
+        pid_file = self.root / "pid.txt"
+        for _ in range(200):
+            if pid_file.exists() and pid_file.read_text(encoding="utf-8"):
+                break
+            time.sleep(0.05)
+        codex_pid = int(pid_file.read_text(encoding="utf-8"))
+        self.addCleanup(self.kill_quietly, codex_pid)
+        worker.send_signal(signal.SIGTERM)
+        out, _ = worker.communicate(timeout=10)
+        self.assertIn("Status: BLOCKED", out)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(codex_pid, 0)
+
+    @staticmethod
+    def kill_quietly(pid):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError, AttributeError):
+            pass
 
     @unittest.skipUnless(os.name == "nt", "Windows command lookup")
     def test_windows_ignores_codex_planted_in_cwd(self):

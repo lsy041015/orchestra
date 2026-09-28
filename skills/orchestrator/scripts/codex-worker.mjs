@@ -136,9 +136,17 @@ function spawnCodex(args, cwd, prompt) {
     let error;
     child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
     child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    // Pass a stop request on (the codex shim forwards it to the native binary),
+    // so killing only this worker never leaves Codex editing files.
+    const forward = (signal) => child.kill(signal);
+    const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    for (const signal of signals) process.on(signal, forward);
     child.stdin.on('error', () => {});
     child.on('error', (cause) => { error = cause; });
-    child.on('close', (code, signal) => resolve({ stdout, stderr, code, signal, error }));
+    child.on('close', (code, signal) => {
+      for (const name of signals) process.off(name, forward);
+      resolve({ stdout, stderr, code, signal, error });
+    });
     child.stdin.end(prompt);
   });
 }
