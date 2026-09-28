@@ -201,3 +201,7 @@ macOS/Linux are especially welcome.
 Based on [Superpowers](https://github.com/obra/superpowers) 6.4.1 by Jesse Vincent, under the
 [MIT License](LICENSE) with the original copyright kept. The upstream README is in
 [UPSTREAM_README.md](UPSTREAM_README.md). The banner melody is Beethoven's *Ode to Joy* (public domain).
+
+---
+
+<p align="center"><sub>LSY.KOR · <a href="https://github.com/lsy041015">More projects</a></sub></p>
