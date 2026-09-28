@@ -49,6 +49,8 @@ jobs:
         run: python tests/test_skill_text.py
       - name: release manifests
         run: python tests/test_release_manifests.py
+      - name: find-polluter
+        run: python tests/test_find_polluter.py
       - name: piano example
         working-directory: examples/piano
         run: node --test

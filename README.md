@@ -685,6 +685,7 @@ python3 tests/test_worktree_instructions.py
 python3 tests/test_brainstorm_companion.py
 python3 tests/test_skill_text.py
 python3 tests/test_release_manifests.py
+python3 tests/test_find_polluter.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```

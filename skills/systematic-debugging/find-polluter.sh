@@ -18,13 +18,24 @@ echo "🔍 Searching for test that creates: $POLLUTION_CHECK"
 echo "Test pattern: $TEST_PATTERN"
 echo ""
 
+# Refuse to report "clean" when nothing could be checked.
+if [ -e "$POLLUTION_CHECK" ]; then
+  echo "❌ $POLLUTION_CHECK already exists. Remove it, then rerun."
+  exit 2
+fi
+if ! node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)" 2>/dev/null; then
+  echo "❌ No package.json with a \"test\" script here; this script runs npm test <file>."
+  exit 2
+fi
+
 # Get list of test files (find . emits ./-prefixed paths, so accept the
 # pattern written with or without a leading ./)
 TEST_PATTERN="${TEST_PATTERN#./}"
 # find -path can't match '**/' against zero directory levels, so a pattern
 # like src/**/*.test.ts would skip src/top.test.ts; also try the pattern
 # with '**/' collapsed to cover files directly under the base directory.
-TEST_FILES=$(find . \( -path "./$TEST_PATTERN" -o -path "./${TEST_PATTERN//\*\*\//}" \) | sort -u)
+TEST_FILES=$(find . \( -path ./node_modules -o -path ./.git \) -prune -o \
+  \( -path "./$TEST_PATTERN" -o -path "./${TEST_PATTERN//\*\*\//}" \) -print | sort -u)
 if [ -z "$TEST_FILES" ]; then
   TOTAL=0
 else
@@ -35,15 +46,10 @@ echo "Found $TOTAL test files"
 echo ""
 
 COUNT=0
-for TEST_FILE in $TEST_FILES; do
+# One file per line, so names with spaces stay whole.
+while IFS= read -r TEST_FILE; do
+  [ -n "$TEST_FILE" ] || continue
   COUNT=$((COUNT + 1))
-
-  # Skip if pollution already exists
-  if [ -e "$POLLUTION_CHECK" ]; then
-    echo "⚠️  Pollution already exists before test $COUNT/$TOTAL"
-    echo "   Skipping: $TEST_FILE"
-    continue
-  fi
 
   echo "[$COUNT/$TOTAL] Testing: $TEST_FILE"
 
@@ -61,11 +67,11 @@ for TEST_FILE in $TEST_FILES; do
     ls -la "$POLLUTION_CHECK"
     echo ""
     echo "To investigate:"
-    echo "  npm test $TEST_FILE    # Run just this test"
-    echo "  cat $TEST_FILE         # Review test code"
+    echo "  npm test \"$TEST_FILE\"    # Run just this test"
+    echo "  cat \"$TEST_FILE\"         # Review test code"
     exit 1
   fi
-done
+done <<< "$TEST_FILES"
 
 echo ""
 echo "✅ No polluter found - all tests clean!"

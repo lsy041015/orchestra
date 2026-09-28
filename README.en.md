@@ -170,7 +170,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
 | `gpt-6-luna` + `ultra` | ✅ since v0.4.1 `Status: BLOCKED` before Codex runs, because the model cache lists only up to `max` (before, the API accepted it and the level actually applied was unknown) |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
-| All seven test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
+| All nine test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
 
 Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer. Claude
@@ -188,6 +188,7 @@ python3 tests/test_worktree_instructions.py
 python3 tests/test_brainstorm_companion.py
 python3 tests/test_skill_text.py
 python3 tests/test_release_manifests.py
+python3 tests/test_find_polluter.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```
