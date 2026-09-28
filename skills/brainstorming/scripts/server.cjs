@@ -239,8 +239,9 @@ function isFullDocument(html) {
   return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html');
 }
 
+// Function replacers: a string replacement would expand $&, $' and $$ in content.
 function wrapInFrame(content) {
-  return renderBranding(frameTemplate).replace('<!-- CONTENT -->', content);
+  return renderBranding(frameTemplate).replace('<!-- CONTENT -->', () => content);
 }
 
 function getNewestScreen() {
@@ -358,12 +359,24 @@ function isAllowedWebSocketOrigin(req) {
   if (!origin) return true;
   const host = req.headers.host;
   if (!host) return false;
-  return origin === 'http://' + host;
+  // https: behind a TLS tunnel (Codespaces, ngrok) that forwards the Host header.
+  return origin === 'http://' + host || origin === 'https://' + host;
 }
 
 // ========== HTTP Request Handler ==========
 
 function handleRequest(req, res) {
+  try {
+    serveRequest(req, res);
+  } catch (error) {
+    // A screen can vanish between listing and reading; answer instead of crashing.
+    console.error('Request failed:', error.message);
+    if (!res.headersSent) res.writeHead(500, securityHeaders());
+    res.end('Server error');
+  }
+}
+
+function serveRequest(req, res) {
   if (!isAuthorized(req)) {
     res.writeHead(403, securityHeaders({ 'Content-Type': 'text/html; charset=utf-8' }));
     res.end(FORBIDDEN_PAGE);
@@ -389,7 +402,7 @@ function handleRequest(req, res) {
       : waitingPage();
 
     if (html.includes('</body>')) {
-      html = html.replace('</body>', helperInjection + '\n</body>');
+      html = html.replace('</body>', () => helperInjection + '\n</body>');
     } else {
       html += helperInjection;
     }
@@ -397,7 +410,9 @@ function handleRequest(req, res) {
     res.writeHead(200, securityHeaders({ 'Content-Type': 'text/html; charset=utf-8' }));
     res.end(html);
   } else if (req.method === 'GET' && pathname.startsWith('/files/')) {
-    const fileName = path.basename(pathname.slice(7));
+    // Decode first ("my%20logo.png"); basename still strips any decoded separators.
+    let fileName = '';
+    try { fileName = path.basename(decodeURIComponent(pathname.slice(7))); } catch (e) { /* bad escape */ }
     const filePath = path.join(CONTENT_DIR, fileName);
     // Reject empty/dotfile names and anything that isn't a regular file —
     // `/files/` would otherwise resolve to CONTENT_DIR and crash readFileSync (EISDIR).
@@ -491,7 +506,11 @@ function handleMessage(text) {
   console.log(JSON.stringify({ source: 'user-event', ...event }));
   if (event && event.choice) {
     const eventsFile = path.join(STATE_DIR, 'events');
-    fs.appendFileSync(eventsFile, JSON.stringify(event) + '\n');
+    try {
+      fs.appendFileSync(eventsFile, JSON.stringify(event) + '\n');
+    } catch (e) {
+      console.error('Failed to record event:', e.message);
+    }
   }
 }
 
