@@ -50,15 +50,20 @@ tradeoff; do not add a routine consent round to an already authorized task.
 
 ### 1a. Native Worktree Tools (preferred)
 
-Isolation is appropriate under Step 0. Do you already have a way to create a worktree? It might be a tool with a name like `EnterWorktree`, `WorktreeCreate`, a `/worktree` command, or a `--worktree` flag. If you do, use it and skip to Step 2.
+Isolation is appropriate under Step 0. Do you already have a way to create a worktree that this task may use? It might be a tool with a name like `EnterWorktree`, a `/worktree` command, or a `--worktree` flag. If you do, use it and skip to Step 2.
 
-Native tools handle directory placement, branch creation, and cleanup automatically. Using `git worktree add` when you have a native tool creates phantom state your harness can't see or manage.
+In Claude Code, `EnterWorktree` may be used only when the user or CLAUDE.md
+explicitly asks for a worktree. Its default `worktree.baseRef: fresh` branches
+from `origin/<default-branch>`, not your local HEAD, so unpushed commits are
+missing there. Without such a request, use Step 1b.
 
-Only proceed to Step 1b if you have no native worktree tool available.
+Native tools handle directory placement, branch creation, and cleanup automatically. Using `git worktree add` when you have a usable native tool creates phantom state your harness can't see or manage.
+
+Only proceed to Step 1b if no native worktree tool is available or allowed.
 
 ### 1b. Git Worktree Fallback
 
-**Only use this if Step 1a does not apply** — you have no native worktree tool available. Create a worktree manually using git.
+**Only use this if Step 1a does not apply** — no native worktree tool is available or allowed. Create a worktree manually using git.
 
 #### Directory Selection
 
@@ -98,14 +103,14 @@ and `worktrees` as alternatives after `LOCATION` has been chosen:
 # Portable stand-in for GNU `realpath -m` (macOS realpath has no -m): resolve
 # the longest existing prefix with `pwd -P` and keep the missing tail as is.
 resolve_path() {
-  local path=$1 tail=
-  while [ "$path" != / ] && [ "${path%/}" != "$path" ]; do path=${path%/}; done
-  while [ ! -d "$path" ]; do
-    tail="/${path##*/}$tail"
-    path=${path%/*}
-    [ -n "$path" ] || path=/
+  local p=$1 tail=
+  while [ "$p" != / ] && [ "${p%/}" != "$p" ]; do p=${p%/}; done
+  while [ ! -d "$p" ]; do
+    tail="/${p##*/}$tail"
+    p=${p%/*}
+    [ -n "$p" ] || p=/
   done
-  printf '%s%s\n' "$(CDPATH= cd -- "$path" && pwd -P)" "$tail"
+  printf '%s%s\n' "$(CDPATH= cd -- "$p" && pwd -P)" "$tail"
 }
 repo_root=$(resolve_path "$(git rev-parse --show-toplevel)")
 # Resolve a relative LOCATION against repo_root, then append / only for this
@@ -145,13 +150,19 @@ check.
 ```bash
 # Use the exact normalized path that passed the safety check. Do not rebuild it
 # from LOCATION, which could resolve somewhere else after changing directory.
-path="$selected/$BRANCH_NAME"
+# (Not named `path`: zsh ties that name to PATH.)
+wt_path="$selected/$BRANCH_NAME"
 
-git -C "$repo_root" worktree add -b "$BRANCH_NAME" -- "$path"
-cd "$path"
-git_dir=$(CDPATH= cd -- "$(git rev-parse --git-dir)" && pwd -P)
-pwd -P > "$git_dir/orchestra-owned-worktree"
+# Stop at the first failure: marking a worktree this step did not create lets
+# cleanup delete someone else's work.
+git -C "$repo_root" worktree add -b "$BRANCH_NAME" -- "$wt_path" &&
+  cd "$wt_path" &&
+  git_dir=$(CDPATH= cd -- "$(git rev-parse --git-dir)" && pwd -P) &&
+  pwd -P > "$git_dir/orchestra-owned-worktree"
 ```
+
+If `git worktree add` fails because the branch or path already exists, stop
+and report it; do not reuse or mark the existing directory.
 
 **Sandbox fallback:** If `git worktree add` fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
 
@@ -201,8 +212,9 @@ Ready to implement <feature-name>
 |-----------|--------|
 | Already in linked worktree | Skip creation (Step 0) |
 | In a submodule | Treat as normal repo (Step 0 guard) |
-| Native worktree tool available | Use it (Step 1a) |
-| No native tool | Git worktree fallback (Step 1b) |
+| Native worktree tool available and allowed | Use it (Step 1a) |
+| No usable native tool | Git worktree fallback (Step 1b) |
+| Branch or path already exists | Stop and report; never mark it |
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
@@ -217,7 +229,7 @@ Ready to implement <feature-name>
 | Excuse | Reality |
 |--------|---------|
 | "I'm obviously not in a worktree — no need to check" | Run Step 0. Harness-created isolation and submodules both fool eyeballing; the detection commands settle it. |
-| "`git worktree add` is quicker than hunting for a native tool" | A native tool (e.g. `EnterWorktree`) owns placement, branching, and cleanup. Bypassing it is the #1 mistake — it creates phantom state your harness can't see or manage. |
+| "`git worktree add` is quicker than hunting for a native tool" | A native tool you may use owns placement, branching, and cleanup. Bypassing it creates phantom state your harness can't see or manage. In Claude Code that means `EnterWorktree` after an explicit worktree request; otherwise the git fallback is the right path. |
 | "The worktree directory is surely ignored already" | Run `git check-ignore`. An unignored worktree directory commits the whole tree into the repo. |
 | "Any directory name works" | Explicit instructions beat an existing project-local directory, which beats the `.worktrees/` default. |
 | "The workspace is fresh — baseline tests can wait" | A dirty baseline makes every later failure ambiguous. Run the tests now; proceeding past failures is your human partner's call. |

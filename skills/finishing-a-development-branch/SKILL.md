@@ -26,7 +26,12 @@ Tests failing (<N> failures). Must fix before completing:
 [Show failures]
 ```
 
-**If tests pass:** continue to Step 2.
+**If tests pass:** check for uncommitted work, then continue to Step 2.
+
+Workers may leave reviewed changes uncommitted; Codex workers cannot commit
+at all. Run `git status --porcelain`. If it lists reviewed task changes, show
+them and ask whether to commit them to the feature branch before choosing an
+option. Merging or pushing a branch leaves uncommitted work behind.
 
 ## Step 2: Detect Environment
 
@@ -93,18 +98,20 @@ is theirs.
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
 
-# Merge first — verify success before removing anything
-git checkout <base-branch>
-git pull
-git merge <feature-branch>
+# Merge first — verify success before removing anything. Stop at the first
+# failure: after a failed checkout, merge would land on the current branch.
+git checkout <base-branch> &&
+  if git rev-parse --verify --quiet '@{upstream}' >/dev/null; then git pull --ff-only; fi &&
+  git merge <feature-branch>
 
 # Verify tests on merged result
 <test command>
 ```
 
-If tests fail on the merged result: stop, leave the worktree and branch in
-place, and investigate — nothing has been pushed, so the merge is local
-and recoverable.
+If checkout, pull, or merge fails, stop and report it; never run the merge from
+another branch. If tests fail on the merged result: stop, leave the worktree
+and branch in place, and investigate — nothing has been pushed, so the merge
+is local and recoverable.
 
 Once the merged result is green: clean up the worktree (Step 6). Delete
 the branch only if that worktree was removed; a preserved worktree keeps
@@ -171,14 +178,15 @@ Step 2, from before that directory change.
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
-**If the Git administrative directory has a Orchestra ownership marker matching
+**If the Git administrative directory has an Orchestra ownership marker matching
 the physical worktree path:** Orchestra created this worktree and may clean it up:
 
 ```bash
 if [ -f "$GIT_DIR/orchestra-owned-worktree" ] &&
    [ "$(cat "$GIT_DIR/orchestra-owned-worktree")" = "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
+  # No `git worktree prune`: it also drops other worktrees whose folders are
+  # only temporarily missing. `remove` already clears its own registration.
   git worktree remove "$WORKTREE_PATH"
-  git worktree prune  # Clean up stale registrations after removal
 else
   echo "Worktree was not created by Orchestra; leaving it in place."
 fi
@@ -208,7 +216,9 @@ Which?
 Carry out the choice, then remove the worktree.
 
 **Otherwise:** The host environment owns this workspace — leave it and
-its branch in place. If your platform provides a workspace-exit tool, use it.
+its branch in place. If your platform provides a workspace-exit tool, use it
+only in a mode that keeps the worktree (Claude Code: `ExitWorktree` with
+`action: "keep"`; `"remove"` deletes the worktree and its branch).
 
 ## Quick Reference
 

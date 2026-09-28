@@ -69,11 +69,28 @@ class WorktreeInstructionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assert_selected(result, self.root / ".worktrees")
 
-    def test_creation_uses_selected_root_from_subdirectory(self):
+    def commit_baseline(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false",
                         "-c", "core.hooksPath=/dev/null", "commit", "-q", "--allow-empty",
                         "-m", "fixture baseline"], check=True, capture_output=True)
+
+    def test_failed_creation_never_marks_an_existing_worktree(self):
+        # The agent runs each block on its own, without `set -e`.
+        self.commit_baseline()
+        user = self.root / "worktrees/codex/test-worktree"
+        subprocess.run(["git", "-C", str(self.root), "worktree", "add", "-q", "-b", "user", str(user)],
+                       check=True, capture_output=True)
+        script = "set -eu\n" + self.selection + "\n" + self.safety + "\nset +e\n" + self.creation
+        result = subprocess.run([BASH, "-c", script], cwd=self.root, capture_output=True, text=True,
+                                encoding="utf-8", env={**os.environ, "BRANCH_NAME": "codex/test-worktree"})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        git_dir = subprocess.run(["git", "-C", str(user), "rev-parse", "--git-dir"],
+                                 check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+        self.assertFalse((Path(git_dir) / "orchestra-owned-worktree").exists())
+
+    def test_creation_uses_selected_root_from_subdirectory(self):
+        self.commit_baseline()
         result = self.run_flow(self.subdir, create=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         expected = self.root / "worktrees/codex/test-worktree"
