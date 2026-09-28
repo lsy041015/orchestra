@@ -1,0 +1,2 @@
+# LF everywhere: the bash helpers break under shells that keep CR bytes.
+* text=auto eol=lf
