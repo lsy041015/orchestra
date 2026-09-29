@@ -5,6 +5,49 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-29
+
+A cleanup release after a repository review. The renames are breaking.
+
+### Changed
+- **Breaking:** `using-superpowers` and `diagnosing-superpowers` are now
+  `using-orchestra` and `diagnosing-orchestra`. Working directories and
+  default paths move with them: `.superpowers/sdd/` to `.orchestra/sdd/`,
+  `.superpowers/brainstorm/` to `.orchestra/brainstorm/`,
+  `~/.superpowers/diagnosing-superpowers/` to
+  `~/.orchestra/diagnosing-orchestra/`, and `docs/superpowers/plans/` and
+  `specs/` to `docs/orchestra/`. To resume an unfinished run, move
+  `.superpowers/sdd/<plan>/` to `.orchestra/sdd/<plan>/`. Plans saved under
+  `docs/superpowers/` still work when their path is given.
+- `writing-plans`: a plan records decisions, not code. A task is ready when
+  the worker can write exactly one reasonable thing from it, and the
+  self-review checks the plan's length against the spec. Ported from
+  Superpowers 6.4.2 (obra/superpowers#2333).
+
+### Fixed
+- `brainstorming` links the visual companion guide for when the user asks
+  for the browser companion. No skill linked it, so the companion could not
+  be started.
+
+### Added
+- `tests/test_skill_text.py`, also in CI: every `orchestra:<name>` reference
+  and relative link in the READMEs, agents, skills and docs resolves, and
+  the host implementer preset is the same in every skill and matches
+  `agents/implementer.md`.
+
+### Removed
+- 12 files no skill links to (1,172 lines): the plan and spec
+  document-reviewer prompts, which also contradicted the no-reviewer rule;
+  the systematic-debugging pressure tests and creation log; and the
+  writing-skills persuasion, subagent-testing, graphviz and CLAUDE.md
+  testing material.
+
+### Docs
+- Both READMEs record the Linux sandbox boundary (Codex 0.156.1): `.git`
+  and the home directory are denied, `/tmp` is writable.
+- The English README also warns against enabling the earlier `relay`
+  plugin alongside Orchestra.
+
 ## [0.3.1] - 2026-09-29
 
 ### Added
