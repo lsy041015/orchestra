@@ -15,6 +15,6 @@ Choose only the depth the task needs:
 
 Ask only for missing information or a consequential decision that cannot reasonably be inferred. Existing authorization persists. Honor an explicit request to stop for design or plan approval; otherwise do not turn routine document creation into a new permission gate. Host rules govern destructive or external actions. Record newly discovered scope or risk and reassess only the affected decision.
 
-Stay within the request. Preserve security, privacy, data integrity, accessibility, compatibility and hardware calibration. Avoid unrelated refactoring and speculative features. Use a visual only when it clarifies a real decision, with the available host tools; do not start a separate visual-companion server by default.
+Stay within the request. Preserve security, privacy, data integrity, accessibility, compatibility and hardware calibration. Avoid unrelated refactoring and speculative features. Use a visual only when it clarifies a real decision, with the available host tools; do not start a separate visual-companion server by default. When the user asks for the browser companion, follow the [visual companion guide](visual-companion.md).
 
 Before implementation, confirm every acceptance condition has a verification path. For behavior changes use meaningful regression/TDD checks; use `orchestra:verification-before-completion` for reusable evidence. No separate planner or reviewer agents.
