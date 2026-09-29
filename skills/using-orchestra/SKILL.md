@@ -1,5 +1,5 @@
 ---
-name: using-superpowers
+name: using-orchestra
 description: Use when starting an Orchestra development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
 ---
 
@@ -8,7 +8,7 @@ If you were dispatched as an implementation worker, follow the task brief and
 the implementer contract. Do not run this bootstrap or delegate more work.
 </SUBAGENT-STOP>
 
-# Using Superpowers
+# Using Orchestra
 
 Read the relevant skill completely before taking the action it governs. Skill
 instructions apply after the user's request and the host's actual tool rules;

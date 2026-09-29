@@ -37,7 +37,7 @@ class BrainstormCompanionTests(unittest.TestCase):
             for name in (".last-token", ".last-port", "session/state/server-info"):
                 with self.subTest(name=name):
                     ignored = subprocess.run(["git", "-C", str(project), "check-ignore", "-q",
-                                              f".superpowers/brainstorm/{name}"])
+                                              f".orchestra/brainstorm/{name}"])
                     self.assertEqual(ignored.returncode, 0)
 
 
