@@ -353,6 +353,7 @@ Codex는 작업마다 thread id를 남깁니다. 수정 라운드에서는 `--re
 - Windows에서는 `codex`가 `.cmd` 셔임이라 셸을 거쳐야 실행됩니다. 모든 인자가 검증되고 공백이 없으므로 한 줄 명령으로 합쳐 실행합니다.
 - Windows는 PATH보다 현재 폴더를 먼저 찾으므로, 프로젝트 안의 `codex.cmd`·`git.exe`가 진짜 도구 대신 실행되지 않게
   `NoDefaultCurrentDirectoryInExePath`를 켭니다(Claude Code 밖 터미널에서 실행할 때도 안전).
+- 워커가 SIGINT·SIGTERM·SIGHUP을 받으면 Codex에도 전달합니다. 워커만 멈추고 Codex가 계속 파일을 고치는 일이 없습니다.
 - `cygpath`, `sort -V` 같은 Git Bash·GNU 전용 도구를 쓰지 않습니다.
 
 ### 8.7 Codex 브리프
@@ -683,6 +684,7 @@ python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
 python3 tests/test_brainstorm_companion.py
 python3 tests/test_skill_text.py
+python3 tests/test_release_manifests.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```

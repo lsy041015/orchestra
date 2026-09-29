@@ -9,7 +9,7 @@
       "source": {
         "source": "url",
         "url": "https://github.com/lsy041015/orchestra.git",
-        "ref": "main"
+        "ref": "v0.4.1"
       },
       "policy": {
         "installation": "AVAILABLE",

@@ -134,7 +134,8 @@ node skills/orchestrator/scripts/codex-worker.mjs \
 
 - Runs `codex exec --json … -s workspace-write` directly and passes the brief on stdin. Paths never
   go through a shell, and every value that reaches the Windows shell is validated first. On Windows it also stops the current directory from being searched first, so a
-  `codex.cmd` or `git.exe` inside the project never runs in place of the real tool.
+  `codex.cmd` or `git.exe` inside the project never runs in place of the real tool. SIGINT, SIGTERM
+  and SIGHUP sent to the worker are passed on to Codex.
 - Use the repository root as `--cwd`. The sandbox writes only inside `--cwd` and keeps `.git`
   read-only, so the brief (and the report next to it) must be inside `--cwd`, and Codex workers
   cannot commit. On Linux (Codex 0.156.1) `/tmp` stays writable too. `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory.
@@ -186,6 +187,7 @@ python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
 python3 tests/test_brainstorm_companion.py
 python3 tests/test_skill_text.py
+python3 tests/test_release_manifests.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```
