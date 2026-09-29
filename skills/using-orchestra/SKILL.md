@@ -49,6 +49,5 @@ hardware calibration and other safety requirements from the relevant skills.
 ## Host reference
 
 This edition runs on Codex and Claude Code. Use `references/codex-tools.md` on
-Codex and `references/claude-code-tools.md` on Claude Code for exact tool syntax. The other platform files are retained as source
-compatibility notes and are not active routing or delegation instructions.
+Codex and `references/claude-code-tools.md` on Claude Code for exact tool syntax.
 Internal skill links use the `orchestra:` namespace.
