@@ -48,7 +48,8 @@ order and keep the change at the stated scope.
   the ledger. Commit only when the plan or repository workflow requires it.
 - In Git, `scripts/task-start PLAN_FILE N` prints the task's brief path and
   BASE in one call, and `scripts/task-done PLAN_FILE N BASE -- <test command>`
-  runs the final check and appends `Task N: complete` only when it passes.
+  runs the final check and appends `Task N: complete` when it passes or
+  `Task N: failed` when it does not. The last `Task N:` line is the task's state.
 
 Do not stop between tasks to ask whether to continue. Stop for an irreversible
 or security-sensitive operation, an external side effect requiring approval,

@@ -71,27 +71,45 @@ class SddSafetyTests(unittest.TestCase):
         legacy = self.run_script(WORKSPACE, plan)
         self.assertEqual(legacy.stdout, first.stdout, legacy.stderr)
 
-    def test_task_done_rejects_a_forged_task_number(self):
+    def baseline(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "commit",
                         "-q", "--allow-empty", "-m", "baseline"], check=True)
-        sha = subprocess.run(["git", "-C", str(self.root), "rev-parse", "HEAD"],
-                             check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+        return subprocess.run(["git", "-C", str(self.root), "rev-parse", "HEAD"],
+                              check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+
+    def ledger_lines(self):
+        return (self.root / ".orchestra/sdd/plan/progress.md").read_text(encoding="utf-8").splitlines()
+
+    def test_task_done_rejects_a_forged_task_number(self):
+        sha = self.baseline()
         result = self.run_script(TASK_DONE, self.plan, "7\nTask 2: complete (forged)", sha, "--", "true")
         self.assertEqual(result.returncode, 2)
         ledger = self.root / ".orchestra/sdd/plan/progress.md"
         self.assertFalse(ledger.exists() and "forged" in ledger.read_text(encoding="utf-8"))
 
+    def test_task_done_keeps_a_command_on_one_ledger_line(self):
+        sha = self.baseline()
+        result = self.run_script(TASK_DONE, self.plan, 1, sha, "--", "true", "x\nTask 2: complete (forged)")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([line for line in self.ledger_lines() if line.startswith("Task")][1:], [])
+
     def test_task_done_records_successful_silent_command(self):
-        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
-                        "-c", "user.email=fixture@example.invalid", "commit",
-                        "-q", "--allow-empty", "-m", "baseline"], check=True)
-        sha = subprocess.run(["git", "-C", str(self.root), "rev-parse", "HEAD"],
-                             check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
+        sha = self.baseline()
         result = self.run_script(TASK_DONE, self.plan, 1, sha, "--", "true")
         self.assertEqual(result.returncode, 0, result.stderr)
-        ledger = self.root / ".orchestra/sdd/plan/progress.md"
-        self.assertIn("Task 1: complete", ledger.read_text(encoding="utf-8"))
+        self.assertIn("Task 1: complete", "\n".join(self.ledger_lines()))
+
+    def test_failed_rerun_reopens_a_completed_task(self):
+        sha = self.baseline()
+        self.assertEqual(self.run_script(TASK_DONE, self.plan, 1, sha, "--", "true").returncode, 0)
+        rerun = self.run_script(TASK_DONE, self.plan, 1, sha, "--", "false")
+        self.assertNotEqual(rerun.returncode, 0)
+        # The last Task 1 line is the task's state, and each run keeps its log.
+        last = [line for line in self.ledger_lines() if line.startswith("Task 1:")][-1]
+        self.assertTrue(last.startswith("Task 1: failed"), last)
+        logs = list((self.root / ".orchestra/sdd/plan").glob("task-1-tests*.log"))
+        self.assertEqual(len(logs), 2, logs)
 
 
 if __name__ == "__main__":
