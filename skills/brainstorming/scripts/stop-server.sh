@@ -61,9 +61,8 @@ command_has_server_id() {
 }
 
 # Confirm a PID has this session's per-start instance id, not just a familiar
-# process name. Ambiguous or legacy metadata fails closed as stale_pid.
+# process name. Ambiguous or legacy metadata fails closed.
 is_brainstorm_server() {
-  kill -0 "$1" 2>/dev/null || return 1
   local expected_id
   expected_id="$(read_expected_server_id)" || return 1
   command_has_server_id "$1" "$expected_id" || return 1
@@ -73,13 +72,20 @@ is_brainstorm_server() {
 if [[ -f "$PID_FILE" ]]; then
   pid=$(cat "$PID_FILE")
 
-  # Refuse to signal a PID we can't prove is our server. A stale pid file may
-  # point at an unrelated process after a reboot/PID wraparound.
-  if ! is_brainstorm_server "$pid"; then
+  # No such process: the server is gone and its metadata is stale.
+  if ! [[ "$pid" =~ ^[1-9][0-9]*$ ]] || ! kill -0 "$pid" 2>/dev/null; then
     rm -f "$PID_FILE" "$SERVER_ID_FILE"
     mark_stopped "stale_pid"
     echo '{"status": "stale_pid"}'
     exit 0
+  fi
+
+  # Refuse to signal a live PID we can't prove is our server: an unrelated
+  # process after a reboot or PID wraparound, or our server on a host whose ps
+  # hides arguments. Keep the metadata instead of claiming a stop.
+  if ! is_brainstorm_server "$pid"; then
+    echo "{\"status\": \"unverified\", \"error\": \"process $pid is running but is not provably this server; nothing was stopped\"}"
+    exit 1
   fi
 
   # Try to stop gracefully, fallback to force if still alive

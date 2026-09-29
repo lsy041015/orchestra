@@ -279,6 +279,8 @@ bash scripts/stop-server.sh "<state_dir without the trailing /state>"
 
 If the session used `--project-dir`, mockup files persist in `.orchestra/brainstorm/` for later reference. Only temp sessions get deleted on stop.
 
+`{"status": "unverified"}` (exit 1) means the recorded PID is alive but does not carry this session's server id, so nothing was stopped and the state files were kept. Show the user the PID; it may be an unrelated process that reused the number.
+
 ## Reference
 
 - Frame template (CSS reference): `scripts/frame-template.html`
