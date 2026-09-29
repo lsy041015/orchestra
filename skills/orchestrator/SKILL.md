@@ -56,8 +56,10 @@ Routing values have the form `<codex|claude> <model>/<effort>`.
   `medium` uses `orchestra:implementer-medium`.
 - Codex: `<model>` is any model your Codex CLI account can use; `<effort>` is
   one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
-  Not every model supports every effort; Codex reports an unsupported pair as a
-  failed run.
+  Not every model supports every effort. When Codex's model cache
+  (`$CODEX_HOME/models_cache.json`, default `~/.codex`) lists the model without
+  that effort, the worker returns `Status: BLOCKED` before Codex runs; any other
+  unsupported pair comes back from Codex as a failed run.
 
 Use the `ui` key for separately routed UI tasks and `hard` for other hard
 tasks; without a `ui` value, UI tasks use `hard`. If a file is not valid JSON

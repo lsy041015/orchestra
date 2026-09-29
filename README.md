@@ -228,8 +228,10 @@
 
 - 값 형식은 `<codex|claude> <model>/<effort>` 입니다.
 - **Codex effort**: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
-  모델마다 지원 범위가 다릅니다. 예를 들어 `gpt-6-luna`는 `minimal`을 거부하고, 이때 워커는
-  `Status: BLOCKED`와 Codex의 오류 문장을 그대로 돌려줍니다(Codex CLI 0.156.1에서 확인).
+  모델마다 지원 범위가 다릅니다. 워커는 Codex 모델 캐시(`~/.codex/models_cache.json`)와 대조해,
+  캐시에 있는 모델이 그 effort를 지원하지 않으면 Codex를 실행하기 전에 `Status: BLOCKED`와 지원 목록을
+  돌려줍니다(예: `gpt-6-luna` + `ultra`). 캐시에 없는 조합은 Codex가 판단하고, 거부하면 Codex의 오류
+  문장이 그대로 `Status: BLOCKED`로 나옵니다.
 - **Claude effort**: `high` → `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
   Claude Code는 호출마다 effort를 바꿀 수 없고 에이전트 정의에서만 정해지므로, 다른 effort가 필요하면
   `agents/`에 에이전트 파일을 하나 더 만들어야 합니다.
@@ -620,7 +622,7 @@ orchestra/
 | Codex 샌드박스 경계, Linux (`codex sandbox`, 2026-09-29) | ✅ `--cwd` 안은 쓰기 가능, `.git`과 홈 디렉터리는 거부. ⚠️ `/tmp`는 쓰기 가능. 네트워크는 기본 차단(루프백 포함) |
 | 없는 모델 | ✅ `Status: BLOCKED`, 한 줄 오류, exit 1 |
 | 지원하지 않는 effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED`, 지원 목록이 담긴 오류, exit 1 |
-| `gpt-6-luna` + `ultra` | ⚠️ 모델 목록에는 `max`까지만 있지만 API가 거부하지 않고 실행됨. 실제로 어떤 수준이 적용됐는지는 확인 불가 |
+| `gpt-6-luna` + `ultra` | ✅ v0.4.1부터 Codex 실행 전에 `Status: BLOCKED`. 모델 캐시에는 `max`까지만 있음 (이전에는 API가 거부하지 않고 실행돼 실제 적용 수준을 알 수 없었음) |
 | 실행 중 `TaskStop` | ✅ 워커·Codex·Codex가 돌리던 명령까지 모두 종료, 남은 프로세스 없음 |
 
 알려진 한계:

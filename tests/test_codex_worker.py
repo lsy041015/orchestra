@@ -26,6 +26,9 @@ class CodexWorkerTests(unittest.TestCase):
         (self.root / "baseline.txt").write_text("baseline\n", encoding="utf-8")
         self.brief = self.root / "brief with spaces.md"
         self.brief.write_text(PROMPT, encoding="utf-8")
+        # An empty Codex home: the worker must not read this machine's model cache.
+        self.codex_home = Path(self.temp.name) / "codex-home"
+        self.codex_home.mkdir()
         subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
                         "-c", "user.email=fixture@example.invalid", "commit", "-q",
@@ -36,7 +39,7 @@ class CodexWorkerTests(unittest.TestCase):
         cwd = Path(cwd or self.root)
         brief = Path(brief or self.brief)
         env = os.environ.copy()
-        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode)
+        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode, CODEX_HOME=str(self.codex_home))
         return subprocess.run([
             "node", str(WORKER), "--model", model, "--effort", effort,
             "--cwd", str(cwd), "--brief", str(brief), "--allowed", allowed, *extra,
@@ -103,6 +106,21 @@ class CodexWorkerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
                 self.assertIn(f"model_reasoning_effort={effort}", args)
+
+    def test_effort_missing_from_model_cache_is_blocked_before_codex_runs(self):
+        # The API accepted gpt-6-luna + ultra although Codex lists only up to max.
+        (self.codex_home / "models_cache.json").write_text(json.dumps({"models": [
+            {"slug": "gpt-6-luna", "supported_reasoning_levels": [{"effort": "low"}, {"effort": "max"}]},
+        ]}), encoding="utf-8")
+        result = self.run_worker(effort="ultra")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertTrue(result.stdout.startswith("Status: BLOCKED\n"), result.stdout)
+        self.assertIn("low, max", result.stdout)
+        self.assertFalse((self.root / "argv.json").exists(), "Codex ran anyway")
+        # A listed pair runs; a model the cache does not know is left to Codex.
+        for model, effort in (("gpt-6-luna", "max"), ("gpt-6-sol", "ultra")):
+            with self.subTest(model=model, effort=effort):
+                self.assertEqual(self.run_worker(model=model, effort=effort).returncode, 0)
 
     def test_resume_uses_thread_id(self):
         result = self.run_worker("--resume", "t-123")
