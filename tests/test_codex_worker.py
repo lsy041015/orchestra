@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,6 +111,15 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(args[:3], ["exec", "resume", "t-123"])
         self.assertIn("sandbox_mode=workspace-write", args)
         self.assertNotIn("-s", args)
+
+    def test_network_is_opt_in(self):
+        flag = "sandbox_workspace_write.network_access=true"
+        for value, expected in (("0", False), ("1", True)):
+            with self.subTest(value=value), mock.patch.dict(os.environ, {"ORCHESTRA_CODEX_NETWORK": value}):
+                result = self.run_worker()
+                self.assertEqual(result.returncode, 0, result.stderr)
+                args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+                self.assertEqual(flag in args, expected)
 
     def test_codex_failure_reports_blocked(self):
         result = self.run_worker(mode="fail")
