@@ -186,22 +186,35 @@ Write the worktree path from Step 2 into the first line:
 ```bash
 WORKTREE_PATH="<worktree path from Step 2>"
 wt_git_dir=$(git -C "$WORKTREE_PATH" rev-parse --absolute-git-dir)
-ignored=$(git -C "$WORKTREE_PATH" status --porcelain --ignored | grep '^!!' || true)
 if [ ! -f "$wt_git_dir/orchestra-owned-worktree" ] ||
    [ "$(cat "$wt_git_dir/orchestra-owned-worktree")" != "$(CDPATH= cd -- "$WORKTREE_PATH" && pwd -P)" ]; then
   echo "Worktree was not created by Orchestra; leaving it in place."
-elif [ -n "$ignored" ]; then
-  # `git worktree remove` deletes ignored files (.env, local databases) silently.
-  printf 'Ignored files would be deleted with the worktree:\n%s\n' "$ignored"
 else
-  # No `git worktree prune`: it also drops other worktrees whose folders are
-  # only temporarily missing. `remove` already clears its own registration.
-  git worktree remove "$WORKTREE_PATH"
+  # Orchestra's records (ledger, reports, mockups) are ignored too: keep them.
+  main_root=$(git -C "$WORKTREE_PATH" worktree list --porcelain | sed -n '1s/^worktree //p')
+  if [ -d "$WORKTREE_PATH/.orchestra" ] && [ -n "$main_root" ]; then
+    archive="$main_root/.orchestra/archive"
+    mkdir -p "$archive" && { [ -e "$archive/.gitignore" ] || printf '*\n' > "$archive/.gitignore"; } &&
+      mv "$WORKTREE_PATH/.orchestra" "$archive/$(basename "$WORKTREE_PATH")-$(date +%Y%m%d-%H%M%S)" &&
+      echo "Moved Orchestra records to $archive/"
+  fi
+  ignored=$(git -C "$WORKTREE_PATH" status --porcelain --ignored | grep '^!!' || true)
+  if [ -n "$ignored" ]; then
+    # `git worktree remove` deletes ignored files (.env, local databases) silently.
+    printf 'Ignored files would be deleted with the worktree:\n%s\n' "$ignored"
+  else
+    # No `git worktree prune`: it also drops other worktrees whose folders are
+    # only temporarily missing. `remove` already clears its own registration.
+    git worktree remove "$WORKTREE_PATH"
+  fi
 fi
 ```
 
-**If ignored files are listed:** show them and ask whether to move them into
-the main checkout, delete them with the worktree, or keep the worktree.
+Orchestra's own records (`.orchestra/`) move to
+`<main checkout>/.orchestra/archive/<worktree>-<time>/` first, so they never
+block cleanup. **If other ignored files are listed:** show them and ask
+whether to move them into the main checkout, delete them with the worktree,
+or keep the worktree.
 
 **If removal is refused** (`contains modified or untracked files`): the
 worktree holds files that exist nowhere else — uncommitted plans, notes,
