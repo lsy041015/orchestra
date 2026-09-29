@@ -569,7 +569,7 @@ orchestra/
 │   └── using-orchestra/references/  # 호스트별 도구 사용법
 └── tests/
     ├── test_codex_worker.py + fake_codex.mjs
-    └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py
+    └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py, test_skill_text.py
 ```
 
 ---
@@ -599,7 +599,7 @@ orchestra/
 | 항목 | 상태 |
 |---|---|
 | 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ Codex 워커로 1회, Claude 워커로 1회 실측 ([실행 기록](docs/demo/piano/README.md), [비교](docs/demo/piano/comparison.md)) |
-| 전체 테스트 6개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
+| v0.3.0 테스트 6개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |
 | 사용량 비교 | ⚠️ 작은 작업 1개로 한 번 비교([비교](docs/demo/piano/comparison.md)). Codex 워커는 Claude 한도를 쓰지 않고 Codex 7일 한도 1% 미만 사용. 일반적인 절감률은 주장하지 않음 |
@@ -675,6 +675,7 @@ python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py
 python3 tests/test_worktree_instructions.py
 python3 tests/test_brainstorm_companion.py
+python3 tests/test_skill_text.py
 (cd examples/piano && node --test)
 claude plugin validate .
 ```
