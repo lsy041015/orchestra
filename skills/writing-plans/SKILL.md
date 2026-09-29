@@ -20,7 +20,7 @@ obvious edit, keep the work inline rather than producing a ceremonial plan.
 ## Plan structure
 
 Save the plan at the repository's agreed path, normally
-`docs/superpowers/plans/YYYY-MM-DD-<topic>-plan.md`. Include:
+`docs/orchestra/plans/YYYY-MM-DD-<topic>-plan.md`. Include:
 
 1. **Context and goal** — current behavior, desired behavior, constraints,
    and explicit non-goals.

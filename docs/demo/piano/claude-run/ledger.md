@@ -1,4 +1,4 @@
-Plan: docs/superpowers/plans/2026-09-27-piano-demo-plan.md
+Plan: docs/orchestra/plans/2026-09-27-piano-demo-plan.md
 Run: B (Claude-only comparison). Same plan, same start commit 910ae7e, same task briefs as run A.
 Routing: Easy=Claude sonnet/medium, Medium=Claude sonnet/high, UI=Claude opus/high (user's saved preference: simple=Sonnet medium, dev=Sonnet high, UI=Opus high)
 BASE: 910ae7e

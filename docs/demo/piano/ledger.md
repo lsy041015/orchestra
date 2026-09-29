@@ -1,4 +1,4 @@
-Plan: docs/superpowers/plans/2026-09-27-piano-demo-plan.md
+Plan: docs/orchestra/plans/2026-09-27-piano-demo-plan.md
 Routing: Easy=Codex gpt-6-luna/medium, Medium=Codex gpt-6-sol/medium, UI=Codex gpt-6-sol/high (user choice, 2026-09-27)
 BASE: 910ae7e
 Parallel: Task 1 and Task 2 run together (no shared files); Task 3 after both.

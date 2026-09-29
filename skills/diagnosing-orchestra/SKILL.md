@@ -1,5 +1,5 @@
 ---
-name: diagnosing-superpowers
+name: diagnosing-orchestra
 description: Use when an Orchestra session has repeated work, ignored a plan, stumbled, produced poor results, or used unexpected time or tokens
 ---
 
@@ -22,7 +22,7 @@ Create a todo per applicable step and keep the original records read-only.
    `references/session-discovery.md`. Confirm past sessions with first prompt
    and timestamp, list rejected candidates and reasons, and enumerate any
    historical worker transcripts. Create
-   `~/.superpowers/diagnosing-superpowers/<session-id>/` and fill
+   `~/.orchestra/diagnosing-orchestra/<session-id>/` and fill
    `templates/case.md` with provenance and record meanings.
 3. **Triage.** Read the reported region yourself. Run the dimension prompts in
    `prompts/` as sequential main agent analysis passes: skill timeline, plan

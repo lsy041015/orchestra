@@ -34,7 +34,7 @@ class SddSafetyTests(unittest.TestCase):
         outside = Path(self.temp.name) / "outside"
         outside.mkdir()
         try:
-            (self.root / ".superpowers").symlink_to(outside, target_is_directory=True)
+            (self.root / ".orchestra").symlink_to(outside, target_is_directory=True)
         except OSError as error:  # Windows without Developer Mode
             self.skipTest(f"cannot create symlinks: {error}")
         result = self.run_script(WORKSPACE, self.plan)
@@ -42,7 +42,7 @@ class SddSafetyTests(unittest.TestCase):
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_workspace_preserves_existing_ignore_file(self):
-        base = self.root / ".superpowers/sdd"
+        base = self.root / ".orchestra/sdd"
         base.mkdir(parents=True)
         (base / ".gitignore").write_text("# keep me", encoding="utf-8")
         result = self.run_script(WORKSPACE, self.plan)
@@ -57,7 +57,7 @@ class SddSafetyTests(unittest.TestCase):
         plan.write_text("# Plan\n", encoding="utf-8")
         first = self.run_script(WORKSPACE, plan)
         self.assertEqual(first.returncode, 0, first.stderr)
-        marker = self.root / ".superpowers/sdd/plan/plan-path"
+        marker = self.root / ".orchestra/sdd/plan/plan-path"
         self.assertEqual(marker.read_text(encoding="utf-8"), "docs/plan.md\n")
         again = subprocess.run([BASH, str(WORKSPACE), "plan.md"], cwd=self.root / "docs",
                                capture_output=True, text=True, encoding="utf-8")
@@ -79,7 +79,7 @@ class SddSafetyTests(unittest.TestCase):
                              check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
         result = self.run_script(TASK_DONE, self.plan, 1, sha, "--", "true")
         self.assertEqual(result.returncode, 0, result.stderr)
-        ledger = self.root / ".superpowers/sdd/plan/progress.md"
+        ledger = self.root / ".orchestra/sdd/plan/progress.md"
         self.assertIn("Task 1: complete", ledger.read_text(encoding="utf-8"))
 
 

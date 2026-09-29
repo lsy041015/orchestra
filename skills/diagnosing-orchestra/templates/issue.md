@@ -47,5 +47,5 @@ Orchestra involvement per the diagnosis report: <possible | likely>, with
 evidence at <transcript lines>. This report does not propose a fix.
 
 ---
-Filed with the `diagnosing-superpowers` skill. Model, harness, harness
+Filed with the `diagnosing-orchestra` skill. Model, harness, harness
 version, and installed plugins are listed above.

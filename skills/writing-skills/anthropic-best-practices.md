@@ -4,7 +4,7 @@
 
 This upstream reference is retained for authoring patterns. The personal
 edition runs on Codex and Claude Code: its active role and model policy comes from
-`orchestra:using-superpowers`. Do not use the Claude examples or
+`orchestra:using-orchestra`. Do not use the Claude examples or
 model tables below as an operational routing or delegation instruction.
 
 Good Skills are concise, well-structured, and tested with real usage. This guide provides practical authoring decisions to help you write Skills that agents can discover and use effectively.

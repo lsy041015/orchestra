@@ -170,11 +170,11 @@ the cleanup.
 
 ```text
 Task 2: add retry behavior
-Brief: /workspace/.superpowers/sdd/retry/task-2-brief.md
+Brief: /workspace/.orchestra/sdd/retry/task-2-brief.md
 Allowed files: src/retry.ts, test/retry.test.ts
 Acceptance: bounded retries, abort preserved, focused test command
 Worker: Codex gpt-6-luna / xhigh / fork_turns=none | Claude Code orchestra:implementer (sonnet / high)
-Report: /workspace/.superpowers/sdd/retry/task-2-report.md
+Report: /workspace/.orchestra/sdd/retry/task-2-report.md
 ```
 
 Internal skill links use the `orchestra:` namespace.

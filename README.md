@@ -332,7 +332,7 @@ Scope: ok | outside allowed: a.txt, b.txt | unchecked (<이유>)
   위반은 `outside allowed: pkg/extra.txt`처럼 나옵니다.
 - 실행 **전부터** 수정돼 있던 파일은 내용이 그대로면 잡히지 않습니다. 사용자의 기존 작업을 워커 탓으로 돌리지 않습니다.
 - 이름 변경 항목은 새 경로 기준으로 봅니다. 서브모듈처럼 폴더로 보이는 항목도 실행을 멈추지 않습니다.
-- `.gitignore`된 파일은 검사 대상이 아닙니다. 그래서 ledger(`.superpowers/sdd/…`, 자동으로 무시됨)에 쓰는 리포트는 범위 위반이 아닙니다.
+- `.gitignore`된 파일은 검사 대상이 아닙니다. 그래서 ledger(`.orchestra/sdd/…`, 자동으로 무시됨)에 쓰는 리포트는 범위 위반이 아닙니다.
 - git이 실패하면(저장소 아님, 소유자가 달라 git이 거부 등) `Scope: unchecked (git: <오류>)`, 실행 후 git이 실패하면
   `unchecked (git status failed after the run: <오류>)`로 표시합니다. 이때 메인 세션이 `git status`와 diff를 직접 확인합니다.
   Windows에서는 Codex 샌드박스가 만든 파일의 소유자가 `CodexSandboxOffline`이라 이런 거부가 생길 수 있습니다.
@@ -385,12 +385,12 @@ block.
 
 긴 작업 중에는 대화가 요약(compaction)되어 앞의 맥락이 사라질 수 있습니다. ledger가 복구 지도 역할을 합니다.
 
-- 위치: `<project>/.superpowers/sdd/<plan 이름>/progress.md` (`sdd-workspace` 스크립트가 만들고 `.gitignore` 처리)
+- 위치: `<project>/.orchestra/sdd/<plan 이름>/progress.md` (`sdd-workspace` 스크립트가 만들고 `.gitignore` 처리)
 - 같은 폴더에 작업별 브리프, Codex 프롬프트, 리포트, (선택) 이벤트 로그가 모입니다.
 - 기록 예:
 
 ```text
-Plan: docs/superpowers/plans/2026-09-27-orchestrator-distribution-plan.md
+Plan: docs/orchestra/plans/2026-09-27-orchestrator-distribution-plan.md
 Routing: Easy=Codex gpt-6-luna/max, Medium=Codex gpt-6-luna/max, Hard=Codex gpt-6-luna/max
 BASE: d273b10
 Task 2: Codex thread 01a0e2c7-b24a-7b73-8f06-1291138af729
@@ -537,9 +537,9 @@ Claude: Task 1 리뷰 통과 → ledger 기록
 | 용도 | 스킬 |
 |---|---|
 | 지휘 | [orchestrator](skills/orchestrator/SKILL.md) — 난이도 표, 라우팅, Claude/Codex 배정, 수정 루프 (Claude Code 전용) |
-| 진입·설계·계획 | [using-superpowers](skills/using-superpowers/SKILL.md), [brainstorming](skills/brainstorming/SKILL.md), [writing-plans](skills/writing-plans/SKILL.md) |
+| 진입·설계·계획 | [using-orchestra](skills/using-orchestra/SKILL.md), [brainstorming](skills/brainstorming/SKILL.md), [writing-plans](skills/writing-plans/SKILL.md) |
 | 구현·격리·테스트 | [subagent-driven-development](skills/subagent-driven-development/SKILL.md), [executing-plans](skills/executing-plans/SKILL.md), [using-git-worktrees](skills/using-git-worktrees/SKILL.md), [test-driven-development](skills/test-driven-development/SKILL.md) |
-| 진단·검토·검증 | [systematic-debugging](skills/systematic-debugging/SKILL.md), [requesting-code-review](skills/requesting-code-review/SKILL.md), [receiving-code-review](skills/receiving-code-review/SKILL.md), [verification-before-completion](skills/verification-before-completion/SKILL.md), [diagnosing-superpowers](skills/diagnosing-superpowers/SKILL.md) |
+| 진단·검토·검증 | [systematic-debugging](skills/systematic-debugging/SKILL.md), [requesting-code-review](skills/requesting-code-review/SKILL.md), [receiving-code-review](skills/receiving-code-review/SKILL.md), [verification-before-completion](skills/verification-before-completion/SKILL.md), [diagnosing-orchestra](skills/diagnosing-orchestra/SKILL.md) |
 | 종료·확장 | [finishing-a-development-branch](skills/finishing-a-development-branch/SKILL.md), [dispatching-parallel-agents](skills/dispatching-parallel-agents/SKILL.md), [writing-skills](skills/writing-skills/SKILL.md) |
 
 MCP 서버, 외부 계정 연결, 자동 실행 훅은 포함하지 않습니다.
@@ -566,7 +566,7 @@ orchestra/
 │   │   ├── implementer-prompt.md, re-review-prompt.md, task-reviewer-prompt.md
 │   │   └── scripts/ (sdd-workspace, task-brief, review-package)
 │   ├── writing-plans/, executing-plans/, ... (공용 스킬)
-│   └── using-superpowers/references/  # 호스트별 도구 사용법
+│   └── using-orchestra/references/  # 호스트별 도구 사용법
 └── tests/
     ├── test_codex_worker.py + fake_codex.mjs
     └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py
