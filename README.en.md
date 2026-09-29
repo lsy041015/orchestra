@@ -132,6 +132,9 @@ node skills/orchestrator/scripts/codex-worker.mjs \
 - Use the repository root as `--cwd`. The sandbox writes only inside `--cwd` and keeps `.git`
   read-only, so the brief (and the report next to it) must be inside `--cwd`, and Codex workers
   cannot commit. `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory.
+- Network is off by default, loopback sockets included. Only when a task's tests need sockets or
+  downloads (ROS 2/DDS, localhost servers, package installs), prefix the command with
+  `ORCHESTRA_CODEX_NETWORK=1`; the worker then adds `-c sandbox_workspace_write.network_access=true`.
 - Output: Codex's final message (the status block), then `Codex thread: <id>` and
   `Scope: ok | outside allowed: <repo-relative paths> | unchecked (<reason>)`. Any git failure
   (not a repository, dubious ownership, a failure after the run) is reported as `unchecked`, never `ok`.
