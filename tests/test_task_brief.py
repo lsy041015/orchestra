@@ -40,6 +40,18 @@ class TaskBriefTests(unittest.TestCase):
                 task = heading + "\n필수 요구사항\n#### 1. 검증 조건\nACCEPTANCE\n\n"
                 self.assert_success(task + "### Task 2: 다음 작업\nNEXT\n", task)
 
+    def test_brief_carries_shared_sections_but_not_later_ones(self):
+        # The writing-plans layout: constraints and interfaces bind every task;
+        # the sections after the tasks are for the main session.
+        plan = ("# Plan\n\n## Context and goal\n\nWhy.\n\n## Global Constraints\n\nNode 22 only.\n\n"
+                "## Interfaces and dependencies\n\nparse() returns a list.\n\n"
+                "### Task 1: first\n\nDo A.\n\n### Task 2: last\n\nDo B.\n\n"
+                "## Verification\n\nMain-session checks.\n\n## Review focus and recovery\n\nNotes.\n")
+        shared = ("## Global Constraints\n\nNode 22 only.\n\n"
+                  "## Interfaces and dependencies\n\nparse() returns a list.\n\n")
+        self.assert_success(plan, shared + "### Task 1: first\n\nDo A.\n\n")
+        self.assert_success(plan, shared + "### Task 2: last\n\nDo B.\n\n", "2")
+
     def test_fenced_task_examples_preserve_acceptance(self):
         for opener, middle, closer in (
             ("```markdown", "", "```"),

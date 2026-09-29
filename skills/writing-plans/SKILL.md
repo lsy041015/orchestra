@@ -28,7 +28,9 @@ Save the plan at the repository's agreed path, normally
    security, data-loss prevention, accessibility, calibration, and user-change
    requirements that bind every task.
 3. **Interfaces and dependencies** — affected callers, data flow, test seams,
-   and decisions already made.
+   and decisions already made. `task-brief` copies these two sections into
+   every task brief by heading, so keep the English names `Global constraints`
+   and `Interfaces...` above the task headings.
 4. **Tasks** — each task is one independently verifiable implementation result
    with exact files, symbols, behavior, tests, expected outputs, and commit
    boundary when commits are required. Group related files that must change

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Extract one task's full text from an implementation plan into a file the
 # implementer reads in one call, so the task text never has to be pasted
-# through the controller's context.
+# through the controller's context. Sections headed "Global constraints" or
+# "Interfaces..." above the tasks bind every task and go into every brief; a
+# heading above the task level (Verification, say) ends the task.
 #
 # Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
 # Default OUTFILE: <repo-root>/.orchestra/sdd/<plan-basename>/task-<N>-brief.md
@@ -74,6 +76,7 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
     invalid = 0
     in_fence = 0
     intask = 0
+    shared = 0
     found = 0
   }
 
@@ -91,7 +94,7 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
       while (substr(rest, run + 1, 1) == fence_char) run++
       tail = substr(rest, run + 1)
       closed = (run >= fence_len && tail ~ /^[ \t]*$/)
-      if (intask) print
+      if (intask || shared) print
       if (closed) in_fence = 0
       next
     }
@@ -106,7 +109,7 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
     if (run >= 3) {
       in_fence = 1
       fence_len = run
-      if (intask) print
+      if (intask || shared) print
       next
     }
 
@@ -148,17 +151,28 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
     }
 
     if (is_task) {
-      if (same_text(task_number, target)) {
-        intask = 1
+      shared = 0
+      intask = same_text(task_number, target)
+      if (intask) {
         found = 1
-      } else if (intask) {
-        intask = 0
+        print
       }
-      if (intask) print
       next
     }
 
-    if (intask) print
+    if (is_heading) {
+      if (intask && hashes < task_level) intask = 0
+      if (shared && hashes <= shared_level) shared = 0
+      if (!intask && (task_level == 0 || hashes < task_level)) {
+        title = tolower(heading_tail)
+        if (index(title, "global constraints") == 1 || index(title, "interface") == 1) {
+          shared = 1
+          shared_level = hashes
+        }
+      }
+    }
+
+    if (intask || shared) print
   }
 
   END {

@@ -52,12 +52,15 @@ repository or create commits merely to satisfy workflow bookkeeping.
    behavior. Record the table and any `Ruling:` decisions in the ledger.
 4. Create the task checklist. Record the task's BASE commit before dispatch;
    use `scripts/task-brief PLAN_FILE N` so the worker receives a focused brief,
-   never the whole plan history. New plans use `### Task N: title` with a
+   never the whole plan history. The brief holds the task plus the plan's
+   `Global constraints` and `Interfaces` sections, and stops at the next
+   heading above the task level. New plans use `### Task N: title` with a
    positive integer and lower-level subheadings; the extractor preserves
    older valid `Task N` headings for compatibility.
 
-The ledger is the recovery map after compaction. Do not redo a task with a
-`Task N: complete` line. Preserve the workspace and unrelated user changes.
+The ledger is the recovery map after compaction. Do not redo a task whose
+last `Task N:` line says `complete`; a later `Task N: failed` line reopens it.
+Preserve the workspace and unrelated user changes.
 Do not run destructive cleanup, merge, push, publish, or hardware motion
 outside the user's authorized scope.
 
