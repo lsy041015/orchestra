@@ -5,6 +5,14 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Docs
+- Run C of the piano demo (`docs/demo/piano/linux-run/`): the same plan on
+  Linux with 0.4.0, Claude workers and a headless main session. It finished
+  with no fix round in 7 min 2 s of worker time. An independent check found
+  the two issues runs A and B had fixed: the tests fail on Node 18 because
+  there is no `package.json`, and a repeated note's second strike is not
+  visible.
+
 ## [0.4.0] - 2026-09-29
 
 A cleanup release after a repository review. The renames are breaking.

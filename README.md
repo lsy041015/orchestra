@@ -528,6 +528,9 @@ Claude: Task 1 리뷰 통과 → ledger 기록
 두 결과물 모두 같은 검증을 통과했고 걸린 시간도 비슷했습니다(12분 26초 대 13분 28초). 수정 라운드는 Claude 쪽이 1번 적었습니다.
 대신 Codex로 돌리면 워커가 Claude 한도를 전혀 쓰지 않고, Codex 7일 한도도 1% 미만만 썼습니다(각 1회 측정).
 
+Linux에서 0.4.0으로 한 번 더 돌린 [실행 C 기록](docs/demo/piano/linux-run/README.md)도 있습니다. 수정 라운드 없이 워커 경과 7분 2초에
+끝났지만, 독립 검증에서 A·B가 고친 두 가지(Node 18에서 테스트 실패, 반복 음의 두 번째 타건이 안 보임)가 남은 것을 확인했습니다.
+
 ---
 
 ## 14. 포함된 스킬
@@ -599,6 +602,7 @@ orchestra/
 | 항목 | 상태 |
 |---|---|
 | 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ Codex 워커로 1회, Claude 워커로 1회 실측 ([실행 기록](docs/demo/piano/README.md), [비교](docs/demo/piano/comparison.md)) |
+| 오케스트레이터 전체 흐름, Linux (2026-09-29) | ✅ Claude 워커로 1회 (0.4.0, 헤드리스 메인 세션, 수정 라운드 0). 독립 검증에서 Node 18 테스트 실패와 반복 음 타건이 안 보이는 문제 확인 ([기록](docs/demo/piano/linux-run/README.md)) |
 | v0.3.0 테스트 6개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |

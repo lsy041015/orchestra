@@ -69,6 +69,10 @@ The same plan was then rebuilt with **Claude workers only** ([comparison](docs/d
 Both results passed the same checks in similar time (12 min 26 s vs 13 min 28 s), and the Claude run needed one fewer fix round.
 The Codex run used no Claude quota for workers and under 1% of the 7-day Codex quota. That is one run each, not a general saving.
 
+A third run on Linux with 0.4.0 ([record](docs/demo/piano/linux-run/README.md), Korean) finished with no fix round in 7 min 2 s of
+worker time. An independent check then found the two issues runs A and B had fixed: the tests fail on Node 18, and a repeated note's
+second strike is not visible.
+
 ## Install
 
 Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and for Codex
@@ -154,6 +158,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | Case | Result |
 |---|---|
 | Full orchestrator flow (plan → dispatch → review → fix → ledger) | ✅ once with Codex workers and once with Claude workers ([record](docs/demo/piano/README.md), [comparison](docs/demo/piano/comparison.md)) |
+| Full orchestrator flow on Linux (2026-09-29) | ✅ once with Claude workers (0.4.0, headless main session, no fix round); an independent check found tests failing on Node 18 and repeated notes not visibly re-struck ([record](docs/demo/piano/linux-run/README.md)) |
 | New runs on `gpt-6-luna`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.5` (low) | ✅ requested model/effort applied, `Status: DONE`, `Scope: ok` |
 | `--resume` on the same thread with effort low → medium | ✅ same thread, second turn logged as `gpt-6-luna/medium` |
 | Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` (scope only; the root ledger is not writable from there, so since v0.3.0 the brief must be inside `--cwd`) |
