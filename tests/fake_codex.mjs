@@ -27,6 +27,15 @@ if (process.env.FAKE_MODE === 'fail') {
     { type: 'item.completed', item: { type: 'agent_message', text: 'Status: DONE\nChanged files: a.txt' } },
     { type: 'turn.completed' },
   ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+} else if (process.env.FAKE_MODE === 'retry-then-crash') {
+  // A recovered stream error, then a crash explained only on stderr.
+  for (const event of [
+    { type: 'thread.started', thread_id: 't-123' },
+    { type: 'error', message: 'stream disconnected - retrying sampling request (1/5 in 200ms)...' },
+    { type: 'item.completed', item: { type: 'reasoning', text: 'Reading the brief.' } },
+  ]) process.stdout.write(`${JSON.stringify(event)}\n`);
+  process.stderr.write('sandbox setup failed\n');
+  process.exitCode = 101;
 } else if (process.env.FAKE_MODE === 'no-status') {
   for (const event of [
     { type: 'thread.started', thread_id: 't-123' },

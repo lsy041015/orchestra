@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { compare, repoScope, snapshot } from './scope-check.mjs';
 
 // cmd.exe and CreateProcess search the current directory before PATH, so a
 // codex.cmd or git.exe inside the project would run instead of the real tool.
@@ -30,10 +30,14 @@ function parseArgs(args) {
     throw new Error('Invalid --resume');
   }
 
-  const cwd = path.resolve(values['--cwd']);
-  const brief = path.resolve(values['--brief']);
+  let cwd = path.resolve(values['--cwd']);
+  let brief = path.resolve(values['--brief']);
   if (!existsSync(cwd) || !statSync(cwd).isDirectory()) throw new Error('Invalid --cwd');
   if (!existsSync(brief) || !statSync(brief).isFile()) throw new Error('Invalid --brief');
+  // Physical paths, as git sees them: through a linked --cwd, git finds the
+  // link target's repository while the link path would place the root elsewhere.
+  cwd = realpathSync(cwd);
+  brief = realpathSync(brief);
   // The Codex sandbox writes only inside --cwd, and the report lives next to the brief.
   const inside = path.relative(cwd, brief);
   if (inside === '..' || inside.startsWith(`..${path.sep}`) || path.isAbsolute(inside)) {
@@ -56,65 +60,6 @@ function cachedEfforts(model) {
   } catch {
     return undefined;
   }
-}
-
-// Resolves { output } or { error: <first stderr line> }.
-function git(cwd, args) {
-  return new Promise((resolve) => {
-    // No optional locks: a background status must not make the user's own git
-    // commands fail on index.lock.
-    const child = spawn('git', ['-C', cwd, ...args],
-      { windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
-    const chunks = [];
-    let stderr = '';
-    child.stdout.on('data', (chunk) => chunks.push(chunk));
-    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
-    child.on('error', (error) => resolve({ error: error.message }));
-    child.on('close', (code) => resolve(code === 0 ? { output: Buffer.concat(chunks).toString('utf8') }
-      : { error: stderr.trim().split(/\r?\n/)[0] || `git exited with code ${code}` }));
-  });
-}
-
-// git status prints paths from the repository root, not from --cwd, so the
-// allowed list is converted to root-relative paths. A trailing slash marks a
-// directory whose whole subtree is allowed.
-async function repoScope(cwd, allowed) {
-  const result = await git(cwd, ['rev-parse', '--show-cdup']);
-  if (result.error) return result;
-  const root = path.resolve(cwd, result.output.trim());
-  const files = new Set();
-  const dirs = [];
-  for (const item of allowed) {
-    const rel = path.relative(root, path.resolve(cwd, item.replace(/[\\/]/g, path.sep)))
-      .replace(/\\/g, '/');
-    if (/[\\/]$/.test(item)) dirs.push(rel ? `${rel}/` : '');
-    else files.add(rel);
-  }
-  return { root, allows: (file) => files.has(file) || dirs.some((dir) => file.startsWith(dir)) };
-}
-
-async function snapshot(root) {
-  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall']);
-  if (result.error) return result;
-  const fields = result.output.split('\0');
-  const files = new Map();
-  for (let i = 0; i < fields.length; i++) {
-    const entry = fields[i];
-    if (entry.length < 4) continue;
-    const status = entry.slice(0, 2);
-    const file = entry.slice(3);
-    const normalized = file.replace(/\\/g, '/');
-    let hash = 'deleted';
-    try {
-      hash = createHash('sha1').update(readFileSync(path.resolve(root, file))).digest('hex');
-    } catch (error) {
-      // Submodules show up as directories (EISDIR); keep the entry instead of aborting the run.
-      hash = error.code === 'ENOENT' ? 'deleted' : error.code;
-    }
-    files.set(normalized, hash);
-    if (status.includes('R') || status.includes('C')) i++;
-  }
-  return { files };
 }
 
 function spawnCodex(args, cwd, prompt) {
@@ -172,14 +117,18 @@ function parseEvents(stdout) {
       const event = JSON.parse(line);
       if (event.type === 'thread.started' && typeof event.thread_id === 'string') {
         thread = event.thread_id;
-      } else if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
-        message = typeof event.item.text === 'string' ? event.item.text : '';
       } else if (event.type === 'turn.failed' || event.type === 'error') {
         // Codex also reports stream retries it recovers from as `error`; only a
         // failed turn or exit fails the run. The text still explains a failure.
         if (event.type === 'turn.failed') failed = true;
         failure = apiMessage(typeof event.error === 'string' ? event.error :
           event.error?.message || event.message || event.item?.error?.message) || failure;
+      } else {
+        // Progress after an error means Codex recovered from it.
+        failure = undefined;
+        if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
+          message = typeof event.item.text === 'string' ? event.item.text : '';
+        }
       }
     } catch {}
   }
@@ -230,22 +179,14 @@ async function main() {
   else args.push('-s', 'workspace-write');
   // Opt-in: the sandbox blocks even loopback sockets (ROS 2/DDS, localhost servers, installs).
   if (process.env.ORCHESTRA_CODEX_NETWORK === '1') args.push('-c', 'sandbox_workspace_write.network_access=true');
-  args.push('--skip-git-repo-check', '-');
+  // The brief is the whole job: the user's Codex plugins (another Superpowers,
+  // for one) would add skills and hooks with their own workflow.
+  args.push('--disable', 'plugins', '--skip-git-repo-check', '-');
 
   const run = await spawnCodex(args, options.cwd, prompt);
   const events = parseEvents(run.stdout);
   const after = before.error ? before : await snapshot(repo.root);
-  let scope;
-  if (before.error) {
-    scope = `unchecked (git: ${before.error})`;
-  } else if (after.error) {
-    scope = `unchecked (git status failed after the run: ${after.error})`;
-  } else {
-    const outside = Array.from(new Set([...before.files.keys(), ...after.files.keys()]))
-      .filter((file) => before.files.get(file) !== after.files.get(file) && !repo.allows(file))
-      .sort();
-    scope = outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok';
-  }
+  const scope = await compare(repo, before, after);
 
   let reason;
   if (run.code !== 0 || events.failed || events.message === undefined) {
