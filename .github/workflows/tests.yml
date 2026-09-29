@@ -47,6 +47,21 @@ jobs:
         run: python tests/test_brainstorm_companion.py
       - name: skill text
         run: python tests/test_skill_text.py
+      - name: release manifests
+        run: python tests/test_release_manifests.py
       - name: piano example
         working-directory: examples/piano
         run: node --test
+
+  validate:
+    name: claude plugin validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Validate marketplace and plugin manifests
+        run: claude plugin validate . && claude plugin validate .claude-plugin/plugin.json
