@@ -125,6 +125,20 @@ class WorktreeCleanupTests(unittest.TestCase):
         self.assertTrue((worktree / ".env").exists())
         self.assertIn(".env", result.stdout)
 
+    def test_cleanup_moves_orchestra_records_to_main_checkout(self):
+        # The self-ignored ledger would otherwise block cleanup or vanish with the worktree.
+        repo, worktree = self.owned_worktree(owned=True)
+        plan = worktree / ".orchestra/sdd/plan"
+        plan.mkdir(parents=True)
+        (worktree / ".orchestra/sdd/.gitignore").write_text("*\n", encoding="utf-8")
+        (plan / "progress.md").write_text("Task 1: complete\n", encoding="utf-8")
+        result = self.cleanup_block(repo, worktree)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(worktree.exists(), result.stdout)
+        kept = list((repo / ".orchestra/archive").glob("*/sdd/plan/progress.md"))
+        self.assertEqual([p.read_text(encoding="utf-8") for p in kept], ["Task 1: complete\n"])
+        self.assertEqual(git(repo, "status", "--porcelain").stdout, "")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
