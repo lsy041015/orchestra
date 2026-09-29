@@ -12,7 +12,7 @@ delegation guide.
 | Search files | `search_files` |
 | Track work | `todo` |
 
-If ported, apply `orchestra:using-superpowers`: the main session
+If ported, apply `orchestra:using-orchestra`: the main session
 owns plans, diagnosis, reviews, re-reviews, and integration. Delegate only an
 explicitly authorized implementation unit. A worker may self-review and
 debug its implementation but never delegates a non-implementation role or a

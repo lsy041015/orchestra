@@ -11,7 +11,7 @@
 | 요청 | "간단하지만 시각적으로 확실한 작업" |
 | 결과물 | [`examples/piano/`](../../../examples/piano/) — 한 옥타브 웹 피아노, *환희의 송가* 자동 연주와 건반 하이라이트 |
 | 날짜·환경 | 2026-09-27, Windows 11, Claude Code 2.1.283 (메인 세션: Claude Opus 5.5), Codex CLI 0.156.1, Node.js 24 |
-| 계획 | [`docs/superpowers/plans/2026-09-27-piano-demo-plan.md`](../../superpowers/plans/2026-09-27-piano-demo-plan.md) |
+| 계획 | [`docs/orchestra/plans/2026-09-27-piano-demo-plan.md`](../../orchestra/plans/2026-09-27-piano-demo-plan.md) |
 | ledger 원본 | [`ledger.md`](ledger.md) |
 
 ## 1. 난이도 표

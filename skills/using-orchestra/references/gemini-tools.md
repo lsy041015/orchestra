@@ -14,7 +14,7 @@ does not authorize a non-implementation dispatch.
 | Track work | `write_todos` |
 
 If ported to Gemini, apply the role policy from
-`orchestra:using-superpowers`: keep planning, diagnosis, review,
+`orchestra:using-orchestra`: keep planning, diagnosis, review,
 and re-review in the main session; delegate only an explicitly authorized
 implementation worker, and never let that worker create another worker or an
 independent evaluator. Do not copy model or parallel-dispatch settings from
