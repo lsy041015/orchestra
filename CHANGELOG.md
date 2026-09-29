@@ -5,6 +5,22 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-29
+
+### Added
+- `codex-worker.mjs`: `ORCHESTRA_CODEX_NETWORK=1` adds
+  `-c sandbox_workspace_write.network_access=true`. The `workspace-write`
+  sandbox blocks every socket, loopback included, so ROS 2/DDS tests,
+  localhost servers and package installs failed inside a Codex worker.
+  Network stays off by default; the orchestrator sets it only for tasks
+  that need it and records `Network: on` in the ledger. Verified on Linux
+  with Codex 0.156.1 (`codex sandbox`: `PermissionError` without the flag,
+  a loopback UDP send with it).
+
+### Docs
+- The Korean README no longer says the `sonnet` alias is Sonnet 5. The alias
+  follows new Sonnet releases, as the English README already said.
+
 ## [0.3.0] - 2026-09-28
 
 Fixes from a pre-release review. Each item below was reproduced before the fix.
