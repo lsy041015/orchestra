@@ -89,7 +89,7 @@ codex plugin marketplace add lsy041015/orchestra
 codex plugin add orchestra@orchestra
 ```
 
-Do not enable the original Superpowers plugin at the same time; skill names collide.
+Do not enable the original Superpowers plugin or the earlier `relay` plugin at the same time; skill names collide.
 
 ## Routing config
 
@@ -131,7 +131,7 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   `codex.cmd` or `git.exe` inside the project never runs in place of the real tool.
 - Use the repository root as `--cwd`. The sandbox writes only inside `--cwd` and keeps `.git`
   read-only, so the brief (and the report next to it) must be inside `--cwd`, and Codex workers
-  cannot commit. `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory.
+  cannot commit. On Linux (Codex 0.156.1) `/tmp` stays writable too. `--allowed` is relative to `--cwd`; an entry ending in `/` allows that whole directory.
 - Network is off by default, loopback sockets included. Only when a task's tests need sockets or
   downloads (ROS 2/DDS, localhost servers, package installs), prefix the command with
   `ORCHESTRA_CODEX_NETWORK=1`; the worker then adds `-c sandbox_workspace_write.network_access=true`.
@@ -158,6 +158,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | `--resume` on the same thread with effort low → medium | ✅ same thread, second turn logged as `gpt-6-luna/medium` |
 | Subdirectory `--cwd` with an out-of-scope file | ✅ `Scope: outside allowed: pkg/extra.txt` (scope only; the root ledger is not writable from there, so since v0.3.0 the brief must be inside `--cwd`) |
 | Codex sandbox boundary (`codex sandbox`, 2026-09-28) | ✅ writes inside `--cwd` work; outside `--cwd` and `.git` are denied; `git commit` fails on `index.lock` |
+| Codex sandbox boundary on Linux (`codex sandbox`, 2026-09-29) | ✅ writes inside `--cwd` work; `.git` and the home directory are denied; ⚠️ `/tmp` is writable; network is off by default, loopback included |
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
 | `gpt-6-luna` + `ultra` | ⚠️ accepted by the API although the model list tops out at `max`; the level actually applied is unknown |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
