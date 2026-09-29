@@ -54,6 +54,14 @@ worker cannot find. A task must say what it consumes from earlier tasks and
 what later tasks may consume from it. Never add speculative architecture,
 dependencies, or blanket line/word/token limits.
 
+A plan records decisions, not code. A task is ready when the worker can
+write exactly one reasonable thing from it: test names and assertions with
+the spec's values, exact signatures and files, and each check's command with
+its passing output. Include a function body only for an algorithm the
+signature and tests do not determine, or for exact copy the spec fixes. A
+plan longer than the code it describes has written the code instead; a line
+that decides nothing ("handle edge cases", "add tests") is a gap.
+
 ## Self-review before handoff
 
 Read the completed plan once from top to bottom and check:
@@ -63,6 +71,9 @@ Read the completed plan once from top to bottom and check:
 - each task's files, symbols, tests, and expected output agree internally;
 - the plan preserves TDD, systematic debugging, user changes, and safety;
 - a worker can implement the task without inventing a design decision;
+- proportion: a plan several times longer than the spec, or one that is
+  mostly code blocks, is a transcript; replace bodies with signatures, test
+  names and assertions;
 - scope and complexity are the smallest adequate shape.
 
 Fix gaps inline. Honor a user-requested plan approval gate and ask about any
