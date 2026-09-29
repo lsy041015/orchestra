@@ -305,7 +305,7 @@ node "<orchestrator 스킬 폴더>/scripts/codex-worker.mjs" \
 ### 8.2 실제로 실행되는 명령
 - 새 작업: `codex exec --json -m <model> -c model_reasoning_effort=<effort> -s workspace-write --skip-git-repo-check -`
 - 재개: `codex exec resume <thread_id> --json -m <model> -c model_reasoning_effort=<effort> -c sandbox_mode=workspace-write --skip-git-repo-check -`
-- 샌드박스는 항상 `workspace-write`입니다. `--cwd` 밖 쓰기와 `.git` 쓰기는 Codex 샌드박스가 막습니다(Windows 실측). 그래서 Codex 워커는 커밋할 수 없습니다.
+- 샌드박스는 항상 `workspace-write`입니다. `--cwd` 밖 쓰기와 `.git` 쓰기는 Codex 샌드박스가 막습니다(Windows 실측). 그래서 Codex 워커는 커밋할 수 없습니다. Linux(Codex 0.156.1)에서도 `.git`과 홈 디렉터리 쓰기는 막히지만 `/tmp`는 쓸 수 있습니다.
 - 네트워크는 기본 차단입니다(루프백 소켓 포함). 테스트에 소켓이나 다운로드가 필요할 때만(ROS 2/DDS, localhost 서버, 패키지 설치) 명령 앞에 `ORCHESTRA_CODEX_NETWORK=1`을 붙이면 `-c sandbox_workspace_write.network_access=true`가 추가됩니다(Linux 실측).
 
 ### 8.3 출력
@@ -613,6 +613,7 @@ orchestra/
 | 같은 thread `--resume` + effort 변경 (low → medium) | ✅ 같은 thread id, 두 번째 턴이 `gpt-6-luna/medium`으로 기록 |
 | `--cwd`가 하위 폴더 + 허용 밖 파일 생성 | ✅ `Scope: outside allowed: pkg/extra.txt` (범위 검사만 확인. 저장소 루트의 ledger에는 쓸 수 없어 v0.3.0부터 brief가 `--cwd` 안에 있어야 함) |
 | Codex 샌드박스 경계 (`codex sandbox`, 2026-09-28) | ✅ `--cwd` 안은 쓰기 가능, `--cwd` 밖과 `.git`은 "액세스 거부", `git commit`은 `index.lock: Permission denied` |
+| Codex 샌드박스 경계, Linux (`codex sandbox`, 2026-09-29) | ✅ `--cwd` 안은 쓰기 가능, `.git`과 홈 디렉터리는 거부. ⚠️ `/tmp`는 쓰기 가능. 네트워크는 기본 차단(루프백 포함) |
 | 없는 모델 | ✅ `Status: BLOCKED`, 한 줄 오류, exit 1 |
 | 지원하지 않는 effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED`, 지원 목록이 담긴 오류, exit 1 |
 | `gpt-6-luna` + `ultra` | ⚠️ 모델 목록에는 `max`까지만 있지만 API가 거부하지 않고 실행됨. 실제로 어떤 수준이 적용됐는지는 확인 불가 |
