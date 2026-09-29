@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
@@ -42,6 +43,19 @@ function parseArgs(args) {
   if (!allowed.length) throw new Error('Invalid --allowed');
   return { model: values['--model'], effort: values['--effort'], cwd, brief, allowed,
     resume: values['--resume'] };
+}
+
+// Codex caches the efforts each model supports. The API has accepted an
+// unlisted pair (gpt-6-luna + ultra) without saying which level ran.
+function cachedEfforts(model) {
+  try {
+    const home = process.env.CODEX_HOME || path.join(homedir(), '.codex');
+    const { models } = JSON.parse(readFileSync(path.join(home, 'models_cache.json'), 'utf8'));
+    const levels = models.find((entry) => entry?.slug === model)?.supported_reasoning_levels;
+    return Array.isArray(levels) ? levels.map((level) => level?.effort ?? level) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // Resolves { output } or { error: <first stderr line> }.
@@ -187,6 +201,15 @@ async function main() {
   } catch (error) {
     process.stderr.write(`Cannot read --brief: ${error.message}\n`);
     process.exitCode = 2;
+    return;
+  }
+
+  const listed = cachedEfforts(options.model);
+  if (listed && !listed.includes(options.effort)) {
+    process.stdout.write(`Status: BLOCKED\nUnresolved: ${options.model} does not support effort ` +
+      `${options.effort} (Codex lists: ${listed.join(', ')})\nCodex thread: none\n` +
+      'Scope: unchecked (Codex did not run)\n');
+    process.exitCode = 1;
     return;
   }
 

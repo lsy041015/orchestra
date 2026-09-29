@@ -116,8 +116,10 @@ Do not enable the original Superpowers plugin or the earlier `relay` plugin at t
   - Claude: an `Agent` model alias (`sonnet`, `opus`, `haiku`). Effort `high` →
     `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
   - Codex: any model your account can use. Effort is one of `none`, `minimal`, `low`, `medium`,
-    `high`, `xhigh`, `max`, `ultra`. Support varies by model, and an unsupported pair comes back as
-    `Status: BLOCKED` with Codex's own message.
+    `high`, `xhigh`, `max`, `ultra`. Support varies by model: when Codex's model cache
+    (`~/.codex/models_cache.json`) lists the model without that effort, the worker stops with
+    `Status: BLOCKED` before Codex runs; any other unsupported pair comes back as `Status: BLOCKED`
+    with Codex's own message.
 - If every tier in the table has a value, Orchestra shows the mapping and starts. Otherwise it asks
   only for the missing tiers.
 
@@ -165,7 +167,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | Codex sandbox boundary (`codex sandbox`, 2026-09-28) | ✅ writes inside `--cwd` work; outside `--cwd` and `.git` are denied; `git commit` fails on `index.lock` |
 | Codex sandbox boundary on Linux (`codex sandbox`, 2026-09-29) | ✅ writes inside `--cwd` work; `.git` and the home directory are denied; ⚠️ `/tmp` is writable; network is off by default, loopback included |
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
-| `gpt-6-luna` + `ultra` | ⚠️ accepted by the API although the model list tops out at `max`; the level actually applied is unknown |
+| `gpt-6-luna` + `ultra` | ✅ since v0.4.1 `Status: BLOCKED` before Codex runs, because the model cache lists only up to `max` (before, the API accepted it and the level actually applied was unknown) |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
 | All seven test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
