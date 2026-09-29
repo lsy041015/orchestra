@@ -16,7 +16,7 @@
 공식 OpenAI·Anthropic·Superpowers 배포판이 아닙니다. Claude·Codex 같은 이름은 연동 대상을 가리킬 때만 쓰며,
 각 상표는 해당 소유자의 것입니다.
 
-> **상태: 실험판 (v0.4.1).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
+> **상태: 실험판 (v0.4.2).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
 > 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
@@ -606,7 +606,7 @@ orchestra/
 |---|---|
 | 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ Codex 워커로 1회, Claude 워커로 1회 실측 ([실행 기록](docs/demo/piano/README.md), [비교](docs/demo/piano/comparison.md)) |
 | 오케스트레이터 전체 흐름, Linux (2026-09-29) | ✅ Claude 워커로 1회 (0.4.0, 헤드리스 메인 세션, 수정 라운드 0). 독립 검증에서 Node 18 테스트 실패와 반복 음 타건이 안 보이는 문제 확인 ([기록](docs/demo/piano/linux-run/README.md)) |
-| v0.3.0 테스트 6개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개만 건너뜀 |
+| v0.4.2 테스트 9개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개를 건너뛰고, POSIX 신호 검사 1개는 CI(Ubuntu·macOS)에서만 실행 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |
 | 사용량 비교 | ⚠️ 작은 작업 1개로 한 번 비교([비교](docs/demo/piano/comparison.md)). Codex 워커는 Claude 한도를 쓰지 않고 Codex 7일 한도 1% 미만 사용. 일반적인 절감률은 주장하지 않음 |

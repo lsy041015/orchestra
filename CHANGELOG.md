@@ -5,6 +5,44 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-29
+
+The rest of a pre-0.4.0 review, ported from a branch that was never pushed.
+
+### Fixed
+- `codex-worker.mjs`: a SIGINT, SIGTERM or SIGHUP sent to the worker now
+  reaches Codex, so stopping only the worker no longer leaves Codex editing
+  files (POSIX; on Windows, TaskStop already ends the whole process tree).
+- `task-done`: a task number with a newline could append a forged
+  `Task N: complete` line to the ledger. It is now rejected, as in
+  `task-brief`, and both executing-plans helpers run through bash.
+- `find-polluter.sh`: it said "all tests clean" when the pollution already
+  existed or when there was no npm test script, and it split file names at
+  spaces. Those cases now stop with an error, and each name stays whole.
+- `diagnosing-orchestra` no longer depends on context-mode, which Orchestra
+  does not ship; long transcripts go through `references/context-safety.md`.
+
+### Changed
+- `orchestrator`: routing from a project `.orchestra.json` needs one
+  confirmation per project before the first dispatch, because a cloned
+  repository can ship values that spend the user's quota.
+- `diagnosing-orchestra` shows the search terms and asks before searching
+  GitHub, since they leave the machine.
+- Review skills allow a worker model switch the user asks for;
+  `systematic-debugging` tells implementation workers to return
+  `Status: BLOCKED` with the evidence instead of retrying.
+- The Codex marketplace installs the release tag instead of `main`.
+
+### Added
+- `tests/test_release_manifests.py` keeps the manifests, the Codex
+  marketplace ref, this changelog and the READMEs on one version.
+- `tests/test_find_polluter.py`. Both new test files run in CI, and a CI job
+  runs `claude plugin validate`.
+
+### Docs
+- Both READMEs end with the shared profile footer, and LICENSE credits the
+  Orchestra changes.
+
 ## [0.4.1] - 2026-09-29
 
 Fixes from a health check of the installed 0.4.0 by Claude and a Codex review
