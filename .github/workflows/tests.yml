@@ -35,6 +35,8 @@ jobs:
         run: python --version && node --version && git --version && bash --version | head -1
       - name: codex-worker
         run: python tests/test_codex_worker.py
+      - name: scope-check
+        run: python tests/test_scope_check.py
       - name: task-brief
         run: python tests/test_task_brief.py
       - name: sdd safety

@@ -61,6 +61,11 @@ class CodexWorkerTests(unittest.TestCase):
         for item in ("exec", "--json", "-s", "workspace-write",
                      "model_reasoning_effort=high"):
             self.assertIn(item, args)
+        self.assert_plugins_disabled(args)
+
+    def assert_plugins_disabled(self, args):
+        # The user's Codex plugins (another Superpowers, say) bring their own workflow.
+        self.assertIn(["--disable", "plugins"], [args[i:i + 2] for i in range(len(args))])
 
     def test_scope_flags_outside_file(self):
         result = self.run_worker(mode="touch")
@@ -80,6 +85,27 @@ class CodexWorkerTests(unittest.TestCase):
         brief = sub / "brief.md"
         brief.write_text(PROMPT, encoding="utf-8")
         result = self.run_worker(mode="touch", cwd=sub, brief=brief)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.scope(result), "Scope: outside allowed: pkg/b.txt")
+
+    def test_linked_cwd_checks_the_real_repository(self):
+        # git climbs from the link target: a link that lives in another
+        # repository once made the check compare that checkout and print ok.
+        outer = Path(self.temp.name) / "outer"
+        outer.mkdir()
+        subprocess.run(["git", "init", "-q", str(outer)], check=True)
+        sub = self.root / "pkg"
+        sub.mkdir()
+        (sub / "brief.md").write_text(PROMPT, encoding="utf-8")
+        link = outer / "link"
+        try:
+            link.symlink_to(sub, target_is_directory=True)
+        except OSError:
+            if os.name != "nt":
+                raise
+            import _winapi  # a junction needs no symlink privilege
+            _winapi.CreateJunction(str(sub), str(link))
+        result = self.run_worker(mode="touch", cwd=link, brief=link / "brief.md")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.scope(result), "Scope: outside allowed: pkg/b.txt")
 
@@ -131,6 +157,7 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(args[:3], ["exec", "resume", "t-123"])
         self.assertIn("sandbox_mode=workspace-write", args)
         self.assertNotIn("-s", args)
+        self.assert_plugins_disabled(args)
 
     def test_network_is_opt_in(self):
         flag = "sandbox_workspace_write.network_access=true"
@@ -156,6 +183,12 @@ class CodexWorkerTests(unittest.TestCase):
         result = self.run_worker(mode="retry-error")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(result.stdout.startswith("Status: DONE\n"), result.stdout)
+
+    def test_recovered_stream_error_does_not_hide_the_real_failure(self):
+        result = self.run_worker(mode="retry-then-crash")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines()[:2],
+                         ["Status: BLOCKED", "Unresolved: sandbox setup failed"])
 
     def test_reply_without_status_block_is_blocked(self):
         result = self.run_worker(mode="no-status")

@@ -77,7 +77,8 @@ another model through `Other`. Record the final mapping in the ledger as
 ## 3. Dispatch
 
 Label every worker so the task list shows its engine, model, and effort:
-`[<Codex|Claude> <model>/<effort>] Task N: <title>`.
+`[<Codex|Claude> <model>/<effort>] Task N: <title>`. A Claude worker reused
+through `SendMessage` keeps its first label; the ledger shows its current task.
 
 **Claude worker**: use the `Agent` tool.
 
@@ -88,6 +89,17 @@ Label every worker so the task list shows its engine, model, and effort:
 
 Pass `model` from the routing value. Effort comes from the agent definition;
 for another effort, tell the user it needs a new agent file.
+
+Record a scope baseline right before dispatching a Claude worker, and check it
+before each review of that task, including after fix rounds:
+
+```text
+node "<this skill's base directory>/scripts/scope-check.mjs" before --cwd "<project>" --state "<ledger>/task-N-scope.json"
+node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<project>" --state "<ledger>/task-N-scope.json" --allowed "<files>"
+```
+
+`after` prints the same `Scope:` line as a Codex worker and also counts files
+the worker committed. `--allowed` follows the Codex worker rules below.
 
 **Codex worker**: the main session calls `Bash` directly with
 `run_in_background: true` and no `timeout` parameter. Set the description to
@@ -109,7 +121,10 @@ localhost servers, package installs), prefix the command with
 `ORCHESTRA_CODEX_NETWORK=1` and record `Network: on` for that task in the
 ledger.
 
-Fill `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
+The worker runs Codex with the user's Codex plugins disabled, so another
+workflow's skills and hooks stay out of the task; the user's `config.toml` and
+`AGENTS.md` still apply. Fill
+`orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
 `<ledger>/task-N-codex-prompt.md`:
 
@@ -118,13 +133,14 @@ Never run git commit, push, reset or checkout: the sandbox keeps .git
 read-only, and the main session commits after review. Edit only allowed
 files. Never leave long-running servers or editors running. Keep the report
 at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
-block.
+block. Plugin skills are off in this run: where the brief names an
+orchestra: skill, follow the brief's own wording.
 ```
 
 When the background task completes, notify the user and record its
 `Codex thread:` output in the ledger.
 
-Codex workers may run in parallel when their files do not overlap. The scope
+Workers may run in parallel when their files do not overlap. The scope
 check compares the whole checkout, so a file changed by another worker running
 at the same time also appears in `Scope: outside allowed`. Ignore a listed file
 only when it belongs to a concurrent worker's allowed list; otherwise treat it
@@ -132,7 +148,8 @@ as a finding. Separate worktrees avoid this overlap.
 
 ## 4. Review and fix loop
 
-Review every result from the actual diff. After each Codex run:
+Review every result from the actual diff. After each worker run, read its
+`Scope:` line (Codex worker output, or `scope-check.mjs after` for Claude):
 - Treat `Scope: outside allowed` as a review finding (see the parallel rule
   above). The check does not see `.gitignore`d paths; review those from the
   diff and the worker report when the task touches them.
