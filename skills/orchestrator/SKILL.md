@@ -98,6 +98,12 @@ Use the repository root as `--cwd`. The Codex sandbox writes only inside
 `--cwd`, so the brief and report in `<ledger>` must be inside it; the worker
 refuses a brief outside `--cwd`. Name subdirectory files in `--allowed`.
 
+The sandbox blocks all network access by default, including loopback sockets.
+Only when the task's tests need sockets or downloads (for example ROS 2/DDS,
+localhost servers, package installs), prefix the command with
+`ORCHESTRA_CODEX_NETWORK=1` and record `Network: on` for that task in the
+ledger.
+
 Fill `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
 `<ledger>/task-N-codex-prompt.md`:

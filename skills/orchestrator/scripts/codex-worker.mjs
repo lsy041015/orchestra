@@ -197,6 +197,8 @@ async function main() {
   args.push('--json', '-m', options.model, '-c', `model_reasoning_effort=${options.effort}`);
   if (options.resume) args.push('-c', 'sandbox_mode=workspace-write');
   else args.push('-s', 'workspace-write');
+  // Opt-in: the sandbox blocks even loopback sockets (ROS 2/DDS, localhost servers, installs).
+  if (process.env.ORCHESTRA_CODEX_NETWORK === '1') args.push('-c', 'sandbox_workspace_write.network_access=true');
   args.push('--skip-git-repo-check', '-');
 
   const run = await spawnCodex(args, options.cwd, prompt);

@@ -306,6 +306,7 @@ node "<orchestrator 스킬 폴더>/scripts/codex-worker.mjs" \
 - 새 작업: `codex exec --json -m <model> -c model_reasoning_effort=<effort> -s workspace-write --skip-git-repo-check -`
 - 재개: `codex exec resume <thread_id> --json -m <model> -c model_reasoning_effort=<effort> -c sandbox_mode=workspace-write --skip-git-repo-check -`
 - 샌드박스는 항상 `workspace-write`입니다. `--cwd` 밖 쓰기와 `.git` 쓰기는 Codex 샌드박스가 막습니다(Windows 실측). 그래서 Codex 워커는 커밋할 수 없습니다.
+- 네트워크는 기본 차단입니다(루프백 소켓 포함). 테스트에 소켓이나 다운로드가 필요할 때만(ROS 2/DDS, localhost 서버, 패키지 설치) 명령 앞에 `ORCHESTRA_CODEX_NETWORK=1`을 붙이면 `-c sandbox_workspace_write.network_access=true`가 추가됩니다(Linux 실측).
 
 ### 8.3 출력
 
