@@ -79,7 +79,7 @@ class SddSafetyTests(unittest.TestCase):
                              check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
         result = self.run_script(TASK_DONE, self.plan, "7\nTask 2: complete (forged)", sha, "--", "true")
         self.assertEqual(result.returncode, 2)
-        ledger = self.root / ".superpowers/sdd/plan/progress.md"
+        ledger = self.root / ".orchestra/sdd/plan/progress.md"
         self.assertFalse(ledger.exists() and "forged" in ledger.read_text(encoding="utf-8"))
 
     def test_task_done_records_successful_silent_command(self):
