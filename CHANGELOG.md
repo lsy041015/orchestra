@@ -5,6 +5,35 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-29
+
+Fixes from a health check of the installed 0.4.0 by Claude and a Codex review
+(gpt-6-astra, effort max). Every regression test added here fails on 0.4.0.
+
+### Fixed
+- `finishing-a-development-branch`: cleanup read shell variables set in an
+  earlier tool call, and Claude Code starts each call in a fresh shell, so
+  removal was silently skipped. It now takes the recorded worktree path. The
+  merge step finds the main worktree with `git worktree list`, so a bare
+  repository no longer merges inside the feature worktree.
+- Worktree cleanup no longer deletes ignored files. `git worktree remove`
+  deleted them without a word, Orchestra's own ledger and reports included.
+  `.orchestra/` now moves to `<main checkout>/.orchestra/archive/<worktree>-<time>/`
+  first; any other ignored file (such as `.env`) stops the removal and is shown.
+- `using-git-worktrees`: a `D:/`-style location counts as absolute, Python
+  requirements install only into an active virtualenv, and a `.gitignore`
+  change is reported.
+- Brainstorming companion: a trailing option without a value no longer loops
+  forever; a relative `--project-dir` no longer puts session state in the
+  plugin's folder; temp sessions come from `mktemp` and are removed on stop;
+  `$&`, `$'` and `$$` in screens stay literal; `/files/` names are URL-decoded;
+  a vanished file answers 500 instead of crashing the server; the WebSocket
+  also works behind HTTPS tunnels.
+- `codex-worker.mjs`: when Codex's model cache lists a model without the
+  requested effort (for example `gpt-6-luna` + `ultra`, which the API accepted
+  without saying which level ran), the worker returns `Status: BLOCKED` before
+  Codex runs.
+
 ### Docs
 - Run C of the piano demo (`docs/demo/piano/linux-run/`): the same plan on
   Linux with 0.4.0, Claude workers and a headless main session. It finished
