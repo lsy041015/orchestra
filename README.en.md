@@ -16,7 +16,7 @@ A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by J
 Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude and Codex only indicate
 the tools this plugin works with; the marks belong to their owners.
 
-> **Status: experimental (v0.4.2).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
+> **Status: experimental (v0.4.3).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
 > Windows. Real orchestrator use on macOS/Linux is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
@@ -32,7 +32,8 @@ spends each subscription where it fits:
    rule, because Codex 0.156 keeps its agent tools even with `features.multi_agent=false`. Codex
    workers never commit; the main session commits after review.
 3. **Every result is checked against evidence**: the real diff, real test output, and a mechanical
-   scope check for Codex runs.
+   scope check (run by the Codex worker itself, and by the main session around a Claude worker with
+   `scope-check.mjs`).
 
 ## How it works
 
@@ -51,7 +52,11 @@ Tiers: **Easy** (mechanical, one file), **Medium** (normal feature or fix with t
 
 Workers show up in the Claude Code task list with their engine, model and effort, e.g.
 `[Codex gpt-6-luna/high] Task 3: retry helper`. Cancel one with `TaskStop`, or say
-"switch Task 3 to claude opus".
+"switch Task 3 to claude opus". A Claude worker that takes a later task through `SendMessage`
+keeps its first label; the ledger shows which task it is on.
+
+Each brief holds one task plus the plan's `Global constraints` and `Interfaces` sections; the
+sections after the tasks (verification, review focus) stay with the main session.
 
 ## A real run
 
@@ -77,6 +82,9 @@ second strike is not visible.
 
 Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and for Codex
 workers Node.js 18+ and a logged-in Codex CLI (`codex --version`, `codex login status`).
+Claude Code's Bash tool uses Git Bash on Windows. In PowerShell a bare `bash` may be the WSL
+launcher, which fails without a distribution, so run scripts there as
+`& 'C:\Program Files\Git\bin\bash.exe' <script>`.
 
 ```bash
 claude plugin marketplace add lsy041015/orchestra
@@ -132,7 +140,9 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   --allowed "src/retry.ts,test/retry.test.ts,test/fixtures/" [--resume <thread_id>]
 ```
 
-- Runs `codex exec --json … -s workspace-write` directly and passes the brief on stdin. Paths never
+- Runs `codex exec --json … -s workspace-write --disable plugins` directly and passes the brief on
+  stdin. Your Codex plugins (another Superpowers, say) stay off in worker runs so their skills and
+  hooks do not bring a different workflow; `config.toml` and `AGENTS.md` still apply. Paths never
   go through a shell, and every value that reaches the Windows shell is validated first. On Windows it also stops the current directory from being searched first, so a
   `codex.cmd` or `git.exe` inside the project never runs in place of the real tool. SIGINT, SIGTERM
   and SIGHUP sent to the worker are passed on to Codex.
@@ -147,11 +157,17 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   (not a repository, dubious ownership, a failure after the run) is reported as `unchecked`, never `ok`.
 - Failures (non-zero exit, `turn.failed`, no message, no `Status:` line in the reply) become
   `Status: BLOCKED` with a one-line reason and exit 1. An `error` event alone is not a failure;
-  Codex also reports recovered stream retries that way. Bad arguments exit 2 without starting Codex.
-- The scope check hashes `git status` entries before and after the run, so files you had already
-  modified are only flagged if Codex changes them. It cannot see `.gitignore`d paths, and parallel
-  workers in the same checkout see each other's files; the orchestrator ignores only files that
-  belong to another running worker's allowed list.
+  Codex also reports recovered stream retries that way, and a recovered one never replaces the
+  real reason. Bad arguments exit 2 without starting Codex.
+- The scope check ([`scope-check.mjs`](skills/orchestrator/scripts/scope-check.mjs)) hashes
+  `git status` entries and records `HEAD` before and after the run, so files you had already
+  modified are only flagged if the worker changes them, and committed files still count. It works
+  on the physical path, so a symlinked `--cwd` checks the repository git sees. It cannot see
+  `.gitignore`d paths, and parallel workers in the same checkout see each other's files; the
+  orchestrator ignores only files that belong to another running worker's allowed list.
+- For a Claude worker the main session runs the same check:
+  `node scope-check.mjs before --cwd <project> --state <ledger>/task-N-scope.json` before dispatch,
+  and `after … --allowed <files>` before each review.
 
 ## Verification and limits
 
@@ -170,10 +186,12 @@ actually applied were read from Codex's session log (`turn_context`).
 | Unknown model / unsupported effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED` with a one-line reason |
 | `gpt-6-luna` + `ultra` | ✅ since v0.4.1 `Status: BLOCKED` before Codex runs, because the model cache lists only up to `max` (before, the API accepted it and the level actually applied was unknown) |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
-| All nine test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
+| `--disable plugins` (2026-09-29, `gpt-6-luna` low) | ✅ `Status: DONE`; the session log has no Superpowers skill or ponytail hook text, which an earlier worker run on the same machine had; user skills outside plugins remain |
+| All ten test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
 
-Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer. Claude
+Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer; the
+scope check around a Claude worker runs only when the main session calls `scope-check.mjs`. Claude
 workers use the `sonnet` alias, so they follow new Sonnet releases; change Codex model names in your
 routing config. Live Codex progress is not streamed into the TUI by design.
 
@@ -181,6 +199,7 @@ routing config. Live Codex progress is not streamed into the TUI by design.
 
 ```bash
 python3 tests/test_codex_worker.py
+python3 tests/test_scope_check.py
 python3 tests/test_task_brief.py
 python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py

@@ -5,6 +5,50 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-29
+
+Fixes from a Linux user report (#3) and the rest of the 0.4.0 health check.
+
+### Fixed
+- `codex-worker.mjs`: a `--cwd` reached through a symlink or junction inside
+  another repository printed `Scope: ok` while it compared that other
+  checkout. `--cwd` and `--brief` now resolve to their physical paths first.
+- `task-brief`: the last task's brief also carried the sections after the
+  tasks (`Verification`, `Review focus and recovery`), which are for the main
+  session. A heading above the task level now ends the task.
+- `codex-worker.mjs`: a stream error Codex had recovered from could stand in
+  for the real reason of a later failure in `Unresolved:`.
+- `task-done`: a failed rerun left the earlier `Task N: complete` as the
+  task's state and overwrote the earlier test log. It now appends
+  `Task N: failed` (the last `Task N:` line is the state) and keeps one log
+  per run. A line break inside a command argument can no longer start a
+  forged ledger line.
+- `stop-server.sh`: a live process it could not identify as the server was
+  recorded as stopped and its PID file deleted. It now reports `unverified`,
+  signals nothing and keeps the state files.
+- `brainstorm.choice(value)` sent `value`, but the server records only events
+  with `choice`, so those choices never reached `state/events`.
+
+### Added
+- `scope-check.mjs before|after`: the Codex worker's scope check, now for
+  Claude workers too. The main session records a baseline before dispatch and
+  checks it before each review. The check also counts files a worker
+  committed, which leave `git status` clean.
+- Every task brief includes the plan's `Global constraints` and `Interfaces`
+  sections, which bind every task.
+
+### Changed
+- Codex workers run with `--disable plugins`, so the user's Codex plugins
+  (another Superpowers, for one) no longer add their skills and hooks to a
+  worker. `config.toml` and `AGENTS.md` still apply.
+- `orchestrator`: a Claude worker reused through `SendMessage` keeps its
+  first task label; the ledger shows its current task.
+- README: running the scripts from PowerShell on Windows.
+
+### Removed
+- The inactive Antigravity, Gemini, Hermes, Muse and Pi tool notes under
+  `using-orchestra/references/`.
+
 ## [0.4.2] - 2026-09-29
 
 The rest of a pre-0.4.0 review, ported from a branch that was never pushed.
@@ -253,7 +297,8 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/lsy041015/orchestra/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/lsy041015/orchestra/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/lsy041015/orchestra/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/lsy041015/orchestra/compare/v0.3.1...v0.4.0
