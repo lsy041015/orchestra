@@ -16,7 +16,7 @@
 공식 OpenAI·Anthropic·Superpowers 배포판이 아닙니다. Claude·Codex 같은 이름은 연동 대상을 가리킬 때만 쓰며,
 각 상표는 해당 소유자의 것입니다.
 
-> **상태: 실험판 (v0.4.2).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
+> **상태: 실험판 (v0.4.3).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
 > 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
@@ -106,11 +106,13 @@
 - 워커에게는 이전 대화 기록을 넘기지 않습니다. 목표, 허용 파일, 확정된 인터페이스, 인수 조건,
   테스트 명령, 리포트 경로만 담긴 **작업별 브리프**를 줍니다.
 - 브리프는 `task-brief` 스크립트가 계획에서 해당 작업만 잘라 만듭니다. 계획 전체를 통째로 주지 않습니다.
+  모든 작업에 걸리는 `Global constraints`·`Interfaces` 절은 브리프마다 함께 넣고, 작업 뒤의 검증·리뷰 절(메인 세션용)은 넣지 않습니다.
 
 ### 3.4 증거 기반 리뷰
 - 워커의 "DONE"은 증거가 아닙니다. 메인 세션은 **실제 diff**(커밋, 스테이징, 미스테이징, 새 파일 모두)와
   **실제 테스트 출력**을 봅니다.
-- Codex 워커의 경우 `Scope:` 줄로 허용 목록 밖 수정 여부를 기계적으로 확인합니다.
+- `Scope:` 줄로 허용 목록 밖 수정 여부를 기계적으로 확인합니다. Codex 워커는 스크립트가 실행 전후로,
+  Claude 워커는 메인 세션이 배정 전과 리뷰 전에 `scope-check.mjs`로 확인합니다.
 
 ### 3.5 끝나는 수정 루프
 - 리뷰에서 나온 구체적 지적만 같은 워커에게 다시 보냅니다.
@@ -273,6 +275,13 @@ Report: <report path>
 ```
 
 - 수정 라운드는 `SendMessage`로 **같은 워커**에게 보냅니다. 워커는 리포트에 수정 증거를 덧붙이고 같은 형식으로 답합니다.
+- 범위 검사: 메인 세션이 배정 직전에 기준을 기록하고, 리뷰할 때마다(수정 라운드 후 포함) 비교합니다.
+  출력은 Codex 워커와 같은 `Scope:` 줄이고, Claude 워커가 **커밋한 파일**도 셉니다.
+
+```text
+node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" before --cwd "<프로젝트>" --state "<ledger>/task-N-scope.json"
+node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" after --cwd "<프로젝트>" --state "<ledger>/task-N-scope.json" --allowed "<파일>"
+```
 
 ---
 
@@ -305,8 +314,11 @@ node "<orchestrator 스킬 폴더>/scripts/codex-worker.mjs" \
 검증에 실패하면 Codex를 실행하지 않고 **exit 2**로 끝납니다.
 
 ### 8.2 실제로 실행되는 명령
-- 새 작업: `codex exec --json -m <model> -c model_reasoning_effort=<effort> -s workspace-write --skip-git-repo-check -`
-- 재개: `codex exec resume <thread_id> --json -m <model> -c model_reasoning_effort=<effort> -c sandbox_mode=workspace-write --skip-git-repo-check -`
+- 새 작업: `codex exec --json -m <model> -c model_reasoning_effort=<effort> -s workspace-write --disable plugins --skip-git-repo-check -`
+- 재개: `codex exec resume <thread_id> --json -m <model> -c model_reasoning_effort=<effort> -c sandbox_mode=workspace-write --disable plugins --skip-git-repo-check -`
+- 사용자의 Codex 플러그인은 워커 실행에서 끕니다(`--disable plugins`). 원본 Superpowers 같은 플러그인의 스킬·훅이
+  브리프와 다른 작업 방식을 끼워 넣지 않게 하기 위해서입니다. `config.toml`(모델 제공자, 샌드박스 설정 등)과
+  `AGENTS.md`는 그대로 적용됩니다.
 - 샌드박스는 항상 `workspace-write`입니다. `--cwd` 밖 쓰기와 `.git` 쓰기는 Codex 샌드박스가 막습니다(Windows 실측). 그래서 Codex 워커는 커밋할 수 없습니다. Linux(Codex 0.156.1)에서도 `.git`과 홈 디렉터리 쓰기는 막히지만 `/tmp`는 쓸 수 있습니다.
 - 네트워크는 기본 차단입니다(루프백 소켓 포함). 테스트에 소켓이나 다운로드가 필요할 때만(ROS 2/DDS, localhost 서버, 패키지 설치) 명령 앞에 `ORCHESTRA_CODEX_NETWORK=1`을 붙이면 `-c sandbox_workspace_write.network_access=true`가 추가됩니다(Linux 실측).
 
@@ -322,14 +334,19 @@ Scope: ok | outside allowed: a.txt, b.txt | unchecked (<이유>)
 - 실패(Codex 종료 코드 ≠ 0, `turn.failed` 이벤트, 응답 메시지 없음, 응답에 `Status:` 줄 없음): 첫 부분이
   `Status: BLOCKED` + `Unresolved: <오류 또는 stderr 마지막 20줄>`로 바뀌고 exit 1.
   `error` 이벤트만으로는 실패로 보지 않습니다. Codex는 복구한 스트림 재시도도 `error`로 알립니다.
+  복구된 뒤의 `error` 문구는 실패 이유로 쓰지 않으므로, stderr에 남은 실제 원인을 가리지 않습니다.
   API 거부는 JSON 덩어리 대신 한 줄 문장으로 보여줍니다. 예:
   `Unresolved: The 'gpt-x' model is not supported when using Codex with a ChatGPT account.`
 - `Scope: outside allowed`는 exit 0을 유지합니다. **판단은 메인 세션의 몫**이고, 리뷰 지적으로 처리합니다.
 
 ### 8.4 범위 검사는 어떻게 하나
-1. 실행 전 `git status --porcelain=v1 -z -uall`로 변경·신규 파일 목록을 얻고 각 파일의 SHA-1을 기록합니다.
+Codex 워커와 Claude 워커는 같은 코드([`scope-check.mjs`](skills/orchestrator/scripts/scope-check.mjs))로 검사합니다.
+
+1. 실행 전 `git status --porcelain=v1 -z -uall`로 변경·신규 파일 목록을 얻고 각 파일의 SHA-1과 `HEAD`를 기록합니다.
 2. 실행 후 같은 방식으로 다시 기록합니다.
-3. 해시가 달라졌거나 한쪽에만 있는 경로 = "바뀐 파일". 여기서 `--allowed`를 뺀 것이 `outside`입니다.
+3. 해시가 달라졌거나 한쪽에만 있는 경로, 그리고 `HEAD`가 움직였다면 그 사이 커밋이 바꾼 경로 = "바뀐 파일".
+   여기서 `--allowed`를 뺀 것이 `outside`입니다.
+- `--cwd`는 실제 경로로 바꿔서 씁니다. 심볼릭 링크나 정션을 거쳐도 git이 보는 저장소와 같은 곳을 검사합니다.
 - 경로는 저장소 루트 기준으로 표시합니다. `--cwd`가 `pkg/`이고 `--allowed a.txt`면 `pkg/a.txt`가 허용되고,
   위반은 `outside allowed: pkg/extra.txt`처럼 나옵니다.
 - 실행 **전부터** 수정돼 있던 파일은 내용이 그대로면 잡히지 않습니다. 사용자의 기존 작업을 워커 탓으로 돌리지 않습니다.
@@ -365,7 +382,8 @@ Never run git commit, push, reset or checkout: the sandbox keeps .git
 read-only, and the main session commits after review. Edit only allowed
 files. Never leave long-running servers or editors running. Keep the report
 at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
-block.
+block. Plugin skills are off in this run: where the brief names an
+orchestra: skill, follow the brief's own wording.
 ```
 
 ---
@@ -374,7 +392,7 @@ block.
 
 1. 워커가 `DONE`을 돌려주면 메인 세션이 **실제 변경 전체**를 봅니다: 커밋 범위(`review-package`), `git diff --cached`, `git diff`, 새 파일.
 2. 체크 항목: 인수 조건 충족, 범위 밖 동작 없음, 호출 경로·오류 처리·보안·접근성 안전, 테스트가 실제 동작을 검증하는지, 보고된 명령과 출력이 진짜인지, 더 단순한 기존 경로를 불필요하게 대체하지 않았는지.
-3. Codex 워커는 추가로 **떠 있는 프로세스**와 `Scope:` 결과를 확인합니다.
+3. 모든 워커의 `Scope:` 결과를 확인하고, Codex 워커는 추가로 **떠 있는 프로세스**를 확인합니다.
 4. Critical/Important 지적이 있으면 수정 루프로 갑니다.
    - Claude 워커: `SendMessage`로 같은 워커에게.
    - Codex 워커: 지적을 `task-N-codex-fix-K.md`로 쓰고, 같은 `--model/--effort/--cwd/--allowed`에 `--resume <thread>`를 붙여 재실행.
@@ -401,7 +419,8 @@ Ruling: Task 2 review fixes applied inline (doc-only) ...
 Task 2: complete (workspace changes, review clean, tests: claude plugin validate . → pass)
 ```
 
-- `Task N: complete` 줄이 있는 작업은 다시 하지 않습니다.
+- 작업의 마지막 `Task N:` 줄이 `complete`면 다시 하지 않습니다. 인라인 실행의 `task-done`은 재검증이 실패하면
+  `Task N: failed` 줄을 남겨 작업을 다시 엽니다. 실행마다 테스트 로그를 따로 남겨 이전 증거를 덮어쓰지 않습니다.
 - 다른 계획의 ledger는 다른 실행으로 간주하고 건드리지 않습니다.
 
 ---
@@ -415,6 +434,8 @@ Task 2: complete (workspace changes, review clean, tests: claude plugin validate
 [Codex gpt-6-luna/max]  Task 1: codex-worker.mjs
 [Claude sonnet/high]    Task 2: 입력 검증
 ```
+
+`SendMessage`로 다음 작업까지 맡긴 Claude 워커는 이름을 바꿀 수 없어 첫 작업 라벨이 그대로 남습니다. 지금 어떤 작업 중인지는 ledger로 봅니다.
 
 실시간으로 Codex가 어떤 파일을 읽는지까지 보여주지는 않습니다. "무엇이, 어떤 설정으로 돌고 있는가"만 한눈에 보이면 된다는 것이 설계 방향입니다.
 
@@ -454,6 +475,9 @@ orchestra orchestrator-distribution  done 1/3  |  Codex gpt-6-luna/max x2 11m
 | Codex CLI + 로그인 | Codex 워커 | `codex --version`, `codex login status` (로그인은 `codex login`) |
 
 Codex CLI가 없거나 로그인되지 않았으면 오케스트레이터는 **Codex 티어를 Claude로 돌릴지 사용자에게 묻습니다.** 임의로 다른 모델로 바꾸지 않습니다.
+
+Windows에서는 스크립트를 **Git Bash**로 실행합니다. Claude Code의 Bash 도구는 Git Bash를 씁니다. PowerShell에서 그냥 `bash`를 부르면
+WSL 실행기가 잡혀 배포판이 없을 때 실패할 수 있으니, 직접 실행할 때는 `& 'C:\Program Files\Git\bin\bash.exe' <스크립트 경로>`처럼 씁니다.
 
 ### 12.2 Claude Code
 
@@ -567,15 +591,15 @@ orchestra/
 ├── skills/
 │   ├── orchestrator/
 │   │   ├── SKILL.md           # 지휘 규칙
-│   │   └── scripts/codex-worker.mjs
+│   │   └── scripts/ (codex-worker.mjs, scope-check.mjs)
 │   ├── subagent-driven-development/
 │   │   ├── implementer-prompt.md, re-review-prompt.md, task-reviewer-prompt.md
 │   │   └── scripts/ (sdd-workspace, task-brief, review-package)
 │   ├── writing-plans/, executing-plans/, ... (공용 스킬)
-│   └── using-orchestra/references/  # 호스트별 도구 사용법
+│   └── using-orchestra/references/  # Codex·Claude Code 도구 사용법
 └── tests/
-    ├── test_codex_worker.py + fake_codex.mjs
-    └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py, test_skill_text.py
+    ├── test_codex_worker.py + fake_codex.mjs, test_scope_check.py
+    └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py, test_skill_text.py, ...
 ```
 
 ---
@@ -583,7 +607,8 @@ orchestra/
 ## 16. 안전장치
 
 - **하위 에이전트 차단**: Claude 구현자는 `disallowedTools: Agent`. Codex 워커는 브리프 규칙으로만 금지(도구 차단 불가).
-- **범위 검사**: Codex 워커 실행 전후 변경 파일을 비교해 허용 목록 밖 수정을 보고. git이 실패하면 `ok`가 아니라 `unchecked`로 보고.
+- **범위 검사**: 워커 실행 전후 변경 파일과 커밋을 비교해 허용 목록 밖 수정을 보고(Codex는 자동, Claude는 메인 세션이 `scope-check.mjs`로). git이 실패하면 `ok`가 아니라 `unchecked`로 보고.
+- **Codex 설정 분리**: 워커 실행에서는 사용자의 Codex 플러그인을 끔. 다른 워크플로의 스킬·훅이 브리프에 끼어들지 않음.
 - **실행 파일 검색**: Windows에서 프로젝트 폴더의 가짜 `codex`·`git`을 실행하지 않음.
 - **커밋 분리**: Codex 워커는 커밋하지 않고, 리뷰를 마친 뒤 메인 세션이 커밋.
 - **브레인스토밍 화면**: 외부 요청 없이 로컬에서만 그리고, 프로젝트에 저장되는 세션 파일(키 포함)은 자동으로 git에서 제외.
@@ -592,7 +617,7 @@ orchestra/
 - **worktree 소유 표식**: 오케스트라가 만든 worktree에만 표식을 남기고(생성이 실패하면 표식도 남기지 않음), 정리할 때 표식과 실제 경로가 일치해야 삭제합니다. 이름만 보고 사용자 worktree를 지우지 않습니다.
 - **병합 순서**: base 브랜치 checkout이 실패하면 병합하지 않습니다. 다른 브랜치에 잘못 병합되지 않습니다.
 - **작업공간 스크립트**: 심볼릭 링크를 거부하고 기존 `.gitignore` 내용을 보존합니다.
-- **완료 기록**: 테스트 명령이 실패하면 완료로 기록하지 않습니다.
+- **완료 기록**: 테스트 명령이 실패하면 완료로 기록하지 않고 `failed` 줄을 남깁니다. 인자 속 줄바꿈으로 ledger 줄을 위조할 수 없습니다.
 - **대체 금지**: 요청한 모델·에이전트를 쓸 수 없으면 조용히 다른 모델로 바꾸지 않고 사용자에게 알립니다.
 - **되돌리기 어려운 행동**: 푸시, 삭제, 공개는 사용자 확인 후.
 
@@ -606,7 +631,7 @@ orchestra/
 |---|---|
 | 오케스트레이터 전체 흐름 (계획 → 배정 → 리뷰 → 수정 → ledger) | ✅ Codex 워커로 1회, Claude 워커로 1회 실측 ([실행 기록](docs/demo/piano/README.md), [비교](docs/demo/piano/comparison.md)) |
 | 오케스트레이터 전체 흐름, Linux (2026-09-29) | ✅ Claude 워커로 1회 (0.4.0, 헤드리스 메인 세션, 수정 라운드 0). 독립 검증에서 Node 18 테스트 실패와 반복 음 타건이 안 보이는 문제 확인 ([기록](docs/demo/piano/linux-run/README.md)) |
-| v0.4.2 테스트 9개 파일 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 해당 검사 1개를 건너뛰고, POSIX 신호 검사 1개는 CI(Ubuntu·macOS)에서만 실행 |
+| v0.4.3 테스트 10개 파일, 68개 (`tests/`) | ✅ Windows 11 + Git Bash 통과 (`PYTHONUTF8` 없이). 심볼릭 링크 권한이 없으면 작업공간 검사 1개를 건너뛰고(링크 `--cwd` 검사는 정션으로 실행), POSIX 신호 검사 1개는 CI(Ubuntu·macOS)에서만 실행 |
 | `claude plugin validate .` / Codex `validate_plugin.py` | ✅ 둘 다 통과 |
 | CI (GitHub Actions) | ✅ Ubuntu(Node 22·18), macOS, Windows에서 전체 테스트 + 피아노 예제 통과. 첫 실행에서 macOS 전용 버그(`realpath -m`)를 찾아 수정 |
 | 사용량 비교 | ⚠️ 작은 작업 1개로 한 번 비교([비교](docs/demo/piano/comparison.md)). Codex 워커는 Claude 한도를 쓰지 않고 Codex 7일 한도 1% 미만 사용. 일반적인 절감률은 주장하지 않음 |
@@ -625,10 +650,12 @@ orchestra/
 | 지원하지 않는 effort (`gpt-6-luna` + `minimal`) | ✅ `Status: BLOCKED`, 지원 목록이 담긴 오류, exit 1 |
 | `gpt-6-luna` + `ultra` | ✅ v0.4.1부터 Codex 실행 전에 `Status: BLOCKED`. 모델 캐시에는 `max`까지만 있음 (이전에는 API가 거부하지 않고 실행돼 실제 적용 수준을 알 수 없었음) |
 | 실행 중 `TaskStop` | ✅ 워커·Codex·Codex가 돌리던 명령까지 모두 종료, 남은 프로세스 없음 |
+| `--disable plugins` (2026-09-29, `gpt-6-luna` low) | ✅ `Status: DONE`. 같은 머신의 이전 워커 기록에 있던 Superpowers 스킬·ponytail 훅 문구가 세션 기록에서 사라짐. 플러그인 밖의 사용자 스킬은 남음 |
 
 알려진 한계:
 - 오케스트레이터는 **스킬이 에이전트에게 요청하는 운영 규칙**입니다. 호스트 모델이 규칙을 어기는 것을 기술적으로 막지는 못합니다. 범위 검사와 메인 세션 리뷰가 그 빈틈을 줄입니다.
 - 범위 검사는 `.gitignore`된 파일의 변경을 보지 못합니다. 그런 경로를 다루는 작업은 diff와 리포트로 확인합니다.
+- Claude 워커의 범위 검사는 메인 세션이 `scope-check.mjs`를 불러야 돕니다(스킬 규칙). Codex 워커처럼 실행 스크립트가 강제하지는 않습니다.
 - 같은 체크아웃에서 병렬로 도는 워커끼리는 서로의 변경이 `Scope`에 보입니다([8.5](#85-thread-id로-재개) 참고).
 - Claude 워커는 `sonnet` 별칭을 써서 새 Sonnet을 자동으로 따릅니다. Codex 모델 이름(`gpt-6-luna` 등)은 라우팅 설정에서 바꿉니다.
 - `--cwd`는 저장소 루트로 씁니다. ledger가 루트에 있어서, 하위 폴더를 `--cwd`로 주면 Codex가 리포트를 쓸 수 없습니다. 수정 범위는 `--allowed`로 좁힙니다.
@@ -659,7 +686,8 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 - [ ] 떠 있는 프로세스 자동 점검을 스크립트로 제공
 
 ### 먼 목표
-- [ ] Gemini CLI 등 다른 CLI 에이전트를 같은 계약(브리프 → 상태 블록 → 범위 검사)으로 연결
+- [ ] Antigravity CLI(`agy`) 등 다른 CLI 에이전트를 같은 계약(브리프 → 상태 블록 → 범위 검사)으로 연결.
+  `agy` 1.2.13은 헤드리스 JSON 출력과 대화 재개를 지원하지만(Windows 실측), Codex처럼 쓰기를 `--cwd`로 가두는 샌드박스가 없어 범위 검사에 더 기대야 합니다
 - [ ] 팀 공유용 `.orchestra.json` 프리셋 (예: "속도 우선", "품질 우선", "한도 절약")
 - [ ] 사용량 비교 방법론과 실제 측정 결과 공개 (첫 비교: [Orchestra Piano](docs/demo/piano/comparison.md), 더 큰 작업으로 반복 필요)
 
@@ -678,6 +706,7 @@ Codex는 계정의 7일 창 사용률, Claude Code는 플랜 사용량이 지표
 
 ```bash
 python3 tests/test_codex_worker.py
+python3 tests/test_scope_check.py
 python3 tests/test_task_brief.py
 python3 tests/test_sdd_safety.py
 python3 tests/test_worktree_cleanup.py

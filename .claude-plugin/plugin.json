@@ -1,6 +1,6 @@
 {
   "name": "orchestra",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Superpowers 6.4.1 fork: the main session plans and reviews; each difficulty tier is implemented by a Claude subagent or a Codex CLI worker you choose.",
   "author": {
     "name": "lsy041015",
