@@ -39,6 +39,23 @@ class BrainstormCompanionTests(unittest.TestCase):
         content = "<p>costs $$5, keeps $& and $' as typed</p>"
         self.assertIn(content, frame(content))
 
+    def test_choice_api_sends_the_field_the_server_records(self):
+        # server.cjs writes only events that carry `choice` to state/events.
+        script = """
+const sent = [];
+global.window = { location: { protocol: 'http:', host: 'localhost' } };
+global.document = { querySelector: () => null, addEventListener() {} };
+global.WebSocket = class { constructor() { this.readyState = 1; } send(data) { sent.push(JSON.parse(data)); } };
+global.WebSocket.OPEN = 1;
+require(process.argv[1]);
+window.brainstorm.choice('b', { note: 'second' });
+process.stdout.write(JSON.stringify(sent));
+"""
+        out = subprocess.run(["node", "-e", script, str(SCRIPTS / "helper.js")], check=True,
+                             capture_output=True, text=True, encoding="utf-8").stdout
+        event = json.loads(out)[0]
+        self.assertEqual((event["type"], event.get("choice"), event["note"]), ("choice", "b", "second"))
+
     def test_option_without_value_fails_fast(self):
         result = subprocess.run([BASH, str(SCRIPTS / "start-server.sh"), "--project-dir"],
                                 capture_output=True, text=True, encoding="utf-8", timeout=20)
@@ -100,6 +117,30 @@ class BrainstormCompanionTests(unittest.TestCase):
         base = info["url"].split("?")[0].rstrip("/")
         body = opener.open(base + "/files/my%20logo.txt", timeout=10).read().decode("utf-8")
         self.assertEqual(body, "hello")
+
+    def test_stop_leaves_an_unidentified_live_process_alone(self):
+        # A live PID without this session's server id may be an unrelated
+        # process (PID reuse) or the server on a host whose ps hides arguments.
+        session = self.temp_dir("brainstorm-stop-")
+        state = session / "state"
+        state.mkdir()
+        (state / "server-instance-id").write_text("a" * 32 + "\n", encoding="utf-8")
+        pid_file = state / "server.pid"
+        other = subprocess.Popen([BASH, "-c", 'echo $$ > "$1"; exec sleep 30', "_", str(pid_file)])
+        for _ in range(100):
+            if pid_file.exists() and pid_file.read_text(encoding="utf-8").strip():
+                break
+            time.sleep(0.05)
+        pid = pid_file.read_text(encoding="utf-8").strip()
+        self.addCleanup(other.kill)
+        self.addCleanup(subprocess.run, [BASH, "-c", 'kill "$1" 2>/dev/null', "_", pid])
+        result = subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)],
+                                capture_output=True, text=True, encoding="utf-8")
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('"unverified"', result.stdout)
+        self.assertTrue(pid_file.exists())
+        self.assertFalse((state / "server-stopped").exists())
+        self.assertIsNone(other.poll(), "stop-server signalled a process it could not identify")
 
     def test_temporary_session_is_private_and_removed_on_stop(self):
         tmp = self.temp_dir("brainstorm-tmp-")
