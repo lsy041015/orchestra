@@ -16,7 +16,7 @@
 공식 OpenAI·Anthropic·Superpowers 배포판이 아닙니다. Claude·Codex 같은 이름은 연동 대상을 가리킬 때만 쓰며,
 각 상표는 해당 소유자의 것입니다.
 
-> **상태: 실험판 (v0.3.0).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
+> **상태: 실험판 (v0.3.1).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
 > 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
@@ -257,7 +257,7 @@ Agent(
 )
 ```
 
-- `orchestra:implementer` — `sonnet` 별칭(현재 Sonnet 5) / `high` 기본, `model`로 교체 가능.
+- `orchestra:implementer` — `sonnet` 별칭(새 Sonnet이 나오면 따라감) / `high` 기본, `model`로 교체 가능.
 - `orchestra:implementer-medium` — 같은 계약, effort `medium`. 단순하고 기계적인 작업용.
 - 워커는 브리프를 읽고, 영향받는 소스를 확인하고, TDD로 구현하고, 자기 diff를 점검한 뒤
   리포트 파일을 쓰고 아래 상태 블록만 돌려줍니다.

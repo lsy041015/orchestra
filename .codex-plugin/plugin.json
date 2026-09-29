@@ -41,5 +41,5 @@
   "name": "orchestra",
   "repository": "https://github.com/lsy041015/orchestra",
   "skills": "./skills/",
-  "version": "0.3.0"
+  "version": "0.3.1"
 }
