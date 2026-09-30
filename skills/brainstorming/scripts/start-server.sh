@@ -105,7 +105,7 @@ if [[ "$FOREGROUND" != "true" && "$FORCE_BACKGROUND" != "true" ]]; then
   fi
 fi
 
-# Session files (server.log, server-info, .last-token) embed the session key —
+# Session files (server.log, server-info) embed the session key —
 # keep everything this script and the server create owner-only.
 umask 077
 
@@ -114,10 +114,9 @@ SESSION_ID="$$-$(date +%s)"
 
 if [[ -n "$PROJECT_DIR" ]]; then
   SESSION_DIR="${PROJECT_DIR}/.orchestra/brainstorm/${SESSION_ID}"
-  # Persist the bound port and key per project so a restart reuses them and an
-  # already-open browser tab reconnects to the same URL with a valid cookie.
+  # Persist the bound port per project so a restart reuses it. The key is fresh
+  # on every start, so a restart prints a new URL.
   export BRAINSTORM_PORT_FILE="${PROJECT_DIR}/.orchestra/brainstorm/.last-port"
-  export BRAINSTORM_TOKEN_FILE="${PROJECT_DIR}/.orchestra/brainstorm/.last-token"
 else
   # mktemp: a fresh, unguessable directory that another local user cannot pre-create.
   SESSION_DIR="$(mktemp -d "${TMPDIR:-/tmp}/brainstorm-XXXXXX")" || exit 1

@@ -71,7 +71,7 @@
     el.innerHTML = '<div style="max-width:480px">' +
       '<h2 style="margin:0 0 .5rem;font-weight:600">Companion paused</h2>' +
       '<p style="margin:0;opacity:.85">This brainstorm companion has stopped. ' +
-      'Ask your coding agent to bring it back — this page reconnects automatically.</p></div>';
+      'Ask your coding agent to restart it and open the new URL it gives you.</p></div>';
     if (document.body) document.body.appendChild(el);
   }
 
