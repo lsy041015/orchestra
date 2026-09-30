@@ -86,6 +86,7 @@ const PORT_FILE = process.env.BRAINSTORM_PORT_FILE || null;
 const randomPort = () => 49152 + Math.floor(Math.random() * 16383);
 // Prefer an explicit port, else the port this session last bound (so a restart
 // keeps the same port, e.g. for a port forward), else a random high port.
+let portChosen = true;
 function preferredPort() {
   if (process.env.BRAINSTORM_PORT) return Number(process.env.BRAINSTORM_PORT);
   if (PORT_FILE) {
@@ -94,6 +95,7 @@ function preferredPort() {
       if (Number.isInteger(p) && p > 1023 && p < 65536) return p;
     } catch (e) { /* no prior port recorded */ }
   }
+  portChosen = false;
   return randomPort();
 }
 let PORT = preferredPort();
@@ -597,10 +599,10 @@ function startServer() {
     PORT = server.address().port;
     if (!process.env.BRAINSTORM_URL_HOST) URL_HOST = server.address().address;
     // Record the bound port so the next restart of this session reuses it — but
-    // ONLY when we got our preferred port. On a fallback we bound a *different*
-    // port because someone else holds the preferred one; persisting would
-    // overwrite the shared file and move that other session's port.
-    if (PORT_FILE && !triedFallback) {
+    // not after falling back from a recorded or explicit port: someone else
+    // holds that one, and persisting would overwrite the shared file and move
+    // that other session's port. A random first pick has no such owner.
+    if (PORT_FILE && (!triedFallback || !portChosen)) {
       try { fs.writeFileSync(PORT_FILE, String(PORT)); } catch (e) { /* best effort */ }
     }
     const info = JSON.stringify({

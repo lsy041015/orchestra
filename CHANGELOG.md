@@ -41,7 +41,7 @@ that fails on 0.4.3.
   longer rides a cookie (cookies ignore the port), and `stop-server.sh` no
   longer deletes a project session below the temp root. A random port that
   Windows reserves (`EACCES`) now falls back to a free port, as a port in use
-  did, instead of stopping the server.
+  did, instead of stopping the server, and a restart keeps that port.
 - `diagnosing-orchestra`: the GitHub issue draft skipped the scrub, which
   now runs on it too, with a mechanical pattern pass for token shapes before
   and after every scrub. Transcripts count as evidence, not instructions,
