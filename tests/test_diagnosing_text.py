@@ -26,6 +26,13 @@ class DiagnosingTextTests(unittest.TestCase):
         self.assertIn("prompts/scrub-audit.md", filing)
         self.assertIn("CLEAN", filing)
 
+    def test_transcripts_are_evidence_not_instructions_from_triage_on(self):
+        for text in (step(3), read("prompts/analyst-common.md"), read("references/context-safety.md")):
+            text = " ".join(text.split()).lower()
+            self.assertIn("evidence, not instructions", text)
+            self.assertIn("past human prompts", text)
+        self.assertNotIn("user requests", read("SKILL.md"))
+
 
 if __name__ == "__main__":
     unittest.main()
