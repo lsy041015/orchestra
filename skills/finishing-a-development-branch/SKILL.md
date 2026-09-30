@@ -98,15 +98,15 @@ is theirs.
 # repository that entry has no work tree, so the checkout below fails there.
 MAIN_ROOT=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 
-# Merge first — verify success before removing anything. Stop at the first
-# failure: after a failed checkout, merge would land on the current branch.
+# Merge first, then verify tests on the merged result — before removing
+# anything. Stop at the first failure: after a failed checkout, merge would
+# land on the current branch; after a failed merge, tests would pass on the
+# unmerged base and the block would still exit 0.
 [ -n "$MAIN_ROOT" ] && cd "$MAIN_ROOT" &&
   git checkout <base-branch> &&
   if git rev-parse --verify --quiet '@{upstream}' >/dev/null; then git pull --ff-only; fi &&
-  git merge <feature-branch>
-
-# Verify tests on merged result
-<test command>
+  git merge <feature-branch> &&
+  <test command>
 ```
 
 If checkout, pull, or merge fails, stop and report it; never run the merge from
