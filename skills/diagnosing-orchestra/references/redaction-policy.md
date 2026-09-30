@@ -11,6 +11,7 @@ lists.
 | Secrets | `<SECRET-n>` | API keys, tokens, passwords, bearer strings, private keys, anything assigned to a variable named like `*_KEY`, `*_TOKEN`, `*_SECRET`, `PASSWORD`, `Authorization` |
 | Hosts and addresses | `<HOST-n>` | hostnames that are not public package or docs domains, IPv4/IPv6 addresses, internal URLs |
 | Home paths | `~` | any absolute path under a home directory becomes `~/…`; the account-name segment is removed |
+| Encoded project folders | `<PROJECT-n>` | a name that encodes an absolute path with dashes, such as Claude Code's `~/.claude/projects/-home-alice-app/` (macOS `-Users-alice-…`, Windows `C--Users-alice-…`); replace the whole name, since it carries the account and project names |
 | Repositories | `<REPO-n>` | repository names, slugs, and remote URLs, unless the name or URL is in `PUBLIC_REPOS` |
 | Proprietary terms | `<PROPRIETARY-n>` | each term in `PROPRIETARY`, case-insensitive, whole-word |
 

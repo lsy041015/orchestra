@@ -48,7 +48,7 @@ numbers are preserved in the condensed transcripts as `[L<n>]` markers.
 ## Redaction
 
 Placeholders look like `<EMAIL-1>`, `<PERSON-2>`, `<SECRET-3>`, `<HOST-4>`,
-`<REPO-5>`, `<ORG-6>`, `<PROPRIETARY-7>`; home paths are rewritten to `~/…`. The same placeholder
+`<REPO-5>`, `<ORG-6>`, `<PROPRIETARY-7>`, `<PROJECT-8>`; home paths are rewritten to `~/…`. The same placeholder
 always refers to the same original value within this bundle.
 
 ## Producer instructions
