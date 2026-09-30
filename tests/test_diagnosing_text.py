@@ -79,6 +79,12 @@ class DiagnosingTextTests(unittest.TestCase):
         self.assertIn("chmod 700", locate)
         self.assertIn("Windows", locate)
 
+    def test_triggers_only_on_a_request_to_diagnose(self):
+        skill = read("SKILL.md")
+        self.assertRegex(skill, r"(?m)^description: Use when the user asks to diagnose or investigate an Orchestra ")
+        self.assertNotIn("disable-model-invocation", skill)
+        self.assertRegex(read("agents/openai.yaml"), r'short_description: "Diagnose an Orchestra session on request')
+
 
 if __name__ == "__main__":
     unittest.main()
