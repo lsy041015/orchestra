@@ -212,7 +212,7 @@ class CodexWorkerTests(unittest.TestCase):
         ])
 
     def test_rejects_bad_model(self):
-        for model in ("x; rm", "gpt-model\n"):
+        for model in ("x; rm", "gpt-model\n", "-c"):
             with self.subTest(model=repr(model)):
                 result = self.run_worker(model=model)
                 self.assertEqual(result.returncode, 2)
