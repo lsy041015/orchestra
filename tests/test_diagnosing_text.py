@@ -73,6 +73,12 @@ class DiagnosingTextTests(unittest.TestCase):
         self.assertIn("blocks export", export)
         self.assertIn("private source code", export)
 
+    def test_case_workspace_is_private(self):
+        locate = step(2)
+        self.assertIn("umask 077", locate)
+        self.assertIn("chmod 700", locate)
+        self.assertIn("Windows", locate)
+
 
 if __name__ == "__main__":
     unittest.main()
