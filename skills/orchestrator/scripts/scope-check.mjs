@@ -50,25 +50,35 @@ export async function repoScope(cwd, allowed) {
 }
 
 export async function snapshot(root) {
-  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall']);
+  // No rename detection: a rename's old path must count as a change too.
+  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames']);
   if (result.error) return result;
-  const fields = result.output.split('\0');
   const files = new Map();
-  for (let i = 0; i < fields.length; i++) {
-    const entry = fields[i];
+  for (const entry of result.output.split('\0')) {
     if (entry.length < 4) continue;
-    const status = entry.slice(0, 2);
     const file = entry.slice(3);
     const normalized = file.replace(/\\/g, '/');
     let hash = 'deleted';
     try {
       hash = createHash('sha1').update(readFileSync(path.resolve(root, file))).digest('hex');
     } catch (error) {
-      // Submodules show up as directories (EISDIR); keep the entry instead of aborting the run.
+      // Keep an unreadable entry instead of aborting the run.
       hash = error.code === 'ENOENT' ? 'deleted' : error.code;
     }
+    if (hash === 'EISDIR') {
+      // A submodule or an untracked nested repository shows up as one
+      // directory, so its own status is merged in under that path, and its
+      // HEAD stands for the directory to catch commits made inside it.
+      const dir = path.resolve(root, file);
+      const top = await git(dir, ['rev-parse', '--show-cdup']);
+      const inner = !top.error && !top.output.trim() && await snapshot(dir);
+      if (inner && !inner.error) {
+        hash = `HEAD ${inner.head}`;
+        const prefix = normalized.replace(/\/?$/, '/');
+        for (const [name, value] of inner.files) files.set(prefix + name, value);
+      }
+    }
     files.set(normalized, hash);
-    if (status.includes('R') || status.includes('C')) i++;
   }
   // A file committed during the run is clean again, so HEAD is recorded too.
   const head = await git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']);

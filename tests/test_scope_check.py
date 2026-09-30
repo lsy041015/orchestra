@@ -52,6 +52,48 @@ class ScopeCheckTests(unittest.TestCase):
         result = self.check("after", allowed="a.txt")
         self.assertEqual(result.stdout, "Scope: outside allowed: b.txt\n", result.stderr)
 
+    def test_staged_rename_counts_the_old_path(self):
+        self.check("before")
+        git(self.repo, "mv", "keep.txt", "a2.txt")
+        result = self.check("after", allowed="a2.txt")
+        self.assertEqual((result.returncode, result.stdout), (1, "Scope: outside allowed: keep.txt\n"),
+                         result.stderr)
+
+    def nested_repo(self, path):
+        path.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(path)], check=True)
+        (path / "a.c").write_text("a\n", encoding="utf-8")
+        git(path, "add", ".")
+        git(path, "commit", "-q", "-m", "nested")
+
+    def test_edits_inside_an_untracked_nested_repo_count(self):
+        # git status lists a cloned repo (a colcon src/ checkout, say) only as `?? src/driver/`.
+        driver = self.repo / "src/driver"
+        self.nested_repo(driver)
+        self.check("before")
+        (driver / "a.c").write_text("changed\n", encoding="utf-8")
+        (driver / "new.c").write_text("new\n", encoding="utf-8")
+        result = self.check("after", allowed="src/driver/a.c")
+        self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/new.c\n", result.stderr)
+        (driver / "new.c").unlink()
+        (driver / "a.c").unlink()
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/a.c\n", result.stderr)
+        git(driver, "commit", "-q", "-am", "worker commit")  # clean again, but its HEAD moved
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/\n", result.stderr)
+
+    def test_edits_inside_an_already_dirty_submodule_count(self):
+        lib = self.temp / "lib"
+        self.nested_repo(lib)
+        git(self.repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q", lib.as_posix(), "sub")
+        git(self.repo, "commit", "-q", "-m", "add submodule")
+        (self.repo / "sub/a.c").write_text("dirty before\n", encoding="utf-8")
+        self.check("before")
+        (self.repo / "sub/a.c").write_text("edited again\n", encoding="utf-8")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
+
     def test_baseline_from_another_checkout_is_unchecked(self):
         other = self.temp / "other"
         other.mkdir()
