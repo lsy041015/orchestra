@@ -8,7 +8,11 @@
   "plugins": [
     {
       "name": "orchestra",
-      "source": "./",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/lsy041015/orchestra.git",
+        "ref": "v0.4.3"
+      },
       "description": "Main session plans and reviews; tiered workers run on Claude subagents or the Codex CLI."
     }
   ]

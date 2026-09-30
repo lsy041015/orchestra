@@ -15,9 +15,11 @@ class ReleaseManifestTests(unittest.TestCase):
     def test_versions_agree(self):
         version = load(".claude-plugin/plugin.json")["version"]
         self.assertEqual(load(".codex-plugin/plugin.json")["version"], version)
-        # Codex installs from this ref, so it must name the released tag, not a moving branch.
-        source = load(".agents/plugins/marketplace.json")["plugins"][0]["source"]
-        self.assertEqual(source["ref"], f"v{version}")
+        # Both hosts install from this ref, so it must name the released tag, not a moving branch.
+        for marketplace in (".agents/plugins/marketplace.json", ".claude-plugin/marketplace.json"):
+            with self.subTest(marketplace=marketplace):
+                source = load(marketplace)["plugins"][0]["source"]
+                self.assertEqual(source["ref"], f"v{version}")
         self.assertIn(f"## [{version}]", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
         for readme in ("README.md", "README.en.md"):
             with self.subTest(readme=readme):

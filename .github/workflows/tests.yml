@@ -68,4 +68,4 @@ jobs:
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
       - name: Validate marketplace and plugin manifests
-        run: claude plugin validate . && claude plugin validate .claude-plugin/plugin.json
+        run: claude plugin validate --strict . && claude plugin validate --strict .claude-plugin/plugin.json
