@@ -53,6 +53,12 @@ jobs:
         run: python tests/test_release_manifests.py
       - name: find-polluter
         run: python tests/test_find_polluter.py
+      - name: review-package
+        run: python tests/test_review_package.py
+      - name: task-start
+        run: python tests/test_task_start.py
+      - name: diagnosing text
+        run: python tests/test_diagnosing_text.py
       - name: piano example
         working-directory: examples/piano
         run: node --test

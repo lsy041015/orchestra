@@ -25,6 +25,12 @@ class ReleaseManifestTests(unittest.TestCase):
             with self.subTest(readme=readme):
                 self.assertIn(f"v{version}", (ROOT / readme).read_text(encoding="utf-8"))
 
+    def test_every_test_file_runs_in_ci(self):
+        workflow = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        for test in sorted((ROOT / "tests").glob("test_*.py")):
+            with self.subTest(test=test.name):
+                self.assertIn(f"python tests/{test.name}\n", workflow)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
