@@ -53,9 +53,10 @@ with disjoint files and state. The orchestrator's tier routing is the other.
 ## Waiting and evidence
 
 Agents run in the background by default and notify on completion; do not
-poll. Continue useful local work meanwhile. Do not treat an unverified worker
-summary as proof: inspect the actual diff, affected call paths, and reported
-test output.
+poll. Meanwhile, do only work that leaves the worker's checkout untouched: the
+orchestrator's scope check would count your edit against the worker. Do not
+treat an unverified worker summary as proof: inspect the actual diff, affected
+call paths, and reported test output.
 
 ## Environment and workspace
 
