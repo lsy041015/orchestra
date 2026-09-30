@@ -11,8 +11,12 @@ authorization.
 
 ## Search Orchestra
 
+Search terms and titles can come from transcripts, so never type them into a
+command line. Write the terms to `<case workspace>/issue/terms.txt` and pass
+the file's content; a quoted `$(cat ...)` is not parsed again by the shell:
+
 ```bash
-gh search issues --repo lsy041015/orchestra --limit 10 "<terms>" \
+gh search issues --repo lsy041015/orchestra --limit 10 "$(cat <case workspace>/issue/terms.txt)" \
   --json number,state,title --jq '.[] | "\(.number)\t\(.state)\t\(.title)"'
 ```
 
@@ -28,13 +32,13 @@ Without `curl`, hand over
 
 ## File in Orchestra
 
-Write the filled `templates/issue.md` to `issue/issue.md` in the case
-workspace. Run `prompts/scrub.md` followed by `prompts/scrub-audit.md` with
+Write the filled `templates/issue.md` to `issue/issue.md` and its title to
+`issue/title.txt` in the case workspace. Run `prompts/scrub.md` followed by `prompts/scrub-audit.md` with
 BUNDLE set to that `issue/` directory until CLEAN, then show the exact
 scrubbed text. After the user approves the issue and destination:
 
 ```bash
-gh issue create --repo lsy041015/orchestra --title "<title>" --body-file <case workspace>/issue/issue.md
+gh issue create --repo lsy041015/orchestra --title "$(cat <case workspace>/issue/title.txt)" --body-file <case workspace>/issue/issue.md
 ```
 
 Do not assume a label or issue template exists. `gh` cannot attach files:

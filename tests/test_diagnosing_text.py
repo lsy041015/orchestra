@@ -2,12 +2,15 @@
 from pathlib import Path
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
 
 
 SKILL = Path(__file__).resolve().parents[1] / "skills/diagnosing-orchestra"
+# Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's.
+BASH = shutil.which("bash") or "bash"
 
 
 def read(rel):
@@ -64,14 +67,21 @@ class DiagnosingTextTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as bundle:
             for name, text in {**tokens, "clean": clean}.items():
                 Path(bundle, name).write_text(f"x {text}\n", encoding="utf-8")
-            out = subprocess.run(["bash", "-c", command], env={**os.environ, "BUNDLE": bundle},
+            out = subprocess.run([BASH, "-c", command], env={**os.environ, "BUNDLE": bundle},
                                  capture_output=True, text=True).stdout
-        self.assertEqual({Path(line.split(":")[0]).name for line in out.splitlines()}, set(tokens))
+        self.assertEqual({line.split(":")[0].lstrip("./\\") for line in out.splitlines()}, set(tokens))
         for prompt in ("prompts/scrub.md", "prompts/scrub-audit.md"):
             self.assertIn("pattern pass", read(prompt))
         export = " ".join(step(6).split())
         self.assertIn("blocks export", export)
         self.assertIn("private source code", export)
+
+    def test_gh_commands_take_transcript_text_from_files(self):
+        issues = read("references/github-issues.md")
+        self.assertNotIn('"<terms>"', issues)
+        self.assertNotIn('"<title>"', issues)
+        self.assertIn('"$(cat <case workspace>/issue/terms.txt)"', issues)
+        self.assertIn('"$(cat <case workspace>/issue/title.txt)"', issues)
 
     def test_case_workspace_is_private(self):
         locate = step(2)
