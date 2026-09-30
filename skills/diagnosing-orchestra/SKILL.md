@@ -37,8 +37,11 @@ Create a todo per applicable step and keep the original records read-only.
 5. **Issues.** When the report calls for a possible or likely issue, or the
    user asks, show the search terms first and ask before searching, because they
    leave the machine; then search according to `references/github-issues.md`. Show matches.
-   If none match, draft `templates/issue.md`, show exact text, and create an
-   issue only after the user's explicit approval.
+   If none match, draft `templates/issue.md` as `issue/issue.md` in the case
+   workspace. The issue is public: run `prompts/scrub.md` followed by
+   `prompts/scrub-audit.md` on that `issue/` directory until CLEAN, with
+   `lsy041015/orchestra` in `PUBLIC_REPOS`. Then show the exact scrubbed text
+   and create an issue only after the user's explicit approval.
 6. **Export.** Build a bundle only when requested. Ask the redaction level
    (skeleton, evidence, or full), apply `templates/bundle-README.md`, and run
    `prompts/scrub.md` followed by `prompts/scrub-audit.md` until CLEAN. Reconcile

@@ -28,11 +28,13 @@ Without `curl`, hand over
 
 ## File in Orchestra
 
-Write the filled `templates/issue.md` to the workspace and show the exact
-text. After the user approves the issue and destination:
+Write the filled `templates/issue.md` to `issue/issue.md` in the case
+workspace. Run `prompts/scrub.md` followed by `prompts/scrub-audit.md` with
+BUNDLE set to that `issue/` directory until CLEAN, then show the exact
+scrubbed text. After the user approves the issue and destination:
 
 ```bash
-gh issue create --repo lsy041015/orchestra --title "<title>" --body-file <path>
+gh issue create --repo lsy041015/orchestra --title "<title>" --body-file <case workspace>/issue/issue.md
 ```
 
 Do not assume a label or issue template exists. `gh` cannot attach files:
