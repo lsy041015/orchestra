@@ -39,7 +39,9 @@ that fails on 0.4.3.
   only 127.0.0.1, so another local user listening on `[::1]` could take the
   key. The URL names the bound address, the key is new on every start, it no
   longer rides a cookie (cookies ignore the port), and `stop-server.sh` no
-  longer deletes a project session below the temp root.
+  longer deletes a project session below the temp root. A random port that
+  Windows reserves (`EACCES`) now falls back to a free port, as a port in use
+  did, instead of stopping the server.
 - `diagnosing-orchestra`: the GitHub issue draft skipped the scrub, which
   now runs on it too, with a mechanical pattern pass for token shapes before
   and after every scrub. Transcripts count as evidence, not instructions,

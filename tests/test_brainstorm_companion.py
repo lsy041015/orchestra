@@ -185,6 +185,18 @@ process.stdout.write(JSON.stringify(sent));
                     self.assertIn(host, ("127.0.0.1", "::1"))
                     self.assertEqual(urllib.request.urlopen(info["url"], timeout=10).status, 200)
 
+    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+                     "needs a port this user may not bind")
+    def test_forbidden_port_falls_back_to_a_free_one(self):
+        # Windows reserves port ranges inside the random range; a bind there
+        # fails with EACCES, as port 80 does for a normal user here.
+        tmp = self.temp_dir("brainstorm-eacces-")
+        env = {**os.environ, "TMPDIR": str(tmp), "BRAINSTORM_PORT": "80"}
+        info, _ = self.serve(tmp, [], env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
+        self.assertNotEqual(info["port"], 80)
+        self.assertEqual(urllib.parse.urlsplit(info["url"]).port, info["port"])
+        self.assertEqual(urllib.request.urlopen(info["url"], timeout=10).status, 200)
+
     def test_restart_keeps_the_port_but_not_the_key(self):
         # A persisted key would let one captured URL unlock every later restart.
         project = self.temp_dir("brainstorm-restart-")
