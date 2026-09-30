@@ -1,6 +1,6 @@
 ---
 name: diagnosing-orchestra
-description: Use when an Orchestra session has repeated work, ignored a plan, stumbled, produced poor results, or used unexpected time or tokens
+description: Use when the user asks to diagnose or investigate an Orchestra session that repeated work, ignored a plan, stumbled, produced poor results, or used unexpected time or tokens
 ---
 
 # Diagnosing Orchestra Sessions
