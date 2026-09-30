@@ -33,6 +33,12 @@ class DiagnosingTextTests(unittest.TestCase):
             self.assertIn("past human prompts", text)
         self.assertNotIn("user requests", read("SKILL.md"))
 
+    def test_marker_text_is_searched_from_a_file_with_fixed_strings(self):
+        similar = " ".join(read("prompts/similar-session.md").split())
+        self.assertRegex(similar, r"grep -\w*F\w*f ")
+        self.assertIn("never put it in a command line", similar)
+        self.assertIn("prompts/similar-session.md` step 2", " ".join(step(7).split()))
+
 
 if __name__ == "__main__":
     unittest.main()
