@@ -98,7 +98,10 @@ function preferredPort() {
 }
 let PORT = preferredPort();
 const HOST = process.env.BRAINSTORM_HOST || '127.0.0.1';
-const URL_HOST = process.env.BRAINSTORM_URL_HOST || (HOST === '127.0.0.1' ? 'localhost' : HOST);
+// Default: the address actually bound (set in onListen). A name such as
+// "localhost" can also resolve to an address we did not bind (::1 vs
+// 127.0.0.1), where another local user could listen and receive the key.
+let URL_HOST = process.env.BRAINSTORM_URL_HOST || HOST;
 const SESSION_DIR = process.env.BRAINSTORM_DIR || '/tmp/brainstorm';
 const CONTENT_DIR = path.join(SESSION_DIR, 'content');
 const STATE_DIR = path.join(SESSION_DIR, 'state');
@@ -663,6 +666,7 @@ function startServer() {
     // one after an EADDRINUSE fallback) so it can't collide with another server's
     // cookie in the shared localhost jar.
     COOKIE_NAME = 'brainstorm-key-' + PORT;
+    if (!process.env.BRAINSTORM_URL_HOST) URL_HOST = server.address().address;
     // Record the bound port AND token so the next restart of this session reuses
     // them — but ONLY when we got our preferred port. On a fallback we bound a
     // *different* port because someone else holds the preferred one; persisting

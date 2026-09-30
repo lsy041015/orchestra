@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+import urllib.parse
 import urllib.request
 
 # Search PATH like a shell: on Windows a bare "bash" can resolve to WSL's
@@ -154,6 +155,22 @@ process.stdout.write(JSON.stringify(sent));
                 break
             time.sleep(0.1)
         self.assertFalse(session.exists())
+
+    def test_url_names_the_bound_address(self):
+        # "localhost" may resolve to ::1 first, where another local user can
+        # listen on our port and receive the key.
+        for args, want in (([], "127.0.0.1"), (["--host", "localhost"], None),
+                           (["--url-host", "example.test"], "example.test")):
+            with self.subTest(args=args):
+                tmp = self.temp_dir("brainstorm-url-")
+                env = {**os.environ, "TMPDIR": str(tmp).replace("\\", "/")}
+                info, _ = self.serve(tmp, args, env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
+                host = urllib.parse.urlsplit(info["url"]).hostname
+                if want:
+                    self.assertEqual(host, want)
+                else:
+                    self.assertIn(host, ("127.0.0.1", "::1"))
+                    self.assertEqual(urllib.request.urlopen(info["url"], timeout=10).status, 200)
 
 
 if __name__ == "__main__":

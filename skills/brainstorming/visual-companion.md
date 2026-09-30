@@ -38,7 +38,7 @@ The server watches a directory for HTML files and serves the newest one to the b
 bash scripts/start-server.sh --project-dir /path/to/project --open
 
 # Returns: {"type":"server-started","port":52341,
-#           "url":"http://localhost:52341/?key=ab12…",
+#           "url":"http://127.0.0.1:52341/?key=ab12…",
 #           "screen_dir":"/path/to/project/.orchestra/brainstorm/12345-1706000000/content",
 #           "state_dir":"/path/to/project/.orchestra/brainstorm/12345-1706000000/state"}
 ```
@@ -82,7 +82,7 @@ If the URL is unreachable from your browser (common in remote/containerized setu
 bash scripts/start-server.sh \
   --project-dir /path/to/project \
   --host 0.0.0.0 \
-  --url-host localhost
+  --url-host 127.0.0.1
 ```
 
 Use `--url-host` to control what hostname is printed in the returned URL JSON.
