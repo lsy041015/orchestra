@@ -24,7 +24,7 @@ function parseArgs(args) {
   for (const flag of ['--model', '--effort', '--cwd', '--brief', '--allowed']) {
     if (values[flag] === undefined) throw new Error(`Missing required argument: ${flag}`);
   }
-  if (!/^[A-Za-z0-9._-]+$/.test(values['--model'])) throw new Error('Invalid --model');
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(values['--model'])) throw new Error('Invalid --model');
   if (!efforts.has(values['--effort'])) throw new Error('Invalid --effort');
   if (values['--resume'] !== undefined && !/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(values['--resume'])) {
     throw new Error('Invalid --resume');
