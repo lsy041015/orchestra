@@ -17,7 +17,7 @@ Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude a
 the tools this plugin works with; the marks belong to their owners.
 
 > **Status: experimental (v0.4.3).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
-> Windows. Real orchestrator use on macOS/Linux is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
+> Windows. The full orchestrator flow was recorded once on Linux; macOS use is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
 
@@ -48,15 +48,22 @@ request → plan (orchestra:writing-plans)
 ```
 
 Tiers: **Easy** (mechanical, one file), **Medium** (normal feature or fix with tests), **Hard**
-(cross-file or tricky logic), **Hard (UI)** (needs visual judgment). One-file edits stay inline.
+(cross-file or tricky logic), **Hard (UI)** (needs visual judgment). Lookups and few-line edits stay
+inline; a larger mechanical task is Easy even in one file, so a cheaper model runs it.
 
 Workers show up in the Claude Code task list with their engine, model and effort, e.g.
 `[Codex gpt-6-luna/high] Task 3: retry helper`. Cancel one with `TaskStop`, or say
-"switch Task 3 to claude opus". A Claude worker that takes a later task through `SendMessage`
-keeps its first label; the ledger shows which task it is on.
+"switch Task 3 to claude opus". A Claude worker takes a later task through `SendMessage` only
+when that task has the same routing value, after a fresh scope baseline. It keeps its first label;
+the ledger shows which task it is on.
 
 Each brief holds one task plus the plan's `Global constraints` and `Interfaces` sections; the
 sections after the tasks (verification, review focus) stay with the main session.
+
+Skills are called `orchestra:<skill>`: 16 skills plus the two Claude implementer agents. Start with
+`orchestra:using-orchestra`; `orchestra:orchestrator` does the tiering and dispatch (Claude Code
+only) and `orchestra:diagnosing-orchestra` investigates a past run. Plans are saved under
+`docs/orchestra/plans/`; each plan's ledger, briefs and reports live in `.orchestra/sdd/<plan>/`.
 
 ## A real run
 
@@ -125,20 +132,24 @@ Do not enable the original Superpowers plugin or the earlier `relay` plugin at t
     `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
   - Codex: any model your account can use. Effort is one of `none`, `minimal`, `low`, `medium`,
     `high`, `xhigh`, `max`, `ultra`. Support varies by model: when Codex's model cache
-    (`~/.codex/models_cache.json`) lists the model without that effort, the worker stops with
+    (`$CODEX_HOME/models_cache.json`, default `~/.codex`) lists the model without that effort, the worker stops with
     `Status: BLOCKED` before Codex runs; any other unsupported pair comes back as `Status: BLOCKED`
     with Codex's own message.
 - If every tier in the table has a value, Orchestra shows the mapping and starts. Otherwise it asks
-  only for the missing tiers.
+  only for the missing tiers. When any value comes from a project `.orchestra.json`, it shows the
+  mapping and asks once before the first dispatch, because a cloned repository's file spends your
+  quota.
 
 ## Codex worker
 
 ```text
 node skills/orchestrator/scripts/codex-worker.mjs \
   --model gpt-6-luna --effort high --cwd "<project>" \
-  --brief "<ledger>/task-3-codex-prompt.md" \
+  --brief "<workspace>/task-3-codex-prompt.md" \
   --allowed "src/retry.ts,test/retry.test.ts,test/fixtures/" [--resume <thread_id>]
 ```
+
+`<workspace>` is the plan folder `sdd-workspace` prints (`.orchestra/sdd/<plan>/`).
 
 - Runs `codex exec --json … -s workspace-write --disable plugins` directly and passes the brief on
   stdin. Your Codex plugins (another Superpowers, say) stay off in worker runs so their skills and
@@ -166,7 +177,7 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   `.gitignore`d paths, and parallel workers in the same checkout see each other's files; the
   orchestrator ignores only files that belong to another running worker's allowed list.
 - For a Claude worker the main session runs the same check:
-  `node scope-check.mjs before --cwd <project> --state <ledger>/task-N-scope.json` before dispatch,
+  `node scope-check.mjs before --cwd <project> --state <workspace>/task-N-scope.json` before dispatch,
   and `after … --allowed <files>` before each review.
 
 ## Verification and limits
