@@ -6,7 +6,8 @@ self-audit, not an independent review). Every file under BUNDLE is already scrub
 Your only job is to find what it missed. Do not fix anything; report.
 
 Inputs:
-- BUNDLE: absolute path of the bundle directory.
+- BUNDLE: absolute path of the bundle directory, or of the `issue/`
+  directory holding an issue draft.
 - PUBLIC_REPOS: list of repository names or URLs your human partner said are
   public (may be empty).
 - PROPRIETARY: list of terms your human partner named as proprietary (may be

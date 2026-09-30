@@ -6,7 +6,8 @@ every file under BUNDLE (a directory path) so it can leave this machine, and you
 BUNDLE/scrub-log.md. You never touch anything outside BUNDLE.
 
 Inputs:
-- BUNDLE: absolute path of the bundle directory.
+- BUNDLE: absolute path of the bundle directory, or of the `issue/`
+  directory holding an issue draft.
 - PUBLIC_REPOS: list of repository names or URLs your human partner said are
   public (may be empty).
 - PROPRIETARY: list of terms your human partner named as proprietary (may be
