@@ -16,7 +16,7 @@ A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by J
 Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude and Codex only indicate
 the tools this plugin works with; the marks belong to their owners.
 
-> **Status: experimental (v0.4.3).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
+> **Status: experimental (v0.4.4).** See the [changelog](CHANGELOG.md). Used daily on Windows; tests run in CI on Ubuntu, macOS and
 > Windows. The full orchestrator flow was recorded once on Linux; macOS use is not recorded yet, and no usage savings are claimed. See [Verification and limits](#verification-and-limits).
 
 ## Why
@@ -198,7 +198,7 @@ actually applied were read from Codex's session log (`turn_context`).
 | `gpt-6-luna` + `ultra` | ✅ since v0.4.1 `Status: BLOCKED` before Codex runs, because the model cache lists only up to `max` (before, the API accepted it and the level actually applied was unknown) |
 | `TaskStop` during a run | ✅ worker, Codex and the command Codex was running all stop |
 | `--disable plugins` (2026-09-29, `gpt-6-luna` low) | ✅ `Status: DONE`; the session log has no Superpowers skill or ponytail hook text, which an earlier worker run on the same machine had; user skills outside plugins remain |
-| All ten test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
+| All test files in `tests/` + piano example | ✅ CI on Ubuntu (Node 22 and 18), macOS and Windows; the first run caught a macOS-only `realpath -m` bug, now fixed |
 | `claude plugin validate .`, Codex `validate_plugin.py` | ✅ |
 
 Limits: the orchestrator is a set of rules the host model follows, not an enforcement layer; the

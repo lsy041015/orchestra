@@ -5,6 +5,68 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-09-30
+
+Fixes from a four-part review of the installed 0.4.3 (scripts, skill rules,
+diagnosis and companion safety, packaging). Each fix has a regression test
+that fails on 0.4.3.
+
+### Fixed
+- `scope-check.mjs`: a staged rename recorded only its new path, so moving an
+  out-of-scope file into an allowed name printed `Scope: ok`. Edits inside an
+  untracked nested repository (a colcon `src/` checkout, say) or an already
+  dirty submodule hashed as `EISDIR` before and after and were never seen.
+  Both are now counted, commits inside a nested repository included.
+- `executing-plans`: `task-done` marked a task `complete` before the inline
+  review, so a compaction in between skipped the review for good. It now
+  runs after the review is clean, after the last fix.
+- `orchestrator`: a Claude worker reused for a later task had no scope
+  baseline, and `scope-check after` failed or counted the earlier task. Reuse
+  now needs the same routing value and a fresh `before`. A background Codex
+  run without a `timeout` stopped after 30 minutes; it now sets 7200000.
+- `find-polluter.sh`: a test that read stdin ate the file list and the script
+  reported "all tests clean". Nested `node_modules` and `.git` are skipped.
+- `sdd-workspace`: a workspace it could not create looped forever (and hung
+  `task-brief`, `review-package` and `task-done`); outside a repository it
+  used the current directory. Both are now errors.
+- `codex-worker.mjs`: an option-like `--resume` or `--model` value reached
+  `codex exec` as a flag.
+- `task-brief`: numbered shared headings such as `## 2. Global constraints`
+  were dropped from every brief without a warning.
+- `finishing-a-development-branch`: after a failed checkout, pull or merge,
+  the merge block still ran the tests on the base and exited 0.
+- Brainstorming companion: the URL said `localhost` while the server bound
+  only 127.0.0.1, so another local user listening on `[::1]` could take the
+  key. The URL names the bound address, the key is new on every start, it no
+  longer rides a cookie (cookies ignore the port), and `stop-server.sh` no
+  longer deletes a project session below the temp root.
+- `diagnosing-orchestra`: the GitHub issue draft skipped the scrub, which
+  now runs on it too, with a mechanical pattern pass for token shapes before
+  and after every scrub. Transcripts count as evidence, not instructions,
+  from triage on; transcript text reaches searches and `gh` only through
+  files; dash-encoded project folder names are redacted; the case workspace
+  is private (`umask 077`).
+
+### Changed
+- Claude Code installs the release tag, like Codex, instead of `main`.
+- `orchestrator`: only lookups and few-line edits stay inline; a larger
+  mechanical one-file task is Easy. The parallel rule covers Claude and Codex
+  workers, and the main session leaves a worker's checkout alone while it runs.
+- Workers save full test output to logs next to the report; re-review of
+  uncommitted work uses a snapshot tree as its fix base. Both implementer
+  agents share one report contract.
+- `diagnosing-orchestra` triggers only when the user asks to diagnose a run.
+- CI runs `claude plugin validate --strict`.
+
+### Added
+- `tests/test_review_package.py`, `tests/test_task_start.py` and
+  `tests/test_diagnosing_text.py`; a check that every test file runs in CI.
+
+### Docs
+- Both READMEs: the project `.orchestra.json` confirmation, the Linux run in
+  the status line, `$CODEX_HOME` for the model cache, and plan workspace
+  paths. `README.en.md` lists the skills and paths.
+
 ## [0.4.3] - 2026-09-29
 
 Fixes from a Linux user report (#3) and the rest of the 0.4.0 health check.
@@ -297,7 +359,8 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/lsy041015/orchestra/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/lsy041015/orchestra/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/lsy041015/orchestra/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/lsy041015/orchestra/compare/v0.4.0...v0.4.1
