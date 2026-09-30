@@ -93,8 +93,9 @@ Unresolved: <none or concrete issues>
 Report: <absolute report path>
 ```
 
-The detailed report keeps full test output and, when applicable, RED/GREEN
-evidence. The short response is not a substitute for the report or the diff.
+The detailed report records each test command and exit code with the path of
+its full log (saved next to the report), and RED/GREEN evidence when
+applicable. The short response is not a substitute for the report or the diff.
 
 `BLOCKED` or `NEEDS_DECISION` means the main agent supplies missing context or decides
 the plan change. It does not trigger a different model. If two fix attempts
@@ -127,10 +128,19 @@ requirement that cannot be verified enters the fix loop.
 
 ### 4. Fix loop
 
+Before sending a fix, record the fix base: `HEAD` when the task's changes are
+all committed; otherwise a snapshot tree of the working tree, which includes
+untracked files and leaves the real index alone:
+
+```text
+GIT_INDEX_FILE="<workspace>/snapshot.idx" sh -c 'git read-tree HEAD && git add -A && git write-tree'
+```
+
 Send concrete findings to the same worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`), using
 `re-review-prompt.md` to define the scope. The worker appends a fix report,
-runs the covering tests, and returns the same status contract. The main agent reads the
-fix diff and re-reviews only the findings and touched code. New findings in the
+runs the covering tests, and returns the same status contract. The main agent
+takes the same snapshot after the fix; `git diff <fix base> <after>` is the fix
+diff. It re-reviews only the findings and touched code. New findings in the
 fix diff join the list; unrelated observations go in the ledger.
 
 After two failed fix attempts with the same root cause, stop the loop and write a

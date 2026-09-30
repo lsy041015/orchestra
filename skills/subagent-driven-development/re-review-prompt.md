@@ -9,7 +9,7 @@ Task: [TASK_NAME]
 Brief: [BRIEF_FILE]
 Findings under verification: [FINDINGS]
 Worker report: [REPORT_FILE]
-Fix base: [FIX_BASE_SHA]
+Fix base: [FIX_BASE_SHA] (a commit, or the snapshot tree for uncommitted work)
 Head: [HEAD_SHA]
 Fix diff package: [DIFF_FILE]
 Always inspect staged and unstaged diffs plus the fix's untracked files,
