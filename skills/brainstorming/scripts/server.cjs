@@ -85,7 +85,7 @@ function decodeFrame(buffer) {
 const PORT_FILE = process.env.BRAINSTORM_PORT_FILE || null;
 const randomPort = () => 49152 + Math.floor(Math.random() * 16383);
 // Prefer an explicit port, else the port this session last bound (so a restart
-// reuses it and an already-open browser tab reconnects), else a random high port.
+// keeps the same port, e.g. for a port forward), else a random high port.
 function preferredPort() {
   if (process.env.BRAINSTORM_PORT) return Number(process.env.BRAINSTORM_PORT);
   if (PORT_FILE) {
@@ -114,36 +114,9 @@ let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_
 // remote binds — and defeats DNS rebinding — where a Host/Origin allowlist
 // cannot. It rides the served URL as ?key= and is mirrored into a cookie on
 // first load so same-origin subresources and the WebSocket carry it for free.
-// Persisted alongside the port (BRAINSTORM_TOKEN_FILE) so a restart keeps the
-// same key and an already-open tab's cookie still validates.
-const TOKEN_FILE = process.env.BRAINSTORM_TOKEN_FILE || null;
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-function chmodOwnerOnly(file) {
-  try { fs.chmodSync(file, 0o600); } catch (e) { /* best effort */ }
-}
-
-function initialToken() {
-  if (process.env.BRAINSTORM_TOKEN) {
-    return { value: process.env.BRAINSTORM_TOKEN, source: 'env' };
-  }
-  if (TOKEN_FILE) {
-    try {
-      const t = fs.readFileSync(TOKEN_FILE, 'utf-8').trim();
-      if (/^[0-9a-f]{32,}$/i.test(t)) {
-        chmodOwnerOnly(TOKEN_FILE);
-        return { value: t, source: 'file' };
-      }
-    } catch (e) { /* no prior token recorded */ }
-  }
-  return { value: generateToken(), source: 'generated' };
-}
-
-const tokenInfo = initialToken();
-let TOKEN = tokenInfo.value;
-let tokenSource = tokenInfo.source;
+// Fresh on every start, never persisted: a key captured from one server dies
+// with it instead of unlocking every later restart of the session.
+const TOKEN = process.env.BRAINSTORM_TOKEN || crypto.randomBytes(32).toString('hex');
 let COOKIE_NAME = 'brainstorm-key-' + PORT; // refined to the actual bound port in onListen
 
 const MIME_TYPES = {
@@ -667,18 +640,12 @@ function startServer() {
     // cookie in the shared localhost jar.
     COOKIE_NAME = 'brainstorm-key-' + PORT;
     if (!process.env.BRAINSTORM_URL_HOST) URL_HOST = server.address().address;
-    // Record the bound port AND token so the next restart of this session reuses
-    // them — but ONLY when we got our preferred port. On a fallback we bound a
-    // *different* port because someone else holds the preferred one; persisting
-    // would overwrite the shared files and strand that other session's open tab.
+    // Record the bound port so the next restart of this session reuses it — but
+    // ONLY when we got our preferred port. On a fallback we bound a *different*
+    // port because someone else holds the preferred one; persisting would
+    // overwrite the shared file and move that other session's port.
     if (PORT_FILE && !triedFallback) {
       try { fs.writeFileSync(PORT_FILE, String(PORT)); } catch (e) { /* best effort */ }
-      if (TOKEN_FILE) {
-        try {
-          fs.writeFileSync(TOKEN_FILE, TOKEN, { mode: 0o600 });
-          chmodOwnerOnly(TOKEN_FILE);
-        } catch (e) { /* best effort */ }
-      }
     }
     const info = JSON.stringify({
       type: 'server-started', port: Number(PORT), host: HOST,
@@ -692,16 +659,12 @@ function startServer() {
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE' && !triedFallback) {
-      if (tokenSource === 'env') {
+      if (process.env.BRAINSTORM_TOKEN) {
         console.error('Server failed to bind: preferred port is in use and BRAINSTORM_TOKEN is set; refusing fallback with explicit token');
         process.exit(1);
       }
       triedFallback = true;
       PORT = randomPort();
-      if (tokenSource === 'file') {
-        TOKEN = generateToken();
-        tokenSource = 'generated-fallback';
-      }
       server.listen(PORT, HOST, onListen);
     } else {
       console.error('Server failed to bind:', err.message);

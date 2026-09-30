@@ -71,7 +71,7 @@ process.stdout.write(JSON.stringify(sent));
             subprocess.run([BASH, str(SCRIPTS / "start-server.sh"), "--project-dir", str(project),
                             "--host", "203.0.113.1", "--foreground"],
                            capture_output=True, text=True, encoding="utf-8", timeout=60)
-            for name in (".last-token", ".last-port", "session/state/server-info"):
+            for name in (".last-port", "session/state/server-info"):
                 with self.subTest(name=name):
                     ignored = subprocess.run(["git", "-C", str(project), "check-ignore", "-q",
                                               f".orchestra/brainstorm/{name}"])
@@ -171,6 +171,16 @@ process.stdout.write(JSON.stringify(sent));
                 else:
                     self.assertIn(host, ("127.0.0.1", "::1"))
                     self.assertEqual(urllib.request.urlopen(info["url"], timeout=10).status, 200)
+
+    def test_restart_keeps_the_port_but_not_the_key(self):
+        # A persisted key would let one captured URL unlock every later restart.
+        project = self.temp_dir("brainstorm-restart-")
+        where = (project, ".orchestra/brainstorm/*/state/server-info")
+        first, session = self.serve(project, ["--project-dir", str(project)], info_glob=where)
+        subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)], capture_output=True)
+        second, _ = self.serve(project, ["--project-dir", str(project)], info_glob=where)
+        self.assertEqual(second["port"], first["port"])
+        self.assertNotEqual(second["url"], first["url"])
 
 
 if __name__ == "__main__":
