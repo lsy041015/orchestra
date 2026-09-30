@@ -10,7 +10,8 @@
 #                         instead of a temp dir. Files persist after server stops.
 #   --host <bind-host>    Host/interface to bind (default: 127.0.0.1).
 #                         Use 0.0.0.0 in remote/containerized environments.
-#   --url-host <host>     Hostname shown in returned URL JSON.
+#   --url-host <host>     Hostname shown in returned URL JSON (default: the
+#                         address actually bound, e.g. 127.0.0.1).
 #   --idle-timeout-minutes <n>  Shut down after n minutes idle (default 240 = 4h).
 #   --open                Auto-open the browser on the first screen (use only
 #                         after the user approves the visual companion).
@@ -68,14 +69,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-if [[ -z "$URL_HOST" ]]; then
-  if [[ "$BIND_HOST" == "127.0.0.1" || "$BIND_HOST" == "localhost" ]]; then
-    URL_HOST="localhost"
-  else
-    URL_HOST="$BIND_HOST"
-  fi
-fi
 
 if [[ -n "$IDLE_TIMEOUT_MINUTES" ]]; then
   if ! [[ "$IDLE_TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || [[ "$IDLE_TIMEOUT_MINUTES" -lt 1 ]]; then
@@ -200,7 +193,7 @@ for _ in {1..50}; do
       sleep 0.1
     done
     if [[ "$alive" != "true" ]]; then
-      echo "{\"error\": \"Server started but was killed. Retry in a persistent terminal with: $SCRIPT_DIR/start-server.sh${PROJECT_DIR:+ --project-dir $PROJECT_DIR} --host $BIND_HOST --url-host $URL_HOST --foreground\"}"
+      echo "{\"error\": \"Server started but was killed. Retry in a persistent terminal with: $SCRIPT_DIR/start-server.sh${PROJECT_DIR:+ --project-dir $PROJECT_DIR} --host $BIND_HOST${URL_HOST:+ --url-host $URL_HOST} --foreground\"}"
       exit 1
     fi
     grep "server-started" "$LOG_FILE" | head -1
