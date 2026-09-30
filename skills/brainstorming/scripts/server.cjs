@@ -594,6 +594,7 @@ function startServer() {
   let triedFallback = false;
 
   function onListen() {
+    PORT = server.address().port;
     if (!process.env.BRAINSTORM_URL_HOST) URL_HOST = server.address().address;
     // Record the bound port so the next restart of this session reuses it — but
     // ONLY when we got our preferred port. On a fallback we bound a *different*
@@ -613,14 +614,14 @@ function startServer() {
   }
 
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE' && !triedFallback) {
+    // EACCES: Windows reserves port ranges (Hyper-V) inside the random range.
+    if ((err.code === 'EADDRINUSE' || err.code === 'EACCES') && !triedFallback) {
       if (process.env.BRAINSTORM_TOKEN) {
         console.error('Server failed to bind: preferred port is in use and BRAINSTORM_TOKEN is set; refusing fallback with explicit token');
         process.exit(1);
       }
       triedFallback = true;
-      PORT = randomPort();
-      server.listen(PORT, HOST, onListen);
+      server.listen(0, HOST, onListen);
     } else {
       console.error('Server failed to bind:', err.message);
       process.exit(1);
