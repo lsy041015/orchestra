@@ -49,7 +49,9 @@ order and keep the change at the stated scope.
 - In Git, `scripts/task-start PLAN_FILE N` prints the task's brief path and
   BASE in one call, and `scripts/task-done PLAN_FILE N BASE -- <test command>`
   runs the final check and appends `Task N: complete` when it passes or
-  `Task N: failed` when it does not. The last `Task N:` line is the task's state.
+  `Task N: failed` when it does not. The last `Task N:` line is the task's state,
+  and a `complete` task is not reopened after compaction, so run `task-done`
+  only after the inline review below is clean.
 
 Do not stop between tasks to ask whether to continue. Stop for an irreversible
 or security-sensitive operation, an external side effect requiring approval,
@@ -64,7 +66,8 @@ accessibility, calibration, hardware safety, and preservation of user changes.
 Use `orchestra:requesting-code-review` and its worksheet as a
 checklist, but do the review yourself. If a finding needs code changes, write
 the covering test, observe RED, fix it, observe GREEN, and run the relevant
-suite. Do not create a reviewer or an implementation child from this mode.
+suite. Run `task-done` after the last fix, so the ledger's evidence comes from
+the fixed code. Do not create a reviewer or an implementation child from this mode.
 
 ## Final verification
 
