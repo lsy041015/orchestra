@@ -165,6 +165,8 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
       if (shared && hashes <= shared_level) shared = 0
       if (!intask && (task_level == 0 || hashes < task_level)) {
         title = tolower(heading_tail)
+        # Plans may number their sections: "## 2. Global constraints".
+        sub(/^[0-9]+[.)][ \t]+/, "", title)
         if (index(title, "global constraints") == 1 || index(title, "interface") == 1) {
           shared = 1
           shared_level = hashes
