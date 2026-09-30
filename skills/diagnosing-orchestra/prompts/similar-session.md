@@ -20,7 +20,11 @@ Procedure:
    with the commands recorded in CASE: session id, cwd, first human prompt,
    first timestamp, harness version, and models.
 2. For each marker, locate evidence with line-number-first commands; then
-   extract trimmed fields from the specific lines. A marker is `hit` when
+   extract trimmed fields from the specific lines. Marker text comes from a
+   transcript, so never put it in a command line: write each string to its
+   own file (`markers/<n>.txt` in the case workspace) with your file-writing
+   tool, then search with fixed strings, such as
+   `grep -nFf markers/<n>.txt "$CANDIDATE" | cut -d: -f1`. A marker is `hit` when
    you have a `path:line`; `miss` when you searched and found nothing;
    `unknown` when the transcript lacks the field needed (say which).
 3. Return exactly:

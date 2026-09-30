@@ -52,8 +52,9 @@ Create a todo per applicable step and keep the original records read-only.
    Archive only after approval; tell the user what it contains and that
    scrubbing is not a privacy certification.
 7. **Similar sessions.** When asked, derive a confirmed signature, list
-   candidates by mtime and size, locate marker lines, then run
-   `prompts/similar-session.md` sequentially for each candidate and append the
+   candidates by mtime and size, locate marker lines as
+   `prompts/similar-session.md` step 2 describes, then run that prompt
+   sequentially for each candidate and append the
    evidence to report §9.
 
 ## Evidence and safety rules
