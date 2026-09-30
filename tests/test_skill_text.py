@@ -34,6 +34,25 @@ class SkillTextTests(unittest.TestCase):
         effort = re.search(r"^effort: (\S+)$", agent, re.M).group(1)
         self.assertIn(f"`orchestra:implementer` agent = `{model}` / `{effort}`", presets.pop())
 
+    def test_implementer_agents_share_one_contract(self):
+        # Every /medium route lands on implementer-medium, so it owes the same report.
+        body = lambda name: (ROOT / "agents" / name).read_text(encoding="utf-8").split("\n---\n", 1)[1]
+        self.assertEqual(body("implementer.md"), body("implementer-medium.md"))
+
+    def test_state_paths_name_the_plan_workspace(self):
+        # The ledger is progress.md, a file; briefs and scope states live in its directory.
+        for doc in DOCS:
+            self.assertNotIn("<ledger>/", doc.read_text(encoding="utf-8"), doc.relative_to(ROOT))
+
+    def test_codex_background_run_sets_the_longest_timeout(self):
+        text = (ROOT / "skills/orchestrator/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("`timeout: 7200000`", text)
+
+    def test_inline_task_is_marked_complete_after_its_review(self):
+        text = (ROOT / "skills/executing-plans/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("run `task-done`\n  only after the inline review below is clean", text)
+        self.assertIn("Run `task-done` after the last fix", text)
+
 
 if __name__ == "__main__":
     unittest.main()
