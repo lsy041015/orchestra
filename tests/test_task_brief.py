@@ -52,6 +52,15 @@ class TaskBriefTests(unittest.TestCase):
         self.assert_success(plan, shared + "### Task 1: first\n\nDo A.\n\n")
         self.assert_success(plan, shared + "### Task 2: last\n\nDo B.\n\n", "2")
 
+    def test_numbered_shared_section_headings_still_count(self):
+        # writing-plans numbers its sections; the number must not hide them.
+        for mark in ("2.", "2)"):
+            with self.subTest(mark=mark):
+                shared = (f"## {mark} Global constraints\n\nNode 22 only.\n\n"
+                          "## 3. Interfaces and dependencies\n\nparse() returns a list.\n\n")
+                task = "### Task 1: first\n\nDo A.\n\n"
+                self.assert_success("# Plan\n\n## 1. Context and goal\n\nWhy.\n\n" + shared + task, shared + task)
+
     def test_fenced_task_examples_preserve_acceptance(self):
         for opener, middle, closer in (
             ("```markdown", "", "```"),
