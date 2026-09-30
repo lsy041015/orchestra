@@ -9,8 +9,8 @@ Parallel dispatch is an exception to the one-worker default. It is permitted
 only when the user explicitly asks for parallel implementation and each unit
 has disjoint files, interfaces, fixtures, and mutable state. The main agent first
 confirms those boundaries; otherwise work sequentially or inline. When
-`orchestra:orchestrator` is active, its own rule for parallel Codex workers
-with disjoint allowed files applies instead of this skill.
+`orchestra:orchestrator` is active, its own rule for parallel Codex and Claude
+workers with disjoint allowed files applies instead of this skill.
 
 Do not use this skill for exploration, planning, diagnosis, test triage,
 review, re-review, or a second opinion. Those remain in the main session.

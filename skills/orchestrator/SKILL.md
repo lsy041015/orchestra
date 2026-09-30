@@ -28,7 +28,9 @@ Tiers:
 - **Hard**: cross-file, new architecture inside the plan, tricky logic, or
   judgment about the visual result. Mark UI work `(UI)`.
 
-Keep a one-file edit or a lookup inline instead of listing it.
+Keep lookups and few-line edits inline. A larger mechanical one-file task is
+Easy, not inline: the Easy route exists to run such work on a cheaper model,
+so it replaces `subagent-driven-development`'s keep-inline rule here.
 
 ## 2. Model choice
 
@@ -77,8 +79,10 @@ another model through `Other`. Record the final mapping in the ledger as
 ## 3. Dispatch
 
 Label every worker so the task list shows its engine, model, and effort:
-`[<Codex|Claude> <model>/<effort>] Task N: <title>`. A Claude worker reused
-through `SendMessage` keeps its first label; the ledger shows its current task.
+`[<Codex|Claude> <model>/<effort>] Task N: <title>`. Reuse a Claude worker
+through `SendMessage` for a later task only when that task has the same routing
+value, and record the later task's scope baseline first. A reused worker keeps
+its first label; the ledger shows its current task.
 
 **Claude worker**: use the `Agent` tool.
 
@@ -90,29 +94,31 @@ through `SendMessage` keeps its first label; the ledger shows its current task.
 Pass `model` from the routing value. Effort comes from the agent definition;
 for another effort, tell the user it needs a new agent file.
 
-Record a scope baseline right before dispatching a Claude worker, and check it
-before each review of that task, including after fix rounds:
+Record a scope baseline right before dispatching a Claude worker or sending it
+a new task, and check it before each review of that task, including after fix
+rounds. `<workspace>` is the directory `sdd-workspace` prints:
 
 ```text
-node "<this skill's base directory>/scripts/scope-check.mjs" before --cwd "<project>" --state "<ledger>/task-N-scope.json"
-node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<project>" --state "<ledger>/task-N-scope.json" --allowed "<files>"
+node "<this skill's base directory>/scripts/scope-check.mjs" before --cwd "<project>" --state "<workspace>/task-N-scope.json"
+node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<project>" --state "<workspace>/task-N-scope.json" --allowed "<files>"
 ```
 
 `after` prints the same `Scope:` line as a Codex worker and also counts files
 the worker committed. `--allowed` follows the Codex worker rules below.
 
 **Codex worker**: the main session calls `Bash` directly with
-`run_in_background: true` and no `timeout` parameter. Set the description to
+`run_in_background: true` and `timeout: 7200000`, the maximum; the default
+stops a background command after 30 minutes. Set the description to
 `[Codex <model>/<effort>] Task N: <title>` and run:
 
 ```text
-node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --effort <effort> --cwd "<project>" --brief "<ledger>/task-N-codex-prompt.md" --allowed "<files>"
+node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --effort <effort> --cwd "<project>" --brief "<workspace>/task-N-codex-prompt.md" --allowed "<files>"
 ```
 
 `--allowed` is a comma-separated list relative to `--cwd`; end an entry with
 `/` to allow a whole directory, for example `src/retry.ts,test/fixtures/`.
 Use the repository root as `--cwd`. The Codex sandbox writes only inside
-`--cwd`, so the brief and report in `<ledger>` must be inside it; the worker
+`--cwd`, so the brief and report in `<workspace>` must be inside it; the worker
 refuses a brief outside `--cwd`. Name subdirectory files in `--allowed`.
 
 The sandbox blocks all network access by default, including loopback sockets.
@@ -126,12 +132,13 @@ workflow's skills and hooks stay out of the task; the user's `config.toml` and
 `AGENTS.md` still apply. Fill
 `orchestra:subagent-driven-development/implementer-prompt.md` for the task,
 append the following Codex rules, and save the brief as
-`<ledger>/task-N-codex-prompt.md`:
+`<workspace>/task-N-codex-prompt.md`:
 
 ```text
 Never run git commit, push, reset or checkout: the sandbox keeps .git
 read-only, and the main session commits after review. Edit only allowed
-files. Never leave long-running servers or editors running. Keep the report
+files. Never leave long-running servers or editors running. Save full test
+output to log files next to [REPORT_FILE] and cite their paths. Keep the report
 at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
 block. Plugin skills are off in this run: where the brief names an
 orchestra: skill, follow the brief's own wording.
@@ -140,11 +147,14 @@ orchestra: skill, follow the brief's own wording.
 When the background task completes, notify the user and record its
 `Codex thread:` output in the ledger.
 
-Workers may run in parallel when their files do not overlap. The scope
-check compares the whole checkout, so a file changed by another worker running
-at the same time also appears in `Scope: outside allowed`. Ignore a listed file
-only when it belongs to a concurrent worker's allowed list; otherwise treat it
-as a finding. Separate worktrees avoid this overlap.
+Workers of either engine may run in parallel when their files and state do
+not overlap; tier routing is itself the exception to the one-worker default, so
+it needs no separate parallel request. The scope check compares the whole
+checkout, so a file changed by another worker running at the same time also
+appears in `Scope: outside allowed`. Ignore a listed file only when it belongs
+to a concurrent worker's allowed list; otherwise treat it as a finding. For the
+same reason, do not edit a checkout while a worker runs in it. Separate
+worktrees avoid this overlap.
 
 ## 4. Review and fix loop
 
@@ -168,7 +178,7 @@ For a Claude worker, send findings to that worker with `SendMessage`. For a
 Codex worker, write the follow-up fix described at the end of
 `implementer-prompt.md` (each finding with file and location, required
 behavior, covering tests, the report instruction) plus the Codex rules to
-`<ledger>/task-N-codex-fix-K.md`, then rerun the worker with the same
+`<workspace>/task-N-codex-fix-K.md`, then rerun the worker with the same
 `--model`, `--effort`, `--cwd` and `--allowed`, plus `--resume <thread>` and
 that fix brief. A reply without a status block comes back as
 `Status: BLOCKED` (`Codex reply has no status block`); resume the thread with

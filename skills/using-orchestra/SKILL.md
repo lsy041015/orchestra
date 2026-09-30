@@ -39,8 +39,9 @@ can stay in the main session. Multiple implementer workers are allowed only when
 user explicitly requests parallel implementation and the files and state are
 independent. Every such worker still uses the same host implementer
 preset and may not spawn children. In Claude Code, `orchestra:orchestrator`,
-when active, replaces these worker rules with its tier routing, one worker per
-task, and its parallel rule for Codex workers.
+when active, replaces these worker rules with its tier routing, its reuse rule
+(a later task only on the same routing value, with a fresh scope baseline) and
+its parallel rule for workers with disjoint files.
 
 Do not claim independent review, diagnosis, or validation that was not run.
 Keep TDD, systematic debugging, user-change protection, security checks,
