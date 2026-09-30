@@ -129,7 +129,8 @@ Do not enable the original Superpowers plugin or the earlier `relay` plugin at t
   A project `options` array replaces yours.
 - Values are `<codex|claude> <model>/<effort>`.
   - Claude: an `Agent` model alias (`sonnet`, `opus`, `haiku`). Effort `high` →
-    `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
+    `orchestra:implementer`, `medium` → `orchestra:implementer-medium`, `xhigh` →
+    `orchestra:implementer-xhigh`.
   - Codex: any model your account can use. Effort is one of `none`, `minimal`, `low`, `medium`,
     `high`, `xhigh`, `max`, `ultra`. Support varies by model: when Codex's model cache
     (`$CODEX_HOME/models_cache.json`, default `~/.codex`) lists the model without that effort, the worker stops with

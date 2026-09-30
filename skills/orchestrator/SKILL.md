@@ -54,8 +54,9 @@ otherwise use the user array. The values use this schema:
 
 Routing values have the form `<codex|claude> <model>/<effort>`.
 - Claude: `<model>` is a model alias the `Agent` tool accepts (for example
-  `sonnet`, `opus`, `haiku`). Effort `high` uses `orchestra:implementer` and
-  `medium` uses `orchestra:implementer-medium`.
+  `sonnet`, `opus`, `haiku`). Effort `high` uses `orchestra:implementer`,
+  `medium` uses `orchestra:implementer-medium` and `xhigh` uses
+  `orchestra:implementer-xhigh`.
 - Codex: `<model>` is any model your Codex CLI account can use; `<effort>` is
   one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
   Not every model supports every effort. When Codex's model cache
@@ -90,6 +91,7 @@ its first label; the ledger shows its current task.
 |--------|---------------|
 | high | `orchestra:implementer` |
 | medium | `orchestra:implementer-medium` |
+| xhigh | `orchestra:implementer-xhigh` |
 
 Pass `model` from the routing value. Effort comes from the agent definition;
 for another effort, tell the user it needs a new agent file.

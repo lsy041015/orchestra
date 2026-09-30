@@ -35,9 +35,10 @@ class SkillTextTests(unittest.TestCase):
         self.assertIn(f"`orchestra:implementer` agent = `{model}` / `{effort}`", presets.pop())
 
     def test_implementer_agents_share_one_contract(self):
-        # Every /medium route lands on implementer-medium, so it owes the same report.
+        # Every /medium and /xhigh route lands on its own agent, so each owes the same report.
         body = lambda name: (ROOT / "agents" / name).read_text(encoding="utf-8").split("\n---\n", 1)[1]
-        self.assertEqual(body("implementer.md"), body("implementer-medium.md"))
+        for other in ("implementer-medium.md", "implementer-xhigh.md"):
+            self.assertEqual(body("implementer.md"), body(other), other)
 
     def test_state_paths_name_the_plan_workspace(self):
         # The ledger is progress.md, a file; briefs and scope states live in its directory.

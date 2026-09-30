@@ -235,7 +235,8 @@
   캐시에 있는 모델이 그 effort를 지원하지 않으면 Codex를 실행하기 전에 `Status: BLOCKED`와 지원 목록을
   돌려줍니다(예: `gpt-6-luna` + `ultra`). 캐시에 없는 조합은 Codex가 판단하고, 거부하면 Codex의 오류
   문장이 그대로 `Status: BLOCKED`로 나옵니다.
-- **Claude effort**: `high` → `orchestra:implementer`, `medium` → `orchestra:implementer-medium`.
+- **Claude effort**: `high` → `orchestra:implementer`, `medium` → `orchestra:implementer-medium`,
+  `xhigh` → `orchestra:implementer-xhigh`.
   Claude Code는 호출마다 effort를 바꿀 수 없고 에이전트 정의에서만 정해지므로, 다른 effort가 필요하면
   `agents/`에 에이전트 파일을 하나 더 만들어야 합니다.
 - `ui` 키는 UI 작업을 따로 라우팅하고 싶을 때만 씁니다. 없으면 UI 작업도 `hard`를 따릅니다.
@@ -266,6 +267,7 @@ Agent(
 
 - `orchestra:implementer` — `sonnet` 별칭(새 Sonnet이 나오면 따라감) / `high` 기본, `model`로 교체 가능.
 - `orchestra:implementer-medium` — 같은 계약, effort `medium`. 단순하고 기계적인 작업용.
+- `orchestra:implementer-xhigh` — 같은 계약, effort `xhigh`. 어렵거나 UI 판단이 필요한 작업용.
 - 워커는 브리프를 읽고, 영향받는 소스를 확인하고, TDD로 구현하고, 자기 diff를 점검한 뒤
   리포트 파일을 쓰고 아래 상태 블록만 돌려줍니다.
 
@@ -494,7 +496,7 @@ claude plugin install orchestra@orchestra
 ```
 
 또는 대화창에서 `/plugin marketplace add lsy041015/orchestra` → `/plugin install orchestra@orchestra`.
-설치 후 **새 세션**을 시작하면 `orchestra:*` 스킬과 `orchestra:implementer`, `orchestra:implementer-medium` 에이전트가 활성화됩니다.
+설치 후 **새 세션**을 시작하면 `orchestra:*` 스킬과 `orchestra:implementer`, `orchestra:implementer-medium`, `orchestra:implementer-xhigh` 에이전트가 활성화됩니다.
 
 업데이트:
 
@@ -594,7 +596,8 @@ orchestra/
 ├── assets/orchestra-banner.png
 ├── agents/
 │   ├── implementer.md         # Claude 구현자 (sonnet / high)
-│   └── implementer-medium.md  # Claude 구현자 (sonnet / medium)
+│   ├── implementer-medium.md  # Claude 구현자 (sonnet / medium)
+│   └── implementer-xhigh.md   # Claude 구현자 (sonnet / xhigh)
 ├── skills/
 │   ├── orchestrator/
 │   │   ├── SKILL.md           # 지휘 규칙

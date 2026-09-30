@@ -13,8 +13,8 @@ Do not dispatch a reviewer, analyst, planner, explorer, or nested helper.
 
 Load `orchestra:*` skills with the `Skill` tool. The worker is the plugin agent
 `orchestra:implementer`, whose definition sets `model: sonnet` and
-`effort: high`; `orchestra:implementer-medium` is the same contract at medium
-effort. Dispatch it explicitly:
+`effort: high`; `orchestra:implementer-medium` and `orchestra:implementer-xhigh` are the
+same contract at medium and xhigh effort. Dispatch it explicitly:
 
 ```text
 Agent(

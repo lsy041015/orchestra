@@ -5,6 +5,11 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added
+- `orchestra:implementer-xhigh` Claude agent (same contract, `sonnet` / `xhigh`), so a
+  routing value such as `claude sonnet/xhigh` has an agent to dispatch. The
+  orchestrator's effort table lists it.
+
 ## [0.4.4] - 2026-09-30
 
 Fixes from a four-part review of the installed 0.4.3 (scripts, skill rules,
