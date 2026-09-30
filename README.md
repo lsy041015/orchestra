@@ -17,7 +17,7 @@
 각 상표는 해당 소유자의 것입니다.
 
 > **상태: 실험판 (v0.4.3).** 변경 내역은 [CHANGELOG](CHANGELOG.md)에 있습니다. 작성자의 Windows 환경에서 실제 작업에 쓰며 검증하고 있습니다.
-> 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. macOS·Linux에서의 오케스트레이터 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
+> 테스트는 GitHub Actions에서 Ubuntu·macOS·Windows로 돌립니다. Linux에서는 오케스트레이터 전체 흐름을 한 번 실측했고, macOS 실사용과 사용량 절감 측정은 아직입니다. 아래 [검증 현황과 한계](#17-검증-현황과-한계)를 먼저 읽어 주세요.
 
 ---
 
@@ -126,7 +126,7 @@
 
 ### 3.7 실제 운영에서 나온 속도 규칙
 18시간짜리 실제 작업에서 병목은 도구가 아니라 **모델의 생각과 출력량**이었습니다. 그래서 브리프에 다음을 요구합니다.
-- 워커 리포트는 **40줄 이하**, 수정 라운드 추가분은 **20줄 이하**.
+- 워커 리포트는 **40줄 이하**, 수정 라운드 추가분은 **20줄 이하**. 전체 테스트 출력은 리포트 옆 로그 파일에 두고 경로만 적습니다.
 - 코드 주석은 자명하지 않은 "왜"만 1–2줄. 계획이나 작업 번호를 주석에 인용하지 않습니다.
 - RED/GREEN 증거는 TDD를 적용한 작업에만 요구합니다.
 - 워커 컨텍스트가 커지면 턴이 느려집니다(실측: 56k → 550k 토큰, 턴당 7.5초 → 13초 이상).
@@ -183,7 +183,8 @@
 | **Hard** | 여러 파일, 계획 안의 새 구조, 까다로운 로직 | 파서, 동시성, 스크립트와 테스트 세트 |
 | **Hard (UI)** | 시각적 결과에 대한 판단이 필요한 작업 | 인벤토리 화면, 레이아웃 |
 
-파일 하나짜리 수정이나 단순 조회는 표에 올리지 않고 메인 세션이 바로 처리합니다. 워커를 띄우는 비용이 더 크기 때문입니다.
+단순 조회나 몇 줄짜리 수정은 표에 올리지 않고 메인 세션이 바로 처리합니다. 워커를 띄우는 비용이 더 크기 때문입니다.
+그보다 큰 기계적 작업은 파일이 하나여도 Easy로 올려 더 싼 모델에 맡깁니다.
 
 예시:
 
@@ -203,7 +204,7 @@
 | 위치 | 용도 |
 |---|---|
 | `~/.claude/orchestra.json` | 사용자 기본값. 모든 프로젝트에 적용 |
-| `<project>/.orchestra.json` | 프로젝트별 덮어쓰기. 저장소에 커밋해 팀과 공유 가능 |
+| `<project>/.orchestra.json` | 프로젝트별 덮어쓰기. 저장소에 커밋해 팀과 공유 가능. 이 파일의 값은 첫 배정 전에 한 번 확인을 받음([6.3](#63-질문을-건너뛰는-조건)) |
 
 - `routing`은 **키 단위로 병합**하고 프로젝트 값이 이깁니다.
 - `options`는 프로젝트에 있으면 **통째로 대체**하고, 없으면 사용자 값을 씁니다.
@@ -230,7 +231,7 @@
 
 - 값 형식은 `<codex|claude> <model>/<effort>` 입니다.
 - **Codex effort**: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
-  모델마다 지원 범위가 다릅니다. 워커는 Codex 모델 캐시(`~/.codex/models_cache.json`)와 대조해,
+  모델마다 지원 범위가 다릅니다. 워커는 Codex 모델 캐시(`$CODEX_HOME/models_cache.json`, 기본 `~/.codex`)와 대조해,
   캐시에 있는 모델이 그 effort를 지원하지 않으면 Codex를 실행하기 전에 `Status: BLOCKED`와 지원 목록을
   돌려줍니다(예: `gpt-6-luna` + `ultra`). 캐시에 없는 조합은 Codex가 판단하고, 거부하면 Codex의 오류
   문장이 그대로 `Status: BLOCKED`로 나옵니다.
@@ -241,6 +242,8 @@
 
 ### 6.3 질문을 건너뛰는 조건
 작업 표에 나온 **모든 티어에 routing 값이 있으면** 질문 없이 매핑을 한 줄로 보여주고 바로 배정합니다.
+단, 값 하나라도 프로젝트 `.orchestra.json`에서 왔으면 첫 배정 전에 그 매핑을 보여주고 한 번 확인을 받습니다.
+클론한 저장소의 설정이 사용자의 모델 한도를 쓰기 때문입니다.
 값이 없는 티어만 `AskUserQuestion`으로 묻습니다. 사용자는 "Other"로 목록에 없는 모델도 입력할 수 있습니다.
 최종 매핑은 ledger에 `Routing: Easy=..., Medium=..., Hard=...` 형태로 남습니다.
 
@@ -279,9 +282,11 @@ Report: <report path>
   출력은 Codex 워커와 같은 `Scope:` 줄이고, Claude 워커가 **커밋한 파일**도 셉니다.
 
 ```text
-node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" before --cwd "<프로젝트>" --state "<ledger>/task-N-scope.json"
-node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" after --cwd "<프로젝트>" --state "<ledger>/task-N-scope.json" --allowed "<파일>"
+node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" before --cwd "<프로젝트>" --state "<작업공간>/task-N-scope.json"
+node "<orchestrator 스킬 폴더>/scripts/scope-check.mjs" after --cwd "<프로젝트>" --state "<작업공간>/task-N-scope.json" --allowed "<파일>"
 ```
+
+`<작업공간>`은 `sdd-workspace`가 출력하는 계획 폴더(`.orchestra/sdd/<plan>/`)입니다.
 
 ---
 
@@ -297,7 +302,7 @@ Codex 워커는 별도 에이전트 계층 없이, 메인 세션이 **백그라�
 node "<orchestrator 스킬 폴더>/scripts/codex-worker.mjs" \
   --model gpt-6-luna --effort high \
   --cwd "<프로젝트 경로>" \
-  --brief "<ledger>/task-3-codex-prompt.md" \
+  --brief "<작업공간>/task-3-codex-prompt.md" \
   --allowed "src/retry.ts,test/retry.test.ts" \
   [--resume <thread_id>]
 ```
@@ -375,12 +380,13 @@ Codex는 작업마다 thread id를 남깁니다. 수정 라운드에서는 `--re
 
 ### 8.7 Codex 브리프
 메인 세션은 `orchestra:subagent-driven-development/implementer-prompt.md`를 채운 뒤 아래 규칙을 덧붙여
-`<ledger>/task-N-codex-prompt.md`로 저장합니다.
+`<작업공간>/task-N-codex-prompt.md`로 저장합니다.
 
 ```text
 Never run git commit, push, reset or checkout: the sandbox keeps .git
 read-only, and the main session commits after review. Edit only allowed
-files. Never leave long-running servers or editors running. Keep the report
+files. Never leave long-running servers or editors running. Save full test
+output to log files next to [REPORT_FILE] and cite their paths. Keep the report
 at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
 block. Plugin skills are off in this run: where the brief names an
 orchestra: skill, follow the brief's own wording.
@@ -435,7 +441,8 @@ Task 2: complete (workspace changes, review clean, tests: claude plugin validate
 [Claude sonnet/high]    Task 2: 입력 검증
 ```
 
-`SendMessage`로 다음 작업까지 맡긴 Claude 워커는 이름을 바꿀 수 없어 첫 작업 라벨이 그대로 남습니다. 지금 어떤 작업 중인지는 ledger로 봅니다.
+Claude 워커에게 `SendMessage`로 다음 작업을 맡기는 것은 그 작업의 라우팅 값이 같을 때만이고, 보내기 전에 그 작업의 범위 기준을 새로 기록합니다.
+이렇게 재사용한 워커는 이름을 바꿀 수 없어 첫 작업 라벨이 그대로 남습니다. 지금 어떤 작업 중인지는 ledger로 봅니다.
 
 실시간으로 Codex가 어떤 파일을 읽는지까지 보여주지는 않습니다. "무엇이, 어떤 설정으로 돌고 있는가"만 한눈에 보이면 된다는 것이 설계 방향입니다.
 
@@ -656,7 +663,7 @@ orchestra/
 - 오케스트레이터는 **스킬이 에이전트에게 요청하는 운영 규칙**입니다. 호스트 모델이 규칙을 어기는 것을 기술적으로 막지는 못합니다. 범위 검사와 메인 세션 리뷰가 그 빈틈을 줄입니다.
 - 범위 검사는 `.gitignore`된 파일의 변경을 보지 못합니다. 그런 경로를 다루는 작업은 diff와 리포트로 확인합니다.
 - Claude 워커의 범위 검사는 메인 세션이 `scope-check.mjs`를 불러야 돕니다(스킬 규칙). Codex 워커처럼 실행 스크립트가 강제하지는 않습니다.
-- 같은 체크아웃에서 병렬로 도는 워커끼리는 서로의 변경이 `Scope`에 보입니다([8.5](#85-thread-id로-재개) 참고).
+- 같은 체크아웃에서 병렬로 도는 워커끼리는 서로의 변경이 `Scope`에 보입니다([8.5](#85-thread-id로-재개) 참고). 같은 이유로 워커가 도는 동안 메인 세션은 그 체크아웃을 수정하지 않습니다.
 - Claude 워커는 `sonnet` 별칭을 써서 새 Sonnet을 자동으로 따릅니다. Codex 모델 이름(`gpt-6-luna` 등)은 라우팅 설정에서 바꿉니다.
 - `--cwd`는 저장소 루트로 씁니다. ledger가 루트에 있어서, 하위 폴더를 `--cwd`로 주면 Codex가 리포트를 쓸 수 없습니다. 수정 범위는 `--allowed`로 좁힙니다.
 - Codex 워커의 실시간 세부 진행은 TUI에 나오지 않습니다(의도된 선택).
