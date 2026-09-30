@@ -73,6 +73,19 @@ class WorktreeCleanupTests(unittest.TestCase):
         merged = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", "feat", "main"])
         self.assertEqual(merged.returncode, 0)
 
+    def test_failed_merge_fails_the_block_without_running_tests(self):
+        # Tests on the unmerged base would pass and hide the failed merge.
+        repo = self.repo_with_feature(self.temp_dir("finish-merge-"))
+        for branch in ("feat", "main"):
+            git(repo, "checkout", "-q", branch)
+            (repo / "f.txt").write_text(branch, encoding="utf-8")
+            git(repo, "add", "f.txt")
+            git(repo, "commit", "-q", "-m", branch)
+        result = self.run_block("git merge <feature-branch>", repo, **{
+            "<base-branch>": "main", "<feature-branch>": "feat", "<test command>": "touch tests-ran"})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse((repo / "tests-ran").exists())
+
     def test_merge_from_bare_repository_worktree_does_not_merge_in_place(self):
         # A bare repository has no main worktree to change into.
         temp = self.temp_dir("finish-bare-")
