@@ -15,7 +15,9 @@ Inputs:
 
 Read every file under BUNDLE in full (these are condensed files, not raw
 transcripts; still check `wc -c` first and read in chunks if a file is larger
-than 200 KB). Apply the shared policy to every file, including quoted
+than 200 KB). Run the policy's pattern pass first; every hit your human
+partner has not confirmed as a non-secret is a Secrets miss. Apply the
+shared policy to every file, including quoted
 transcript text, commit messages, git author lines, and encrypted payloads.
 Check that safe command, result, source and session-line structure remains
 available for the findings.

@@ -19,11 +19,12 @@ numbers assigned in order of first appearance. Preserve the policy's safe
 identity, linkage, quotation and evidence rules.
 
 Procedure:
-1. `find BUNDLE -type f` and process every file, including
+1. Run the policy's pattern pass on BUNDLE and redact every hit. Then
+   `find BUNDLE -type f` and process every file, including
    `environment.json` and `findings/*.md`.
 2. Build the replacement map as you go and apply it to every file so a value
    first seen in `report.md` is also replaced in `transcripts/`.
-3. After rewriting, recount occurrences in all final non-log bundle files,
+3. After rewriting, rerun the pattern pass and resolve every hit. Recount occurrences in all final non-log bundle files,
    excluding `scrub-log.md`. Write `BUNDLE/scrub-log.md` as a table of
    placeholder → category → count. Never write a plaintext replacement map or
    an original value into the log.

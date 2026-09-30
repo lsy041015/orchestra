@@ -46,8 +46,10 @@ Create a todo per applicable step and keep the original records read-only.
    `lsy041015/orchestra` in `PUBLIC_REPOS`. Then show the exact scrubbed text
    and create an issue only after the user's explicit approval.
 6. **Export.** Build a bundle only when requested. Ask the redaction level
-   (skeleton, evidence, or full), apply `templates/bundle-README.md`, and run
-   `prompts/scrub.md` followed by `prompts/scrub-audit.md` until CLEAN. Reconcile
+   (skeleton, evidence, or full); say that full includes every tool output,
+   which can be private source code. Apply `templates/bundle-README.md`, and run
+   `prompts/scrub.md` followed by `prompts/scrub-audit.md` until CLEAN. An
+   unresolved hit from the redaction policy's pattern pass blocks export. Reconcile
    the evidence, file list, counts, and privacy result before showing them.
    Archive only after approval; tell the user what it contains and that
    scrubbing is not a privacy certification.

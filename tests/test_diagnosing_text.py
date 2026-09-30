@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import os
 import re
+import subprocess
+import tempfile
 import unittest
 
 
@@ -45,6 +48,30 @@ class DiagnosingTextTests(unittest.TestCase):
             self.assertIn(encoded, policy)
         self.assertIn("`<PROJECT-n>`", policy)
         self.assertIn("<PROJECT-", read("templates/bundle-README.md"))
+
+    def test_pattern_pass_catches_common_token_shapes(self):
+        section = read("references/redaction-policy.md").split("## Pattern pass")[1]
+        command = re.search(r"```bash\n(.*?)```", section, re.S).group(1)
+        # Built at runtime so the repository holds no token-shaped strings.
+        tokens = {
+            "github": "gh" + "p_" + "a1" * 18, "oauth": "gh" + "o_" + "b" * 36,
+            "pat": "github" + "_pat_" + "11AB" * 6, "openai": "KEY=s" + "k-proj-" + "x" * 30,
+            "anthropic": "s" + "k-ant-api03-" + "y" * 40, "aws": "AK" + "IA" + "ABCDEFGHIJKLMNOP",
+            "slack": "xo" + "xb-1234-5678-abcdef", "jwt": "ey" + "JhbGciOiJIUzI1NiJ9.ey" + "JzdWIiOiIxMjM0NTY3ODkwIn0.s",
+            "pem": "-----BEGIN RSA" + " PRIVATE KEY-----", "userinfo": "https://alice:" + "hunter2@git.example.com/x",
+        }
+        clean = "task-driven-development-workflow <SECRET-1> https://github.com/lsy041015/orchestra http://h:8080/a@b"
+        with tempfile.TemporaryDirectory() as bundle:
+            for name, text in {**tokens, "clean": clean}.items():
+                Path(bundle, name).write_text(f"x {text}\n", encoding="utf-8")
+            out = subprocess.run(["bash", "-c", command], env={**os.environ, "BUNDLE": bundle},
+                                 capture_output=True, text=True).stdout
+        self.assertEqual({Path(line.split(":")[0]).name for line in out.splitlines()}, set(tokens))
+        for prompt in ("prompts/scrub.md", "prompts/scrub-audit.md"):
+            self.assertIn("pattern pass", read(prompt))
+        export = " ".join(step(6).split())
+        self.assertIn("blocks export", export)
+        self.assertIn("private source code", export)
 
 
 if __name__ == "__main__":
