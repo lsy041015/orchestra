@@ -39,6 +39,13 @@ class DiagnosingTextTests(unittest.TestCase):
         self.assertIn("never put it in a command line", similar)
         self.assertIn("prompts/similar-session.md` step 2", " ".join(step(7).split()))
 
+    def test_dash_encoded_project_folders_are_redacted(self):
+        policy = read("references/redaction-policy.md")
+        for encoded in ("-home-", "-Users-", "C--Users-"):
+            self.assertIn(encoded, policy)
+        self.assertIn("`<PROJECT-n>`", policy)
+        self.assertIn("<PROJECT-", read("templates/bundle-README.md"))
+
 
 if __name__ == "__main__":
     unittest.main()
