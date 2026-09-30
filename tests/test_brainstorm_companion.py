@@ -148,12 +148,26 @@ process.stdout.write(JSON.stringify(sent));
         _, session = self.serve(tmp, [], env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
         # mktemp's random suffix, not the guessable "$$-<time>" name.
         self.assertRegex(session.name, r"^brainstorm-[A-Za-z0-9]{6,}$")
-        subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)], capture_output=True)
+        subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)], capture_output=True, env=env)
         for _ in range(50):
             if not session.exists():
                 break
             time.sleep(0.1)
         self.assertFalse(session.exists())
+
+    def test_stop_keeps_a_project_session_below_the_temp_root(self):
+        # Only $TMPDIR/brainstorm-* itself is a temp session; a --project-dir
+        # session inside such a directory must survive stop.
+        tmp = self.temp_dir("brainstorm-deep-")
+        project = tmp / "brainstorm-project"
+        project.mkdir()
+        env = {**os.environ, "TMPDIR": str(tmp).replace("\\", "/")}
+        _, session = self.serve(project, ["--project-dir", str(project)], env=env,
+                                info_glob=(project, ".orchestra/brainstorm/*/state/server-info"))
+        result = subprocess.run([BASH, str(SCRIPTS / "stop-server.sh"), str(session)],
+                                capture_output=True, text=True, encoding="utf-8", env=env)
+        self.assertIn('"stopped"', result.stdout)
+        self.assertTrue((session / "content").is_dir())
 
     def test_url_names_the_bound_address(self):
         # "localhost" may resolve to ::1 first, where another local user can
