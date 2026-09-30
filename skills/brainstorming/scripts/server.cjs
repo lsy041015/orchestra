@@ -112,12 +112,13 @@ let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_
 // and, when bound to a non-loopback host, by any host that can route to it.
 // The key authenticates the real client uniformly across loopback, tunnel, and
 // remote binds — and defeats DNS rebinding — where a Host/Origin allowlist
-// cannot. It rides the served URL as ?key= and is mirrored into a cookie on
-// first load so same-origin subresources and the WebSocket carry it for free.
+// cannot. It rides the served URL as ?key=, which the page keeps: the helper
+// hands it to the WebSocket, and same-origin subresources (/files/*) carry it
+// in their Referer. Never a cookie: cookies ignore the port (RFC 6265 §8.5),
+// so every other server on this host would receive it.
 // Fresh on every start, never persisted: a key captured from one server dies
 // with it instead of unlocking every later restart of the session.
 const TOKEN = process.env.BRAINSTORM_TOKEN || crypto.randomBytes(32).toString('hex');
-let COOKIE_NAME = 'brainstorm-key-' + PORT; // refined to the actual bound port in onListen
 
 const MIME_TYPES = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
@@ -152,20 +153,6 @@ h1 { color: #333; } p { color: #666; } code { background: #f0f0f0; padding: 0.1e
 <body><h1>Session key required</h1>
 <p>This page needs the full URL your coding agent gave you, including the
 <code>?key=&hellip;</code> part. Copy the complete URL and open it again.</p></body></html>`;
-
-function bootstrapPage(key) {
-  const jsonKey = JSON.stringify(String(key));
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Opening Brainstorm Companion</title></head>
-<body>
-<script>
-try { sessionStorage.setItem('brainstorm-session-key', ${jsonKey}); } catch (e) {}
-location.replace('/');
-</script>
-</body>
-</html>`;
-}
 
 const frameTemplate = fs.readFileSync(path.join(__dirname, 'frame-template.html'), 'utf-8');
 const helperScript = fs.readFileSync(path.join(__dirname, 'helper.js'), 'utf-8');
@@ -281,31 +268,13 @@ function timingSafeEqualStr(a, b) {
   return crypto.timingSafeEqual(ab, bb);
 }
 
-function parseCookies(header) {
-  const out = {};
-  if (!header) return out;
-  for (const part of header.split(';')) {
-    const eq = part.indexOf('=');
-    if (eq < 0) continue;
-    out[part.slice(0, eq).trim()] = part.slice(eq + 1).trim();
-  }
-  return out;
-}
-
-// A request is authorized if it carries the session key as ?key= or as the
-// session cookie. Both are compared in constant time.
+// A request is authorized if it carries the session key as ?key=, or — for a
+// same-origin subresource such as /files/* — in the Referer of the keyed page.
+// Referrer-Policy: same-origin keeps that Referer off every other origin.
+// Compared in constant time.
 function isAuthorized(req) {
-  const q = req.url.indexOf('?');
-  if (q >= 0) {
-    const params = new URLSearchParams(req.url.slice(q + 1));
-    if (params.has('key')) {
-      const key = params.get('key');
-      return Boolean(key && timingSafeEqualStr(key, TOKEN));
-    }
-  }
-  const cookie = parseCookies(req.headers['cookie'])[COOKIE_NAME];
-  if (cookie && timingSafeEqualStr(cookie, TOKEN)) return true;
-  return false;
+  const key = queryKey(req.url) ?? queryKey(req.headers['referer'] || '');
+  return Boolean(key && timingSafeEqualStr(key, TOKEN));
 }
 
 function pathnameOf(url) {
@@ -321,7 +290,7 @@ function queryKey(url) {
 
 function securityHeaders(headers = {}) {
   return {
-    'Referrer-Policy': 'no-referrer',
+    'Referrer-Policy': 'same-origin',
     'Cache-Control': 'no-store',
     'X-Frame-Options': 'DENY',
     'Content-Security-Policy': "frame-ancestors 'none'",
@@ -360,18 +329,8 @@ function serveRequest(req, res) {
   }
   touchActivity(); // only authorized requests count as activity
 
-  // Mirror the key into a cookie so same-origin subresources (/files/*) can
-  // authenticate after bootstrap. HttpOnly keeps it away from page scripts; the
-  // WebSocket Origin check below is what blocks cross-origin localhost injection.
-  res.setHeader('Set-Cookie',
-    COOKIE_NAME + '=' + TOKEN + '; HttpOnly; SameSite=Strict; Path=/');
-
   const pathname = pathnameOf(req.url);
-  const keyFromQuery = queryKey(req.url);
-  if (req.method === 'GET' && pathname === '/' && keyFromQuery && timingSafeEqualStr(keyFromQuery, TOKEN)) {
-    res.writeHead(200, securityHeaders({ 'Content-Type': 'text/html; charset=utf-8' }));
-    res.end(bootstrapPage(keyFromQuery));
-  } else if (req.method === 'GET' && pathname === '/') {
+  if (req.method === 'GET' && pathname === '/') {
     const screenFile = getNewestScreen();
     let html = screenFile
       ? (raw => isFullDocument(raw) ? raw : wrapInFrame(raw))(fs.readFileSync(screenFile, 'utf-8'))
@@ -635,10 +594,6 @@ function startServer() {
   let triedFallback = false;
 
   function onListen() {
-    // Cookie name keys on the ACTUAL bound port (may differ from the preferred
-    // one after an EADDRINUSE fallback) so it can't collide with another server's
-    // cookie in the shared localhost jar.
-    COOKIE_NAME = 'brainstorm-key-' + PORT;
     if (!process.env.BRAINSTORM_URL_HOST) URL_HOST = server.address().address;
     // Record the bound port so the next restart of this session reuses it — but
     // ONLY when we got our preferred port. On a fallback we bound a *different*

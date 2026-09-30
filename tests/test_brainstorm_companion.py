@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """The visual companion stays local and keeps its session files out of git."""
 from pathlib import Path
-import http.cookiejar
 import json
 import os
 import re
@@ -10,6 +9,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -112,11 +112,10 @@ process.stdout.write(JSON.stringify(sent));
         info, _ = self.serve(project, ["--project-dir", "."],
                              info_glob=(project, ".orchestra/brainstorm/*/state/server-info"))
         (Path(info["screen_dir"]) / "my logo.txt").write_text("hello", encoding="utf-8")
-        opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-        opener.open(info["url"], timeout=10).read()
         base = info["url"].split("?")[0].rstrip("/")
-        body = opener.open(base + "/files/my%20logo.txt", timeout=10).read().decode("utf-8")
+        # A browser sends the keyed page URL as the Referer of its subresources.
+        request = urllib.request.Request(base + "/files/my%20logo.txt", headers={"Referer": info["url"]})
+        body = urllib.request.urlopen(request, timeout=10).read().decode("utf-8")
         self.assertEqual(body, "hello")
 
     def test_stop_leaves_an_unidentified_live_process_alone(self):
@@ -181,6 +180,20 @@ process.stdout.write(JSON.stringify(sent));
         second, _ = self.serve(project, ["--project-dir", str(project)], info_glob=where)
         self.assertEqual(second["port"], first["port"])
         self.assertNotEqual(second["url"], first["url"])
+
+    def test_session_key_never_rides_a_cookie(self):
+        # Cookies ignore the port, so every other server on this host would get it.
+        tmp = self.temp_dir("brainstorm-cookie-")
+        env = {**os.environ, "TMPDIR": str(tmp).replace("\\", "/")}
+        info, _ = self.serve(tmp, [], env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
+        page = urllib.request.urlopen(info["url"], timeout=10)
+        self.assertIsNone(page.headers.get("Set-Cookie"))
+        # The keyed URL serves the screen itself, so reloads keep the key.
+        self.assertIn("Waiting for the agent", page.read().decode("utf-8"))
+        (Path(info["screen_dir"]) / "a.txt").write_text("x", encoding="utf-8")
+        with self.assertRaises(urllib.error.HTTPError) as denied:
+            urllib.request.urlopen(info["url"].split("?")[0] + "files/a.txt", timeout=10)
+        self.assertEqual(denied.exception.code, 403)
 
 
 if __name__ == "__main__":

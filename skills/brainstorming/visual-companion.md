@@ -49,9 +49,10 @@ Save `screen_dir` and `state_dir` from the response. With `--open`, the browser 
 without it, so always give the user the **complete** URL from the `url` field —
 never strip the query string, and never hand out a bare `http://host:port`. The
 key gates HTTP and WebSocket access so a stray browser tab or another machine on
-the network can't read the screens or inject events. After the first load the
-browser remembers the key via a cookie, so reloads and `/files/*` assets work
-without repeating it.
+the network can't read the screens or inject events. The key stays in the page
+URL, so reloads work, and same-origin `/files/*` assets are vouched for by the
+page's `Referer`, so they work without repeating it. There is no cookie: a
+cookie would also reach every other server on the same host.
 
 **Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.orchestra/brainstorm/` for the session directory.
 

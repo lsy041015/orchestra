@@ -22,26 +22,11 @@
   let everConnected = false;
   let tombstoneShown = false;
 
-  function sessionKey() {
-    try {
-      return window.sessionStorage && window.sessionStorage.getItem('brainstorm-session-key');
-    } catch (e) {}
-    return null;
-  }
-
   function websocketUrl() {
-    const key = sessionKey();
+    // The page URL keeps the session key (?key=); the WebSocket needs it too.
+    const key = new URLSearchParams(window.location.search).get('key');
     const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
     return scheme + window.location.host + (key ? '/?key=' + encodeURIComponent(key) : '');
-  }
-
-  function reloadAfterRecovery() {
-    const key = sessionKey();
-    if (key) {
-      window.location.replace('/?key=' + encodeURIComponent(key));
-    } else {
-      window.location.reload();
-    }
   }
 
   // Reflect connection state in the frame's status pill (absent on full-doc screens).
@@ -89,10 +74,9 @@
       setStatus('connected');
       eventQueue.forEach(e => ws.send(JSON.stringify(e)));
       eventQueue = [];
-      // Recovered from a tombstoned outage (e.g. the server restarted on the same
-      // port) — reload through the keyed bootstrap when possible so the cookie is
-      // refreshed before the visible URL returns to bare /.
-      if (recovered) reloadAfterRecovery();
+      // Recovered from a tombstoned outage — reload to drop the overlay and
+      // show the current screen.
+      if (recovered) window.location.reload();
     };
 
     ws.onmessage = (msg) => {
