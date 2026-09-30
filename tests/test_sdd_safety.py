@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regression tests for SDD workspace safety and task completion."""
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -70,6 +71,27 @@ class SddSafetyTests(unittest.TestCase):
         marker.write_text(plan_abs, encoding="utf-8")
         legacy = self.run_script(WORKSPACE, plan)
         self.assertEqual(legacy.stdout, first.stdout, legacy.stderr)
+
+    @unittest.skipIf(os.name == "nt" or os.geteuid() == 0, "needs a directory the user cannot write")
+    def test_workspace_that_cannot_be_created_is_an_error(self):
+        # Creation failure used to read as "owned by another plan": an endless slug loop.
+        base = self.root / ".orchestra/sdd"
+        base.mkdir(parents=True)
+        base.chmod(0o555)
+        self.addCleanup(base.chmod, 0o755)
+        result = subprocess.run([BASH, str(WORKSPACE), str(self.plan)], cwd=self.root, capture_output=True,
+                                text=True, encoding="utf-8", timeout=30)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("cannot create workspace", result.stderr)
+
+    def test_workspace_outside_a_git_repository_is_an_error(self):
+        plain = Path(self.temp.name) / "plain"
+        plain.mkdir()
+        (plain / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        result = subprocess.run([BASH, str(WORKSPACE), "plan.md"], cwd=plain, capture_output=True, text=True,
+                                encoding="utf-8", env={**os.environ, "GIT_CEILING_DIRECTORIES": self.temp.name})
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse((plain / ".orchestra").exists())
 
     def baseline(self):
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
