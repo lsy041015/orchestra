@@ -44,7 +44,10 @@ slug=$(basename "$plan" .md)
 
 # Physical spelling, like plan_dir below: Git Bash prints C:/... from rev-parse
 # but /c/... from pwd -P, which would make every marker absolute.
-root=$(CDPATH= cd -- "$(git rev-parse --show-toplevel)" && pwd -P)
+# On its own line so set -e stops a run outside a repository; inside $(...)
+# the failure would leave `cd -- ""`, which stays in the current directory.
+top=$(git rev-parse --show-toplevel)
+root=$(CDPATH= cd -- "$top" && pwd -P)
 base="$root/.orchestra/sdd"
 [ ! -L "$root/.orchestra" ] && [ ! -L "$base" ] || {
   echo "workspace path contains a symlink: $base" >&2
@@ -74,8 +77,12 @@ owns() {
     marker=$(cat "$1/plan-path")
     [ "$marker" = "$plan_id" ] || [ "$marker" = "$plan_abs" ]
   else
-    mkdir -p "$1"
-    printf '%s\n' "$plan_id" > "$1/plan-path"
+    # Exit here: set -e is off inside `if ! owns`, and a failed creation read
+    # as another plan's workspace would try the next slug forever.
+    { mkdir -p "$1" && printf '%s\n' "$plan_id" > "$1/plan-path"; } || {
+      echo "cannot create workspace: $1" >&2
+      exit 2
+    }
   fi
 }
 
