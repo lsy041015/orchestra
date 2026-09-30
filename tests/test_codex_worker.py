@@ -219,9 +219,12 @@ class CodexWorkerTests(unittest.TestCase):
                 self.assertFalse((self.root / "argv.json").exists())
 
     def test_rejects_bad_resume(self):
-        result = self.run_worker("--resume", "t-123\n")
-        self.assertEqual(result.returncode, 2)
-        self.assertFalse((self.root / "argv.json").exists())
+        # An option-like id would reach `codex exec resume` as a flag.
+        for thread in ("t-123\n", "--dangerously-bypass-approvals-and-sandbox", "-"):
+            with self.subTest(thread=repr(thread)):
+                result = self.run_worker("--resume", thread)
+                self.assertEqual(result.returncode, 2)
+                self.assertFalse((self.root / "argv.json").exists())
 
     def test_non_git_dir_scope_unchecked(self):
         with tempfile.TemporaryDirectory(prefix="codex-worker-plain-") as temp:
