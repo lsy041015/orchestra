@@ -34,7 +34,7 @@ TEST_PATTERN="${TEST_PATTERN#./}"
 # find -path can't match '**/' against zero directory levels, so a pattern
 # like src/**/*.test.ts would skip src/top.test.ts; also try the pattern
 # with '**/' collapsed to cover files directly under the base directory.
-TEST_FILES=$(find . \( -path ./node_modules -o -path ./.git \) -prune -o \
+TEST_FILES=$(find . \( -name node_modules -o -name .git \) -prune -o \
   \( -path "./$TEST_PATTERN" -o -path "./${TEST_PATTERN//\*\*\//}" \) -print | sort -u)
 if [ -z "$TEST_FILES" ]; then
   TOTAL=0
@@ -53,8 +53,8 @@ while IFS= read -r TEST_FILE; do
 
   echo "[$COUNT/$TOTAL] Testing: $TEST_FILE"
 
-  # Run the test
-  npm test "$TEST_FILE" > /dev/null 2>&1 || true
+  # Run the test; stdin is the file list, which a test must not read.
+  npm test "$TEST_FILE" < /dev/null > /dev/null 2>&1 || true
 
   # Check if pollution appeared
   if [ -e "$POLLUTION_CHECK" ]; then

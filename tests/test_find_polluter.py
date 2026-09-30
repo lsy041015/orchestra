@@ -37,6 +37,20 @@ class FindPolluterTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("dirty one.test.js", result.stdout)
 
+    def test_test_reading_stdin_does_not_eat_the_file_list(self):
+        # Sorted before the polluter; it would swallow the rest of the loop's input.
+        (self.root / "a-reader.test.js").write_text("require('fs').readFileSync(0);", encoding="utf-8")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("dirty one.test.js", result.stdout)
+
+    def test_nested_dependency_and_git_dirs_are_skipped(self):
+        for nested in ("pkg/node_modules/dep", "pkg/.git/hooks"):
+            (self.root / nested).mkdir(parents=True)
+            (self.root / nested / "x.test.js").write_text("", encoding="utf-8")
+        result = self.run_script()
+        self.assertIn("Found 2 test files", result.stdout)
+
     def test_existing_pollution_is_an_error_not_clean(self):
         (self.root / "polluted").write_text("x", encoding="utf-8")
         result = self.run_script()
