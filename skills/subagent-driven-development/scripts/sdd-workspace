@@ -72,18 +72,17 @@ owns() {
     echo "workspace path contains a symlink: $1" >&2
     exit 2
   }
-  if [ -e "$1/plan-path" ]; then
-    # Older Windows runs wrote the absolute spelling; keep resolving those.
-    marker=$(cat "$1/plan-path")
-    [ "$marker" = "$plan_id" ] || [ "$marker" = "$plan_abs" ]
-  else
-    # Exit here: set -e is off inside `if ! owns`, and a failed creation read
-    # as another plan's workspace would try the next slug forever.
-    { mkdir -p "$1" && printf '%s\n' "$plan_id" > "$1/plan-path"; } || {
-      echo "cannot create workspace: $1" >&2
-      exit 2
-    }
-  fi
+  # Exit here: set -e is off inside `if ! owns`, and a failed creation read
+  # as another plan's workspace would try the next slug forever.
+  mkdir -p "$1" || { echo "cannot create workspace: $1" >&2; exit 2; }
+  # noclobber makes the claim atomic: of two plans racing for one slug, only
+  # the first creates the marker. A missing marker means a new workspace or a
+  # pre-marker legacy one; an existing marker must name this plan.
+  (set -C; printf '%s\n' "$plan_id" > "$1/plan-path") 2>/dev/null || true
+  [ -e "$1/plan-path" ] || { echo "cannot create workspace: $1" >&2; exit 2; }
+  # Older Windows runs wrote the absolute spelling; keep resolving those.
+  marker=$(cat "$1/plan-path")
+  [ "$marker" = "$plan_id" ] || [ "$marker" = "$plan_abs" ]
 }
 
 dir="$base/$slug"
