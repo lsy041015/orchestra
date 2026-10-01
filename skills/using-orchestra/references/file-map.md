@@ -1,6 +1,6 @@
 # Orchestra file map
 
-Which file to read in which situation. Paths are relative to `skills/`.
+Which file to read in which situation. Paths are relative to `skills/` (script paths such as `scripts/...` are relative to their own skill).
 
 Rules:
 - Read the `SKILL.md` of the skill that fires, nothing else of that skill, until
@@ -28,7 +28,7 @@ Rules:
 | Situation | Read |
 |---|---|
 | Claude Code, plan split into difficulty tiers | `orchestrator/SKILL.md` |
-| A tier has no confirmed routing value | `orchestrator/modules/routing.md` |
+| A routing config file exists or the user named Codex | `orchestrator/modules/routing.md` |
 | Dispatching a task to a Claude worker | `orchestrator/modules/dispatch-claude.md` |
 | Dispatching a task to a Codex worker | `orchestrator/modules/dispatch-codex.md` |
 | A worker result is ready to review or fix | `orchestrator/modules/review-loop.md` |

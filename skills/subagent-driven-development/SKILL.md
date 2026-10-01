@@ -30,7 +30,7 @@ requested independent parallel implementation.
   evidence. Do not create a separate review agent or claim independent review.
 - Reuse one worker for related tasks and fixes. After two failed fix attempts with
   the same root cause, the main agent changes the diagnosis or takes the work inline;
-  there is no model escalation or fresh-worker rescue path.
+  there is no model escalation or fresh-worker rescue path, except a model switch the user requests.
 - TDD, systematic debugging, verification-before-completion, user-change
   preservation, and safety requirements remain in force.
 
@@ -43,7 +43,7 @@ it outlives the session, never in a session scratchpad or `/tmp`: the ledger
 is the recovery map. Do not initialize a
 repository or create commits merely to satisfy workflow bookkeeping.
 
-1. Confirm the approved plan and its Global Constraints. Use
+1. Confirm the plan is approved (kickoff approval or an explicit request to execute counts) and read its Global Constraints. Use
    `orchestra:using-git-worktrees` to create or verify an
    isolated workspace; never assume a clean baseline.
 2. Resolve this plan's workspace with `scripts/sdd-workspace PLAN_FILE` and
@@ -148,7 +148,7 @@ fix diff join the list; unrelated observations go in the ledger.
 After two failed fix attempts with the same root cause, stop the loop and write a
 main-agent `Ruling:`. Change the plan or implement the smallest safe correction
 inline. Count post-review fix attempts; the initial implementation is not a
-fix round. Never dispatch a fresh implementer or a higher-tier child as a retry.
+fix round. Never dispatch a fresh implementer or a higher-tier child as a retry, unless the user asked to switch the task's model.
 
 When the task is clean, record:
 

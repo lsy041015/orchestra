@@ -16,7 +16,7 @@ Outside Git, use the approved working directory, brief, progress file, and
 before/after file comparisons. Skip Git-only helpers; do not create a
 repository or commits just for workflow bookkeeping.
 
-1. Verify the approved plan, repository instructions, worktree, branch, and
+1. Verify the plan is approved (kickoff approval or an explicit request to execute counts), repository instructions, worktree, branch, and
    current user changes. Use `orchestra:using-git-worktrees` when
    isolation is required; never erase unrelated edits.
 2. Resolve the plan workspace with
