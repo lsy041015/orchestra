@@ -64,20 +64,41 @@ export async function repoScope(cwd, allowed) {
   return { root, allows: (file) => files.has(file) || dirs.some((dir) => file.startsWith(dir)) };
 }
 
-export async function snapshot(root) {
-  // No rename detection: a rename's old path must count as a change too.
-  // --ignored: a worker's .env, dist/ or node_modules/ is invisible otherwise.
-  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames',
-    '--ignored=matching']);
+// The paths to hash, as { file, ignored }. The top level uses git status,
+// which lists only what differs from HEAD; its config and attributes are the
+// user's own, which the user's git status runs anyway. A nested repository
+// may be the worker's: git status there reads file contents through its
+// filter drivers, so a `filter.<x>.clean` in its .git/config would run on the
+// host. ls-files reads only the index and the ignore rules, never a file.
+async function entries(root, nested) {
+  if (!nested) {
+    // No rename detection: a rename's old path must count as a change too.
+    // --ignored: a worker's .env, dist/ or node_modules/ is invisible otherwise.
+    const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames',
+      '--ignored=matching']);
+    if (result.error) return result;
+    return { list: result.output.split('\0').filter((entry) => entry.length >= 4)
+      .map((entry) => ({ file: entry.slice(3), ignored: entry.startsWith('!!') })) };
+  }
+  const listed = await git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
+  if (listed.error) return listed;
+  const ignored = await git(root, ['ls-files', '-z', '--others', '--ignored', '--exclude-standard',
+    '--directory']);
+  if (ignored.error) return ignored;
+  const split = (output) => output.split('\0').filter(Boolean);
+  return { list: [...split(listed.output).map((file) => ({ file, ignored: false })),
+    ...split(ignored.output).map((file) => ({ file, ignored: true }))] };
+}
+
+export async function snapshot(root, nested = false) {
+  const result = await entries(root, nested);
   if (result.error) return result;
   const files = new Map();
-  for (const entry of result.output.split('\0')) {
-    if (entry.length < 4) continue;
-    const file = entry.slice(3);
+  for (const { file, ignored } of result.list) {
     const normalized = file.replace(/\\/g, '/');
     // The orchestra workspace (ledger, briefs, this state file) is written by
     // the main session, not the worker.
-    if (entry.startsWith('!!') && /^\.orchestra(\/|$)/.test(normalized)) continue;
+    if (ignored && /^\.orchestra(\/|$)/.test(normalized)) continue;
     let hash = 'deleted';
     let stat;
     try {
@@ -93,21 +114,22 @@ export async function snapshot(root) {
     }
     // An ignored directory is one entry: its own mtime catches files added or
     // removed directly in it. ponytail: edits deeper down are missed.
-    if (stat?.isDirectory() && !entry.startsWith('!!')) {
+    if (stat?.isDirectory() && !ignored) {
       hash = 'directory';
       // A submodule or an untracked nested repository shows up as one
-      // directory, so its own status is merged in under that path, and its
+      // directory, so its own files are merged in under that path, and its
       // HEAD stands for the directory to catch commits made inside it.
       const dir = path.resolve(root, file);
       const top = await git(dir, ['rev-parse', '--show-cdup']);
-      const inner = !top.error && !top.output.trim() && await snapshot(dir);
+      const inner = !top.error && !top.output.trim() && await snapshot(dir, true);
       if (inner && !inner.error) {
         hash = `HEAD ${inner.head}`;
         const prefix = normalized.replace(/\/?$/, '/');
         for (const [name, value] of inner.files) files.set(prefix + name, value);
       }
     }
-    files.set(normalized, hash);
+    // The mark lets compare() label the entry for the reviewer.
+    files.set(normalized, ignored ? `!! ${hash}` : hash);
   }
   // A file committed during the run is clean again, so HEAD is recorded too.
   const head = await git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']);
@@ -127,7 +149,12 @@ export async function compare(repo, before, after) {
     if (committed.error) return `unchecked (git: ${committed.error})`;
     for (const file of committed.output.split('\0')) if (file) changed.add(file);
   }
-  const outside = [...changed].filter((file) => !repo.allows(file)).sort();
+  // Caches the task's own commands write (__pycache__/, build/) are gitignored,
+  // so the label lets the reviewer tell them from a stray .env.
+  const ignored = (file) => [before.files.get(file), after.files.get(file)]
+    .some((hash) => hash?.startsWith('!! '));
+  const outside = [...changed].filter((file) => !repo.allows(file)).sort()
+    .map((file) => (ignored(file) ? `${file} (ignored)` : file));
   return outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok';
 }
 
