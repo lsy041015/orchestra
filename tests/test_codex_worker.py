@@ -123,6 +123,7 @@ class CodexWorkerTests(unittest.TestCase):
 
     def test_cwd_holding_the_home_directory_is_rejected(self):
         # The sandbox could write ~/.ssh and shell profiles from there.
+        (self.root / "user").mkdir()  # a real home exists, so realpath can resolve it
         for home in (self.root, self.root / "user"):
             result = self.run_worker(home=home)
             self.assertEqual(result.returncode, 2)
