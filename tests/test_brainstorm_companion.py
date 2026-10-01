@@ -223,9 +223,9 @@ process.stdout.write(JSON.stringify(sent));
 
     def test_error_lines_are_valid_json_and_symlinked_workspace_is_refused(self):
         start = [BASH, str(SCRIPTS / "start-server.sh")]
-        bad = subprocess.run([*start, "--project-dir", 'no"such\\dir'], capture_output=True,
+        bad = subprocess.run([*start, "--project-dir", 'no"such\\dir\nline\ttab'], capture_output=True,
                              text=True, encoding="utf-8")
-        self.assertEqual(json.loads(bad.stdout)["error"], 'No such directory: no"such\\dir')
+        self.assertEqual(json.loads(bad.stdout)["error"], 'No such directory: no"such\\dir\nline\ttab')
         project = self.temp_dir("brainstorm-link-")
         elsewhere = self.temp_dir("brainstorm-elsewhere-")
         try:
