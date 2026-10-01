@@ -47,6 +47,12 @@ Do not claim independent review, diagnosis, or validation that was not run.
 Keep TDD, systematic debugging, user-change protection, security checks,
 hardware calibration and other safety requirements from the relevant skills.
 
+## File map
+
+Before opening any Orchestra file beyond the `SKILL.md` that fired, check
+`references/file-map.md`: it names the one file each situation needs. Do not
+read whole skills or directories.
+
 ## Host reference
 
 This edition runs on Codex and Claude Code. Use `references/codex-tools.md` on

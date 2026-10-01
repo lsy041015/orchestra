@@ -13,7 +13,8 @@ BASH = shutil.which("bash") or "bash"
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills/finishing-a-development-branch/SKILL.md"
+SKILL_DIR = ROOT / "skills/finishing-a-development-branch"
+SKILL_FILES = [SKILL_DIR / "SKILL.md", *sorted(SKILL_DIR.glob("modules/*.md"))]
 
 
 def git(repo, *args):
@@ -27,7 +28,7 @@ class WorktreeCleanupTests(unittest.TestCase):
     def setUpClass(cls):
         cls.blocks = [body for _, body in re.findall(
             r"^([ \t]*)```bash\n(.*?)^\1```[ \t]*$",
-            SKILL.read_text(encoding="utf-8"), re.S | re.M)]
+            "\n".join(f.read_text(encoding="utf-8") for f in SKILL_FILES), re.S | re.M)]
 
     def temp_dir(self, prefix):
         temp = tempfile.TemporaryDirectory(prefix=prefix)

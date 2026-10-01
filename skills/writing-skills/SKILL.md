@@ -9,7 +9,7 @@ Treat process documentation like behavior: define a pressure case, observe
 the baseline, write the smallest rule that closes the observed failure, and
 verify the rule against the same case. This is TDD applied to a skill. Use
 `orchestra:test-driven-development` for the RED/GREEN discipline
-and `anthropic-best-practices.md` for general authoring guidance.
+and the [best-practices](best-practices/1-core-principles.md) parts for general authoring guidance (read only the part you need: 1 core principles, 2 skill structure, 3 workflows and content, 4 patterns and evaluation, 5 anti-patterns and code, 6 notes and checklist).
 
 The main session owns design, baseline analysis, review, and acceptance.
 Do not create evaluation, review, or analyst agents. If a pressure scenario
