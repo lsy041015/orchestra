@@ -34,7 +34,8 @@ nested repository, and the Codex timeout could wait on a process it never killed
 - Skills: the process check is `ps -eo pid,args | grep -F` again (`pgrep -a`
   lists ancestors on macOS); the kickoff "large feature" test no longer reads as
   "no spec"; both dispatch modules use one script placeholder.
-- Tests run under `pytest` too.
+- Tests run under `pytest` too, and the Windows command-lookup test passes
+  `FAKE_OUT` again (Windows CI was red from 0.4.7 on).
 
 ## [0.4.7] - 2026-10-01
 
