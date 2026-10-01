@@ -5,6 +5,12 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Removed
+- `Quick Reference` and `Common Rationalizations` sections from
+  `finishing-a-development-branch`, `using-git-worktrees` and `systematic-debugging`
+  (5 KB): every row restated a rule the skill body already gives. The one rule only
+  the table held, no force-push after a rejected push, moved into the Option 2 text.
+
 ### Changed
 - `brainstorming`: a new project, or a large feature with no spec or plan, starts with
   one kickoff gate: ask until the deliverable, success criteria, constraints and
