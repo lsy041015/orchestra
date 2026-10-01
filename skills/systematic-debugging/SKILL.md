@@ -211,7 +211,7 @@ You MUST complete each phase before proceeding to the next.
 
    As an implementation worker, return `Status: BLOCKED` with this evidence
    instead; the main session decides. The main session's own review-fix loop
-   stops sooner, after two failed rounds with the same root cause.
+   stops at the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task).
 
    This is NOT a failed hypothesis - this is a wrong architecture.
 

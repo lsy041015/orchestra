@@ -6,13 +6,17 @@ Part of `orchestra:orchestrator`. Read it when a config file exists or the user 
 `claude sonnet/medium`, `medium` → `claude sonnet/high`, `hard` and `ui` →
 `claude sonnet/xhigh`. No question.
 
-**Codex is opt-in.** A `codex` routing value or option applies only when the user
-named Codex (or a Codex model) in this conversation; otherwise treat it as unset
+**Codex is opt-in.** A tier goes to Codex only when the user named Codex (or a
+Codex model) in this conversation; until then treat every `codex` value as unset
 and use the default for that tier. Never offer Codex in `AskUserQuestion` unless
-the user named it. For each tier the user routed to Codex, use the config's codex
-value; ask only when that tier has none, offering the codex entries of `options`
-or `codex gpt-6-luna/medium` and `codex gpt-6-luna/high`. Tiers the user did not
-name stay on Claude.
+the user named it. Once the user did:
+- if the user named tiers ("Easy on Codex"), exactly those tiers go to Codex,
+  each with the config's codex value for it; ask only when a tier has none,
+  offering the codex entries of `options` or `codex gpt-6-luna/medium` and
+  `codex gpt-6-luna/high`;
+- if the user named no tier ("use Codex too"), the tiers whose config value is
+  `codex ...` go to Codex; when no tier has one, ask which tiers.
+Every other tier stays on Claude.
 
 Read `~/.claude/orchestra.json` and `<project>/.orchestra.json`; ignore either
 file if it does not exist. Merge `routing` by key, with project values taking

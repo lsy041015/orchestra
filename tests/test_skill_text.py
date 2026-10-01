@@ -34,6 +34,23 @@ class SkillTextTests(unittest.TestCase):
         effort = re.search(r"^effort: (\S+)$", agent, re.M).group(1)
         self.assertIn(f"`orchestra:implementer` agent = `{model}` / `{effort}`", presets.pop())
 
+    def test_repeated_rules_are_identical(self):
+        # Each skill loads on its own, so these rules are restated; one wording keeps them from drifting.
+        for rule, least in ((r"the fix-round limit \(([^)]*)\)", 12),
+                            (r"`followup_task` \(Codex\) / `SendMessage` \(([^)]*)\)", 8)):
+            found = [m for doc in ROOT.glob("skills/**/*.md")
+                     for m in re.findall(rule, " ".join(doc.read_text(encoding="utf-8").split()))]
+            self.assertGreaterEqual(len(found), least, rule)
+            self.assertEqual(len(set(found)), 1, set(found))
+        for doc in ROOT.glob("skills/**/*.md"):
+            self.assertNotIn("two failed fix attempts", doc.read_text(encoding="utf-8"), doc.relative_to(ROOT))
+
+    def test_orchestrator_runs_on_top_of_sdd(self):
+        # The ledger, briefs and final review live only in SDD; the orchestrator must load it.
+        read = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())
+        self.assertIn("extends `orchestra:subagent-driven-development`: load that skill too", read("skills/orchestrator/SKILL.md"))
+        self.assertIn("continue with `orchestra:orchestrator` in Claude Code", read("skills/writing-plans/SKILL.md"))
+
     def test_implementer_agents_share_one_contract(self):
         # Every /medium and /xhigh route lands on its own agent, so each owes the same report.
         body = lambda name: (ROOT / "agents" / name).read_text(encoding="utf-8").split("\n---\n", 1)[1]

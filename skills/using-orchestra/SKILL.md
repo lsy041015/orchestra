@@ -31,7 +31,7 @@ planning, diagnosis, or review role and never creates another worker.
 
 Use one worker by default and reuse it for related fixes with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`).
 Do not create a fresh reviewer, planner, explorer, analyst, or escalation
-worker. After two failed fix attempts with the same root cause, stop retrying and
+worker. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), stop retrying and
 have the main agent re-evaluate the cause, scope, or implementation directly.
 
 Small edits, lookups, reviews, re-reviews, diagnosis, and short verification

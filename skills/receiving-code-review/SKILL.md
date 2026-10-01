@@ -24,7 +24,7 @@ For a delegated task, send the concrete fix to the same implementer worker with
 `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`): include the finding, file and location, why it matters, the
 acceptance condition, and the covering test. The main agent performs the re-review.
 Small corrections may stay inline. Do not create a new reviewer, fixer,
-analyst, or model escalation; a model switch the user asks for is not one. If two failed fix attempts have the same root cause,
+analyst, or model escalation; a model switch the user asks for is not one. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task),
 record a main-agent `Ruling:` and re-evaluate the plan or implement the smallest
 safe change directly.
 

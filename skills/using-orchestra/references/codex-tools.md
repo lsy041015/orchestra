@@ -44,7 +44,7 @@ A follow-up is a new implementation turn, not a new review seat. The worker
 appends its result and test evidence to the report. The main agent reviews the actual
 fix diff again.
 
-If two failed fix attempts have the same root cause, stop retrying. The main agent changes
+At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), stop retrying. The main agent changes
 the diagnosis or plan, or fixes the small issue inline;
 do not promote the worker or create a fresh one merely to obtain different
 eyes. Explicitly requested independent parallel implementation is the only

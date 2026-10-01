@@ -32,7 +32,7 @@ Rules:
 | Dispatching a task to a Claude worker | `orchestrator/modules/dispatch-claude.md` |
 | Dispatching a task to a Codex worker | `orchestrator/modules/dispatch-codex.md` |
 | A worker result is ready to review or fix | `orchestrator/modules/review-loop.md` |
-| One bounded task to one worker, no tiers (or Codex-hosted session) | `subagent-driven-development/SKILL.md` |
+| Delegated plan execution: setup, ledger, briefs, review, final review (Claude Code loads it with the orchestrator) | `subagent-driven-development/SKILL.md` |
 | Writing the worker brief | `subagent-driven-development/implementer-prompt.md` |
 | Task review or re-review of a worker result | `subagent-driven-development/task-reviewer-prompt.md`, `subagent-driven-development/re-review-prompt.md` |
 | Executing an approved plan inline, no workers | `executing-plans/SKILL.md` |

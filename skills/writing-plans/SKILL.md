@@ -83,11 +83,12 @@ Read the completed plan once from top to bottom and check:
 
 Fix gaps inline. Honor a user-requested plan approval gate and ask about any
 unresolved consequential decision. Otherwise the existing task authorization
-permits execution; creating a plan does not add a new approval requirement. Use `orchestra:subagent-driven-development`
-for bounded delegated work or `orchestra:executing-plans` for
-inline execution. In Claude Code, also offer `orchestra:orchestrator`, which
-routes each difficulty tier to a Claude subagent (a Codex CLI worker only when the
-user asks for Codex).
+permits execution; creating a plan does not add a new approval requirement. For
+delegated work, continue with `orchestra:orchestrator` in Claude Code (it routes
+each difficulty tier to a Claude subagent, a Codex CLI worker only when the user
+asks for Codex, on top of `orchestra:subagent-driven-development`), or with
+`orchestra:subagent-driven-development` in a Codex-hosted session. Use
+`orchestra:executing-plans` for inline execution.
 
 ## Execution handoff
 

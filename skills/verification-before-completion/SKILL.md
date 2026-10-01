@@ -34,7 +34,7 @@ requested scope is broader than the recorded scope, or the final integration
 state has not been checked. Do not rerun a full suite for every progress
 message when the evidence still satisfies this rule, and do not create an
 unbounded retry loop. After a failure, diagnose its cause and run the covering
-check after the fix; after two failed fix attempts with the same root cause,
+check after the fix; at the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task),
 stop and make a main-agent ruling.
 
 ## The Gate Function

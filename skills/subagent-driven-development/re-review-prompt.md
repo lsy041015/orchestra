@@ -32,6 +32,6 @@ Tests checked: <covering commands and evidence>
 Verdict: CLEAN | FINDINGS_REMAIN
 ```
 
-If two failed fix attempts have the same root cause, stop the loop and record the
+At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), stop the loop and record the
 main agent's decision and its cost if wrong. Otherwise send the next concrete
 fix to the same implementer worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`).

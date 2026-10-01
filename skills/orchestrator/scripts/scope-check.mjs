@@ -4,7 +4,8 @@
 // session records a baseline before dispatch and checks it before review:
 //   node scope-check.mjs before --cwd <project> --state <file>
 //   node scope-check.mjs after --cwd <project> --state <file> --allowed <list>
-import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { lstatSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { devNull, homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -61,7 +62,8 @@ export async function repoScope(cwd, allowed) {
     if (/[\\/]$/.test(item)) dirs.push(rel ? `${rel}/` : '');
     else files.add(rel);
   }
-  return { root, allows: (file) => files.has(file) || dirs.some((dir) => file.startsWith(dir)) };
+  // The slash lets `sub/` also cover the entry `sub` itself (a submodule).
+  return { root, allows: (file) => files.has(file) || dirs.some((dir) => `${file}/`.startsWith(dir)) };
 }
 
 // The paths to hash, as { file, ignored }. The top level uses git status,
@@ -74,11 +76,22 @@ async function entries(root, nested) {
   if (!nested) {
     // No rename detection: a rename's old path must count as a change too.
     // --ignored: a worker's .env, dist/ or node_modules/ is invisible otherwise.
+    // --ignore-submodules=all: otherwise status looks inside each submodule,
+    // through that submodule's filter drivers, and a `submodule.<x>.ignore` or
+    // `diff.ignoreSubmodules` setting hides edits there.
     const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames',
-      '--ignored=matching']);
+      '--ignored=matching', '--ignore-submodules=all']);
     if (result.error) return result;
-    return { list: result.output.split('\0').filter((entry) => entry.length >= 4)
-      .map((entry) => ({ file: entry.slice(3), ignored: entry.startsWith('!!') })) };
+    // Status also skips files flagged assume-unchanged (a lowercase tag) or
+    // skip-worktree (S), which anyone can set with git update-index, so those
+    // and every submodule (mode 160000) are hashed on every run.
+    const index = await git(root, ['ls-files', '-z', '-s', '-v']);
+    if (index.error) return index;
+    const always = index.output.split('\0')
+      .filter((entry) => /^([a-z]|S) /.test(entry) || entry.slice(2).startsWith('160000 '))
+      .map((entry) => ({ file: entry.slice(entry.indexOf('\t') + 1), ignored: false }));
+    return { list: [...result.output.split('\0').filter((entry) => entry.length >= 4)
+      .map((entry) => ({ file: entry.slice(3), ignored: entry.startsWith('!!') })), ...always] };
   }
   const listed = await git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
   if (listed.error) return listed;
@@ -86,8 +99,30 @@ async function entries(root, nested) {
     '--directory']);
   if (ignored.error) return ignored;
   const split = (output) => output.split('\0').filter(Boolean);
+  // A submodule's .git is a file naming its git directory: repointing it swaps
+  // the index and ignore rules this listing trusts, so it is hashed too.
+  let gitfile = false;
+  try { gitfile = lstatSync(path.join(root, '.git')).isFile(); } catch {}
   return { list: [...split(listed.output).map((file) => ({ file, ignored: false })),
-    ...split(ignored.output).map((file) => ({ file, ignored: true }))] };
+    ...split(ignored.output).map((file) => ({ file, ignored: true })),
+    ...(gitfile ? [{ file: '.git', ignored: false }] : [])] };
+}
+
+// One hash over the names, sizes and change times of a directory's direct
+// entries.
+function listing(dir) {
+  const digest = createHash('sha1');
+  try {
+    for (const name of readdirSync(dir).sort()) {
+      try {
+        const stat = lstatSync(path.join(dir, name));
+        digest.update(`${name}\0${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}\0`);
+      } catch {}
+    }
+  } catch (error) {
+    return error.code;
+  }
+  return digest.digest('hex');
 }
 
 export async function snapshot(root, nested = false) {
@@ -96,6 +131,8 @@ export async function snapshot(root, nested = false) {
   const files = new Map();
   for (const { file, ignored } of result.list) {
     const normalized = file.replace(/\\/g, '/');
+    // An unmerged path is listed once per stage; a submodule may be listed twice.
+    if (files.has(normalized)) continue;
     // The orchestra workspace (ledger, briefs, this state file) is written by
     // the main session, not the worker.
     if (ignored && /^\.orchestra(\/|$)/.test(normalized)) continue;
@@ -112,8 +149,10 @@ export async function snapshot(root, nested = false) {
       // Keep an unreadable entry instead of aborting the run.
       hash = error.code === 'ENOENT' ? 'deleted' : error.code;
     }
-    // An ignored directory is one entry: its own mtime catches files added or
-    // removed directly in it. ponytail: edits deeper down are missed.
+    // An ignored directory is one entry: its direct entries catch files added,
+    // removed or rewritten right in it. ponytail: edits deeper down are missed;
+    // walk the tree if a cache dir ever needs more than that.
+    if (stat?.isDirectory() && ignored) hash = listing(path.resolve(root, file));
     if (stat?.isDirectory() && !ignored) {
       hash = 'directory';
       // A submodule or an untracked nested repository shows up as one
