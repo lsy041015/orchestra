@@ -5,7 +5,26 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
-### Changed (routing)
+## [0.4.6] - 2026-10-01
+
+Kickoff questions, Claude workers by default, and modular skills that load only
+the file a situation needs.
+
+### Added
+- `using-orchestra/references/file-map.md`: which file to read in which situation, so
+  an agent opens one file instead of a whole skill. A test requires it to name every
+  `SKILL.md` and module and every path it lists to exist.
+- Tests: every markdown file under `skills/` and `agents/` is at most 300 lines; the
+  kickoff gate, the Claude default routing and the force-push guard keep their text.
+
+### Changed
+- `brainstorming`: a new project, or a large feature with no spec or plan, starts with
+  one kickoff gate: ask until the deliverable, success criteria, constraints and
+  non-goals are clear, summarize them back and get approval. After it, questions
+  stay limited to missing information and consequential decisions.
+- `writing-plans` runs `brainstorming` first when no kickoff or design was approved;
+  `orchestrator` takes the kickoff approval as the plan's authorization instead of
+  an "approved plan" nothing approved.
 - `orchestrator` dispatches Claude workers by default, with no question: Easy
   `claude sonnet/medium`, Medium `claude sonnet/high`, Hard and UI
   `claude sonnet/xhigh`. A Codex worker is used only when the user named Codex in the
@@ -13,14 +32,6 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
   never offered in a question unprompted. `routing.md` and the Codex dispatch module are
   read only when a config file exists or Codex was named. The default Hard and UI tier
   uses `orchestra:implementer-xhigh`, which has not yet been dispatched in a real run.
-
-### Added
-- `using-orchestra/references/file-map.md`: which file to read in which situation, so
-  an agent opens one file instead of a whole skill. A test requires it to name every
-  `SKILL.md` and module and every path it lists to exist.
-- Test: every markdown file under `skills/` and `agents/` is at most 300 lines.
-
-### Changed (modules)
 - `orchestrator`, `finishing-a-development-branch` and `using-git-worktrees` keep
   the always-needed steps in `SKILL.md` and move situational text, verbatim, to
   `modules/`: routing, Claude and Codex dispatch and review loop; merge, discard and
@@ -38,15 +49,6 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
   `finishing-a-development-branch`, `using-git-worktrees` and `systematic-debugging`
   (5 KB): every row restated a rule the skill body already gives. The one rule only
   the table held, no force-push after a rejected push, moved into the Option 2 text.
-
-### Changed
-- `brainstorming`: a new project, or a large feature with no spec or plan, starts with
-  one kickoff gate: ask until the deliverable, success criteria, constraints and
-  non-goals are clear, summarize them back and get approval. After it, questions
-  stay limited to missing information and consequential decisions.
-- `writing-plans` runs `brainstorming` first when no kickoff or design was approved;
-  `orchestrator` takes the kickoff approval as the plan's authorization instead of
-  an "approved plan" nothing approved.
 
 ## [0.4.5] - 2026-10-01
 
@@ -426,7 +428,8 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.6...HEAD
+[0.4.6]: https://github.com/lsy041015/orchestra/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/lsy041015/orchestra/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/lsy041015/orchestra/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/lsy041015/orchestra/compare/v0.4.2...v0.4.3
