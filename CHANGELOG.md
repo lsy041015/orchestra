@@ -5,6 +5,12 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Docs
+- Both READMEs: the intro and the "why" section now state the three reasons for the
+  plugin (ask first, the AI divides the work, fewer main-session tokens), with what is
+  measured and what is not. The Claude and Codex quota-sharing motive moves to an
+  optional note.
+
 ## [0.4.6] - 2026-10-01
 
 Kickoff questions, Claude workers by default, and modular skills that load only
