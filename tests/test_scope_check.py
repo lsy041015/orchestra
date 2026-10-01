@@ -85,7 +85,7 @@ class ScopeCheckTests(unittest.TestCase):
         self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/a.c\n", result.stderr)
         git(driver, "commit", "-q", "-am", "worker commit")  # clean again, but its HEAD moved
         result = self.check("after", allowed="keep.txt")
-        self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/\n", result.stderr)
+        self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/, src/driver/a.c\n", result.stderr)
 
     def test_edits_inside_an_already_dirty_submodule_count(self):
         lib = self.temp / "lib"
@@ -109,7 +109,20 @@ class ScopeCheckTests(unittest.TestCase):
         (self.repo / ".orchestra").mkdir()
         (self.repo / ".orchestra/ledger.md").write_text("ledger\n", encoding="utf-8")
         result = self.check("after", allowed="keep.txt")
-        self.assertEqual(result.stdout, "Scope: outside allowed: .env, dist/\n", result.stderr)
+        self.assertEqual(result.stdout, "Scope: outside allowed: .env (ignored), dist/ (ignored)\n",
+                         result.stderr)
+
+    def test_ignored_files_inside_a_nested_repo_are_labelled(self):
+        driver = self.repo / "src/driver"
+        self.nested_repo(driver)
+        (driver / ".gitignore").write_text("build/\n", encoding="utf-8")
+        self.check("before")
+        (driver / "build").mkdir()
+        (driver / "build/out.o").write_text("o\n", encoding="utf-8")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout,
+                         "Scope: outside allowed: src/driver/build/ (ignored)\n",
+                         result.stderr)
 
     @unittest.skipIf(os.name == "nt", "POSIX shell command")
     def test_nested_repo_config_cannot_run_a_command(self):
@@ -122,6 +135,23 @@ class ScopeCheckTests(unittest.TestCase):
         self.check("before")
         self.check("after", allowed="keep.txt")
         self.assertFalse(marker.exists())
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell command")
+    def test_nested_repo_filter_driver_cannot_run_a_command(self):
+        # git status re-reads a file whose mtime moved through its clean filter.
+        evil = self.repo / "evil"
+        self.nested_repo(evil)
+        marker = self.temp / "ran"
+        (evil / ".gitattributes").write_text("* filter=evil\n", encoding="utf-8")
+        git(evil, "add", ".gitattributes")
+        git(evil, "commit", "-q", "-m", "attributes")
+        with (evil / ".git/config").open("a", encoding="utf-8") as config:
+            config.write(f'[filter "evil"]\n\tclean = "touch {marker}; cat"\n\tprocess = "touch {marker}"\n')
+        self.check("before")
+        os.utime(evil / "a.c", (1, 1))  # same size, new mtime: content would be compared
+        result = self.check("after", allowed="keep.txt")
+        self.assertFalse(marker.exists())
+        self.assertEqual(result.stdout, "Scope: outside allowed: evil/a.c\n", result.stderr)
 
     def test_repository_holding_the_home_directory_is_unchecked(self):
         # A repository at $HOME lists every app cache as untracked: noise only.
