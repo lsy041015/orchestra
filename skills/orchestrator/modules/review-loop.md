@@ -32,6 +32,5 @@ behavior, covering tests, the report instruction) plus the Codex rules to
 `--model`, `--effort`, `--cwd` and `--allowed`, plus `--resume <thread>` and
 that fix brief. A reply without a status block comes back as
 `Status: BLOCKED` (`Codex reply has no status block`); resume the thread with
-the missing answer. After two failed fix
-rounds with the same root cause, the main session writes a `Ruling:` and
+the missing answer. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), the main session writes a `Ruling:` and
 replans or fixes inline.

@@ -5,6 +5,40 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-10-01
+
+Fixes from a second review of 0.4.8: the scope check took git's word for what
+changed, and the orchestrator never said to load the workflow it extends.
+
+### Security
+- `scope-check`: the top-level `git status` runs with `--ignore-submodules=all`,
+  and every submodule is listed from the index and hashed with `git ls-files`.
+  Before, status looked inside each submodule, so it ran that submodule's
+  `filter.<x>.clean` driver, and a `submodule.<x>.ignore` or
+  `diff.ignoreSubmodules` setting hid edits and commits there (`Scope: ok`).
+  The 0.4.8 claim that submodules were covered held only for this first part.
+- `scope-check`: files flagged assume-unchanged or skip-worktree are hashed on
+  every run; `git update-index` hid any edit from `git status` before. A
+  submodule's `.git` file is hashed too, so repointing it shows up.
+- `codex-worker`: a line in Codex's reply that looks like the worker's own
+  `Codex thread:` or `Scope:` line is quoted with `> `. Before, a reply holding
+  `Scope: ok` came before the real `Scope: outside allowed: ...` line.
+
+### Fixed
+- `scope-check`: one edit in a clean submodule flags only that file, not every
+  file in the submodule; a rewrite of a file directly inside an ignored
+  directory counts (only additions and removals did), as `review-loop` already
+  said; `--allowed sub/` also covers the submodule entry `sub`.
+- Skills: `orchestrator` says to load `subagent-driven-development` for setup,
+  the ledger, briefs, review and the final review, and `file-map` no longer
+  sends that skill only to untiered work. `writing-plans` hands delegated work
+  to the orchestrator in Claude Code instead of offering it next to SDD.
+- Skills: one Codex opt-in rule. Named tiers go to Codex; "use Codex" with no
+  tier uses the config's codex tiers.
+- Skills: the fix loop also stops after three fix rounds on one task, not only
+  after two failed fixes with one root cause. The rule is worded the same in
+  all 13 files, and a test keeps it and the fix-route note identical.
+
 ## [0.4.8] - 2026-10-01
 
 Fixes from a review of 0.4.7: the scope check could still run a command from a

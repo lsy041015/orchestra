@@ -88,15 +88,93 @@ class ScopeCheckTests(unittest.TestCase):
         self.assertEqual(result.stdout, "Scope: outside allowed: src/driver/, src/driver/a.c\n", result.stderr)
 
     def test_edits_inside_an_already_dirty_submodule_count(self):
-        lib = self.temp / "lib"
-        self.nested_repo(lib)
-        git(self.repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q", lib.as_posix(), "sub")
-        git(self.repo, "commit", "-q", "-m", "add submodule")
+        self.add_submodule()
         (self.repo / "sub/a.c").write_text("dirty before\n", encoding="utf-8")
         self.check("before")
         (self.repo / "sub/a.c").write_text("edited again\n", encoding="utf-8")
         result = self.check("after", allowed="keep.txt")
         self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
+
+    def add_submodule(self):
+        lib = self.temp / "lib"
+        self.nested_repo(lib)
+        git(self.repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q", lib.as_posix(), "sub")
+        git(self.repo, "commit", "-q", "-m", "add submodule")
+        return self.repo / "sub"
+
+    def test_one_edit_in_a_clean_submodule_flags_only_that_file(self):
+        sub = self.add_submodule()
+        (sub / "b.c").write_text("b\n", encoding="utf-8")
+        git(sub, "add", "b.c")
+        git(sub, "commit", "-q", "-m", "second file")
+        git(self.repo, "commit", "-q", "-am", "bump submodule")
+        self.check("before")
+        (sub / "a.c").write_text("edited\n", encoding="utf-8")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
+
+    def test_submodule_ignore_settings_do_not_hide_edits_or_commits(self):
+        sub = self.add_submodule()
+        git(self.repo, "config", "-f", ".gitmodules", "submodule.sub.ignore", "all")
+        git(self.repo, "commit", "-q", "-am", "ignore the submodule")
+        git(self.repo, "config", "diff.ignoreSubmodules", "all")
+        self.check("before")
+        (sub / "a.c").write_text("edited\n", encoding="utf-8")
+        git(sub, "commit", "-q", "-am", "worker commit")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: sub, sub/a.c\n", result.stderr)
+        # A whole-directory entry covers the submodule's own entry too.
+        result = self.check("after", allowed="sub/")
+        self.assertEqual((result.returncode, result.stdout), (0, "Scope: ok\n"), result.stderr)
+
+    def test_repointing_a_submodule_git_file_counts(self):
+        sub = self.add_submodule()
+        self.check("before")
+        (sub / ".git").write_text("gitdir: ../elsewhere\n", encoding="utf-8")
+        result = self.check("after", allowed="keep.txt")
+        self.assertIn("sub/.git", result.stdout, result.stderr)
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell command")
+    def test_submodule_filter_driver_cannot_run_a_command(self):
+        # Without --ignore-submodules, the top-level status ran this driver too.
+        sub = self.add_submodule()
+        marker = self.temp / "ran"
+        (sub / ".gitattributes").write_text("* filter=evil\n", encoding="utf-8")
+        git(sub, "add", ".gitattributes")
+        git(sub, "commit", "-q", "-m", "attributes")
+        git(self.repo, "commit", "-q", "-am", "bump submodule")
+        git(sub, "config", "filter.evil.clean", f"touch {marker}; cat")
+        self.check("before")
+        os.utime(sub / "a.c", (1, 1))  # same size, new mtime: content would be compared
+        result = self.check("after", allowed="keep.txt")
+        self.assertFalse(marker.exists())
+        self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
+
+    def test_index_flags_do_not_hide_edits(self):
+        (self.repo / "skip.txt").write_text("skip\n", encoding="utf-8")
+        git(self.repo, "add", "skip.txt")
+        git(self.repo, "commit", "-q", "-m", "second file")
+        git(self.repo, "update-index", "--assume-unchanged", "keep.txt")
+        git(self.repo, "update-index", "--skip-worktree", "skip.txt")
+        self.check("before")
+        (self.repo / "keep.txt").write_text("hidden edit\n", encoding="utf-8")
+        (self.repo / "skip.txt").write_text("hidden edit\n", encoding="utf-8")
+        result = self.check("after", allowed="a.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: keep.txt, skip.txt\n", result.stderr)
+
+    def test_rewrite_directly_inside_an_ignored_directory_counts(self):
+        (self.repo / ".gitignore").write_text("dist/\n", encoding="utf-8")
+        git(self.repo, "add", ".gitignore")
+        git(self.repo, "commit", "-q", "-m", "ignore")
+        (self.repo / "dist").mkdir()
+        (self.repo / "dist/app.js").write_text("x\n", encoding="utf-8")
+        self.check("before")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: ok\n", result.stderr)
+        with (self.repo / "dist/app.js").open("a", encoding="utf-8") as app:
+            app.write("injected\n")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: dist/ (ignored)\n", result.stderr)
 
     def test_ignored_files_count_but_the_orchestra_workspace_does_not(self):
         (self.repo / ".gitignore").write_text(".env\ndist/\n.orchestra/\n", encoding="utf-8")

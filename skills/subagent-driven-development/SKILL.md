@@ -1,6 +1,6 @@
 ---
 name: subagent-driven-development
-description: Use when an approved implementation plan has a clear unit that can be delegated to an implementation worker
+description: Use when an approved implementation plan has a clear unit that can be delegated to an implementation worker. In Claude Code, load it together with orchestra:orchestrator
 ---
 
 # Subagent-Driven Development
@@ -19,8 +19,8 @@ requested independent parallel implementation.
 
 - The main session keeps the user's selected model and reasoning effort; this
   workflow does not switch or override either setting.
-- When `orchestra:orchestrator` is loaded, follow it for worker selection and
-  the fix loop.
+- In Claude Code, `orchestra:orchestrator` runs this workflow: load it and
+  follow it for worker selection, dispatch, and the way fixes reach a worker.
 - Every worker is created with
   the host implementer preset (Codex: `gpt-6-luna` / `xhigh` / `fork_turns = "none"`; Claude Code: `orchestra:implementer` agent = `sonnet` / `high`; when `orchestra:orchestrator` is active, its per-tier routing replaces this preset).
 - Workers never spawn workers, reviewers, analysts, planners, or helpers. They
@@ -28,8 +28,7 @@ requested independent parallel implementation.
   of the assigned task.
 - The main agent performs task review and re-review from the actual diff and test
   evidence. Do not create a separate review agent or claim independent review.
-- Reuse one worker for related tasks and fixes. After two failed fix attempts with
-  the same root cause, the main agent changes the diagnosis or takes the work inline;
+- Reuse one worker for related tasks and fixes. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), the main agent changes the diagnosis or takes the work inline;
   there is no model escalation or fresh-worker rescue path, except a model switch the user requests.
 - TDD, systematic debugging, verification-before-completion, user-change
   preservation, and safety requirements remain in force.
@@ -100,8 +99,7 @@ its full log (saved next to the report), and RED/GREEN evidence when
 applicable. The short response is not a substitute for the report or the diff.
 
 `BLOCKED` or `NEEDS_DECISION` means the main agent supplies missing context or decides
-the plan change. It does not trigger a different model. If two fix attempts
-fail for the same root cause, the main agent records the failure and replans or
+the plan change. It does not trigger a different model. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), the main agent records the failure and replans or
 implements directly.
 
 ### 3. Main-session review
@@ -145,7 +143,7 @@ takes the same snapshot after the fix; `git diff <fix base> <after>` is the fix
 diff. It re-reviews only the findings and touched code. New findings in the
 fix diff join the list; unrelated observations go in the ledger.
 
-After two failed fix attempts with the same root cause, stop the loop and write a
+At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), stop the loop and write a
 main-agent `Ruling:`. Change the plan or implement the smallest safe correction
 inline. Count post-review fix attempts; the initial implementation is not a
 fix round. Never dispatch a fresh implementer or a higher-tier child as a retry, unless the user asked to switch the task's model.

@@ -31,7 +31,7 @@ state. Reuse a matching result only when its command, scope, environment, exit
 code, and actual log still apply; otherwise run the affected integration
 verification. Worker reports are evidence, not approval. Send a concrete fix to the same
 worker with `followup_task` (Codex) / `SendMessage` (Claude Code; an orchestrator Codex CLI worker gets a fix brief and `--resume`) when possible; do not create a reviewer or a fresh
-fixer. If two failed fix attempts have the same root cause, the main agent stops retrying,
+fixer. At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), the main agent stops retrying,
 records a Ruling, and changes the plan or fixes inline.
 
 ## Boundary checklist

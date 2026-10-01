@@ -49,7 +49,7 @@ independent review when the main agent performed the review.
    location, cause, acceptance condition, and covering tests. The main agent performs
    the scoped re-review.
 
-If two failed fix attempts have the same root cause, stop retrying and record
+At the fix-round limit (two failed fixes with the same root cause, or three fix rounds on one task), stop retrying and record
 a main-agent `Ruling:`: change the plan, fix a small issue inline, or report the blocker.
 Do not create a fresh reviewer, a fresh implementer, or a higher-tier child,
 unless the user asks to switch the worker's model.

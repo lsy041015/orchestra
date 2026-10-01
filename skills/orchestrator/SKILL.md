@@ -5,9 +5,12 @@ description: Use in Claude Code when a plan the user approved or asked to execut
 
 # Orchestra Orchestrator
 
-This skill extends `orchestra:subagent-driven-development`. The main session keeps
-planning, review, re-review, diagnosis, and integration. Workers only implement.
-This skill replaces that workflow's worker selection and fix loop.
+This skill extends `orchestra:subagent-driven-development`: load that skill too
+and follow it for setup, the ledger, task briefs, review, the fix base and
+re-review, the final whole-branch review, and finishing. This skill replaces
+only its worker selection, dispatch, and the way fixes reach a worker. The main
+session keeps planning, review, re-review, diagnosis, and integration. Workers
+only implement.
 
 Claude Code only. In a Codex-hosted session, use
 `orchestra:subagent-driven-development` instead.
@@ -36,7 +39,8 @@ so it replaces `subagent-driven-development`'s keep-inline rule here.
 
 Workers are Claude by default: Easy `claude sonnet/medium`, Medium
 `claude sonnet/high`, Hard and UI `claude sonnet/xhigh`. Use a Codex worker only
-when the user named Codex in this conversation. Show the mapping on one line and
+when the user named Codex (or a Codex model) in this conversation, and only for
+the tiers `modules/routing.md` assigns to it. Show the mapping on one line and
 dispatch; the defaults need no question.
 
 Read `modules/routing.md` when `~/.claude/orchestra.json` or a project
@@ -74,7 +78,7 @@ worktrees avoid this overlap.
 
 Review every result from the actual diff and read its `Scope:` line. Read
 `modules/review-loop.md` for how to treat each `Scope:` result, leftover
-processes, the fix loop for either engine, and the two-round limit.
+processes, the fix loop for either engine, and the fix-round limit.
 
 ## User controls
 

@@ -261,7 +261,11 @@ async function main() {
   } else if (!/^Status: /m.test(events.message)) {
     reason = `Codex reply has no status block: ${events.message.trim().split(/\r?\n/)[0].slice(0, 200)}`;
   }
-  const first = reason === undefined ? events.message : `Status: BLOCKED\nUnresolved: ${reason}`;
+  // Codex controls this text (its reply, or its stderr in a failure), so any
+  // line in it that looks like the two lines below is quoted: only those two
+  // come from this script.
+  const first = (reason === undefined ? events.message : `Status: BLOCKED\nUnresolved: ${reason}`)
+    .replace(/^(?=[ \t]*(?:Codex thread|Scope)[ \t]*:)/gim, '> ');
   process.stdout.write(`${first}\nCodex thread: ${events.thread}\nScope: ${scope}\n`);
   if (reason !== undefined) process.exitCode = 1;
 }
