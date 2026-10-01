@@ -100,6 +100,7 @@ class ScopeCheckTests(unittest.TestCase):
 
     def test_repository_holding_the_home_directory_is_unchecked(self):
         # A repository at $HOME lists every app cache as untracked: noise only.
+        (self.repo / "user").mkdir()  # a real home exists, so realpath can resolve it
         for home in (self.repo, self.repo / "user"):
             result = self.check("before", home=home)
             self.assertEqual(result.returncode, 1, result.stderr)
