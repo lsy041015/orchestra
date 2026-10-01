@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Use in Claude Code when an approved plan should be split into difficulty tiers and each tier delegated to a Claude subagent, or to a Codex CLI worker only when the user asks for Codex. Not for Codex-hosted sessions.
+description: Use in Claude Code when a plan the user approved or asked to execute should be split into difficulty tiers and each tier delegated to a Claude subagent, or to a Codex CLI worker only when the user asks for Codex. Not for Codex-hosted sessions.
 ---
 
 # Orchestra Orchestrator
@@ -43,7 +43,7 @@ Read `modules/routing.md` when `~/.claude/orchestra.json` or a project
 `.orchestra.json` exists, or when the user named Codex. It merges the files by
 key, applies Codex values only on request, requires one confirmation for values
 that come from the project file, and says when to ask. Record
-`Routing: Easy=..., Medium=..., Hard=...` in the ledger.
+`Routing: Easy=..., Medium=..., Hard=..., UI=...` in the ledger.
 
 ## 3. Dispatch
 

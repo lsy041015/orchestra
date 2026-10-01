@@ -16,7 +16,7 @@ Review every result from the actual diff. After each worker run, read its
   commits each task after its review is clean.
 - Check for processes left running from the project directory: on Windows,
   `Get-CimInstance Win32_Process | Where-Object CommandLine -like '*<project>*'`;
-  elsewhere, `ps -eo pid,args | grep -F "<project>"`. Ask before stopping a
+  elsewhere, `pgrep -af "<project>"` (it lists itself; ignore that line). Ask before stopping a
   process the user may own.
 
 For a Claude worker, send findings to that worker with `SendMessage`. For a

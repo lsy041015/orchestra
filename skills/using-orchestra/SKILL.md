@@ -1,6 +1,6 @@
 ---
 name: using-orchestra
-description: Use when starting an Orchestra development workflow that needs planning, implementation handoff or review. Skip unrelated conversations and simple lookups.
+description: Use when the user names Orchestra or asks for its plan, delegate and review workflow. Skip unrelated conversations and simple lookups.
 ---
 
 <SUBAGENT-STOP>
@@ -10,7 +10,7 @@ the implementer contract. Do not run this bootstrap or delegate more work.
 
 # Using Orchestra
 
-Read the relevant skill completely before taking the action it governs. Skill
+Read the SKILL.md that fired completely before taking the action it governs; open its other files only as the file map says. Skill
 instructions apply after the user's request and the host's actual tool rules;
 those sources win when they conflict. Announce the skill you are using, then
 follow its required workflow.
