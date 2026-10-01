@@ -122,6 +122,10 @@ node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --
 Use the repository root as `--cwd`. The Codex sandbox writes only inside
 `--cwd`, so the brief and report in `<workspace>` must be inside it; the worker
 refuses a brief outside `--cwd`. Name subdirectory files in `--allowed`.
+When the repository root is the home directory (a dotfiles repository at
+`~`, say), the worker refuses that `--cwd` and the scope check prints
+`unchecked` for Claude workers too: ask the user to `git init` the project
+directory before the first dispatch.
 
 The sandbox blocks all network access by default, including loopback sockets.
 Only when the task's tests need sockets or downloads (for example ROS 2/DDS,

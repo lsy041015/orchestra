@@ -3,7 +3,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { compare, repoScope, snapshot } from './scope-check.mjs';
+import { compare, holdsHome, repoScope, snapshot } from './scope-check.mjs';
 
 // cmd.exe and CreateProcess search the current directory before PATH, so a
 // codex.cmd or git.exe inside the project would run instead of the real tool.
@@ -38,6 +38,11 @@ function parseArgs(args) {
   // link target's repository while the link path would place the root elsewhere.
   cwd = realpathSync(cwd);
   brief = realpathSync(brief);
+  // The sandbox writes anywhere inside --cwd: at or above $HOME that includes
+  // ~/.ssh, shell profiles and every agent's config.
+  if (holdsHome(cwd)) {
+    throw new Error('Invalid --cwd: it holds the home directory, where the Codex sandbox could write anywhere; git init the project and use its root');
+  }
   // The Codex sandbox writes only inside --cwd, and the report lives next to the brief.
   const inside = path.relative(cwd, brief);
   if (inside === '..' || inside.startsWith(`..${path.sep}`) || path.isAbsolute(inside)) {

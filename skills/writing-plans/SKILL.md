@@ -60,7 +60,9 @@ dependencies, or blanket line/word/token limits.
 A plan records decisions, not code. A task is ready when the worker can
 write exactly one reasonable thing from it: test names and assertions with
 the spec's values, exact signatures and files, and each check's command with
-its passing output. Include a function body only for an algorithm the
+its passing output. Run each new test command once before writing it down,
+on an existing test if need be, so its invocation is known to work here.
+Include a function body only for an algorithm the
 signature and tests do not determine, or for exact copy the spec fixes. A
 plan longer than the code it describes has written the code instead; a line
 that decides nothing ("handle edge cases", "add tests") is a gap.

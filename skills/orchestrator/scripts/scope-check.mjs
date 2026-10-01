@@ -4,8 +4,8 @@
 // session records a baseline before dispatch and checks it before review:
 //   node scope-check.mjs before --cwd <project> --state <file>
 //   node scope-check.mjs after --cwd <project> --state <file> --allowed <list>
-import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +31,15 @@ function git(cwd, args) {
   });
 }
 
+// True when dir is the home directory or one of its parents. dir must be a
+// physical path.
+export function holdsHome(dir) {
+  let home = homedir();
+  try { home = realpathSync(home); } catch {}
+  const rel = path.relative(dir, home);
+  return !(rel === '..' || rel.startsWith(`..${path.sep}`) || path.isAbsolute(rel));
+}
+
 // git status prints paths from the repository root, not from cwd, so the
 // allowed list is converted to root-relative paths. A trailing slash marks a
 // directory whose whole subtree is allowed. cwd must be a physical path.
@@ -38,6 +47,9 @@ export async function repoScope(cwd, allowed) {
   const result = await git(cwd, ['rev-parse', '--show-cdup']);
   if (result.error) return result;
   const root = path.resolve(cwd, result.output.trim());
+  // Every app's cache under $HOME is untracked there, so the check would
+  // list only noise, after seconds per hundred thousand files.
+  if (holdsHome(root)) return { error: `the repository root ${root} holds the home directory; git init the project` };
   const files = new Set();
   const dirs = [];
   for (const item of allowed) {
@@ -59,13 +71,20 @@ export async function snapshot(root) {
     const file = entry.slice(3);
     const normalized = file.replace(/\\/g, '/');
     let hash = 'deleted';
+    let stat;
     try {
-      hash = createHash('sha1').update(readFileSync(path.resolve(root, file))).digest('hex');
+      // Size and change times, not content: hashing read every untracked
+      // file, and a checkout at $HOME (950k files, 145 GB) never finished.
+      // ponytail: a same-size edit within one timestamp tick is missed on
+      // coarse-clock filesystems (FAT: 2 s); hash small files if that matters.
+      stat = lstatSync(path.resolve(root, file));
+      hash = `${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
     } catch (error) {
       // Keep an unreadable entry instead of aborting the run.
       hash = error.code === 'ENOENT' ? 'deleted' : error.code;
     }
-    if (hash === 'EISDIR') {
+    if (stat?.isDirectory()) {
+      hash = 'directory';
       // A submodule or an untracked nested repository shows up as one
       // directory, so its own status is merged in under that path, and its
       // HEAD stands for the directory to catch commits made inside it.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """The scope check the main session runs around a Claude worker."""
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
@@ -28,11 +29,14 @@ class ScopeCheckTests(unittest.TestCase):
         git(self.repo, "commit", "-q", "-m", "baseline")
         self.state = self.temp / "scope.json"
 
-    def check(self, command, cwd=None, allowed=None):
+    def check(self, command, cwd=None, allowed=None, home=None):
         args = ["node", str(CHECK), command, "--cwd", str(cwd or self.repo), "--state", str(self.state)]
         if allowed:
             args += ["--allowed", allowed]
-        return subprocess.run(args, capture_output=True, text=True, encoding="utf-8")
+        env = os.environ.copy()
+        if home:
+            env.update(HOME=str(home), USERPROFILE=str(home))
+        return subprocess.run(args, capture_output=True, text=True, encoding="utf-8", env=env)
 
     def test_flags_only_files_outside_the_allowed_list(self):
         self.assertEqual(self.check("before").stdout, "Scope: baseline recorded\n")
@@ -93,6 +97,13 @@ class ScopeCheckTests(unittest.TestCase):
         (self.repo / "sub/a.c").write_text("edited again\n", encoding="utf-8")
         result = self.check("after", allowed="keep.txt")
         self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
+
+    def test_repository_holding_the_home_directory_is_unchecked(self):
+        # A repository at $HOME lists every app cache as untracked: noise only.
+        for home in (self.repo, self.repo / "user"):
+            result = self.check("before", home=home)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("holds the home directory", result.stdout)
 
     def test_baseline_from_another_checkout_is_unchecked(self):
         other = self.temp / "other"

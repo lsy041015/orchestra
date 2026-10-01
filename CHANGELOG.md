@@ -10,6 +10,21 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
   routing value such as `claude sonnet/xhigh` has an agent to dispatch. The
   orchestrator's effort table lists it.
 
+### Fixed
+- `scope-check.mjs`: each snapshot read and hashed every untracked file, so a
+  checkout with large untracked trees (a repository at `~`: 950k files,
+  145 GB) never finished, which stalled both Claude dispatch and every Codex
+  run. Files are now compared by size and change times.
+- A repository root at or above the home directory lists every app cache as
+  untracked: the scope check now prints `unchecked` there at once, and
+  `codex-worker.mjs` refuses such a `--cwd`, where the sandbox could write
+  `~/.ssh` and shell profiles. The orchestrator asks for a project `git init`.
+- `subagent-driven-development`: a ledger outside Git could land in a session
+  scratchpad and was gone after a resume; it must outlive the session.
+- `writing-plans`: a plan's test command had never been run, and the runner
+  rejected its invocation in every task. Each new command now runs once
+  before it goes into the plan.
+
 ## [0.4.4] - 2026-09-30
 
 Fixes from a four-part review of the installed 0.4.3 (scripts, skill rules,
