@@ -20,10 +20,15 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# One JSON error line; user-supplied text may hold a quote or a backslash.
+# One JSON error line; user-supplied text may hold a quote, a backslash or a
+# line break. ponytail: other control characters pass through unescaped.
 json_error() {
   local text=${1//\\/\\\\}
-  echo "{\"error\": \"${text//\"/\\\"}\"}"
+  text=${text//\"/\\\"}
+  text=${text//$'\n'/\\n}
+  text=${text//$'\r'/\\r}
+  text=${text//$'\t'/\\t}
+  echo "{\"error\": \"$text\"}"
 }
 
 # Parse arguments
