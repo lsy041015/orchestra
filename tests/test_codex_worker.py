@@ -23,8 +23,10 @@ class CodexWorkerTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "repo with spaces"
         self.root.mkdir()
+        # Where the fake Codex records what it saw, outside the checked repository.
+        self.out = Path(self.temp.name) / "out"
+        self.out.mkdir()
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
-        (self.root / ".gitignore").write_text("argv.json\nstdin.txt\n", encoding="utf-8")
         (self.root / "baseline.txt").write_text("baseline\n", encoding="utf-8")
         self.brief = self.root / "brief with spaces.md"
         self.brief.write_text(PROMPT, encoding="utf-8")
@@ -37,11 +39,11 @@ class CodexWorkerTests(unittest.TestCase):
                         "-m", "baseline"], check=True)
 
     def run_worker(self, *extra, mode="ok", cwd=None, brief=None, model="gpt-6-luna",
-                   effort="high", allowed="a.txt", home=None):
+                   effort="high", allowed="a.txt", home=None, **extra_env):
         cwd = Path(cwd or self.root)
         brief = Path(brief or self.brief)
         env = os.environ.copy()
-        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode, CODEX_HOME=str(self.codex_home))
+        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_OUT=str(self.out), FAKE_MODE=mode, CODEX_HOME=str(self.codex_home), **extra_env)
         if home:
             env.update(HOME=str(home), USERPROFILE=str(home))
         return subprocess.run([
@@ -58,8 +60,8 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(result.stdout,
                          "Status: DONE\nChanged files: a.txt\n"
                          "Codex thread: t-123\nScope: ok\n")
-        self.assertEqual((self.root / "stdin.txt").read_text(encoding="utf-8"), PROMPT)
-        args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+        self.assertEqual((self.out / "stdin.txt").read_text(encoding="utf-8"), PROMPT)
+        args = json.loads((self.out / "argv.json").read_text(encoding="utf-8"))
         for item in ("exec", "--json", "-s", "workspace-write",
                      "model_reasoning_effort=high"):
             self.assertIn(item, args)
@@ -119,7 +121,7 @@ class CodexWorkerTests(unittest.TestCase):
         result = self.run_worker(cwd=sub)
         self.assertEqual(result.returncode, 2)
         self.assertIn("--brief", result.stderr)
-        self.assertFalse((sub / "argv.json").exists())
+        self.assertFalse((self.out / "argv.json").exists())
 
     def test_cwd_holding_the_home_directory_is_rejected(self):
         # The sandbox could write ~/.ssh and shell profiles from there.
@@ -128,7 +130,7 @@ class CodexWorkerTests(unittest.TestCase):
             result = self.run_worker(home=home)
             self.assertEqual(result.returncode, 2)
             self.assertIn("--cwd", result.stderr)
-            self.assertFalse((self.root / "argv.json").exists())
+            self.assertFalse((self.out / "argv.json").exists())
 
     def test_allowed_directory_entry_covers_new_files(self):
         result = self.run_worker(mode="nested", allowed="a.txt,ou/")
@@ -143,7 +145,7 @@ class CodexWorkerTests(unittest.TestCase):
             with self.subTest(effort=effort):
                 result = self.run_worker(effort=effort)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+                args = json.loads((self.out / "argv.json").read_text(encoding="utf-8"))
                 self.assertIn(f"model_reasoning_effort={effort}", args)
 
     def test_effort_missing_from_model_cache_is_blocked_before_codex_runs(self):
@@ -155,7 +157,7 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertTrue(result.stdout.startswith("Status: BLOCKED\n"), result.stdout)
         self.assertIn("low, max", result.stdout)
-        self.assertFalse((self.root / "argv.json").exists(), "Codex ran anyway")
+        self.assertFalse((self.out / "argv.json").exists(), "Codex ran anyway")
         # A listed pair runs; a model the cache does not know is left to Codex.
         for model, effort in (("gpt-6-luna", "max"), ("gpt-6-sol", "ultra")):
             with self.subTest(model=model, effort=effort):
@@ -164,7 +166,7 @@ class CodexWorkerTests(unittest.TestCase):
     def test_resume_uses_thread_id(self):
         result = self.run_worker("--resume", "t-123")
         self.assertEqual(result.returncode, 0, result.stderr)
-        args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+        args = json.loads((self.out / "argv.json").read_text(encoding="utf-8"))
         self.assertEqual(args[:3], ["exec", "resume", "t-123"])
         self.assertIn("sandbox_mode=workspace-write", args)
         self.assertNotIn("-s", args)
@@ -176,7 +178,7 @@ class CodexWorkerTests(unittest.TestCase):
             with self.subTest(value=value), mock.patch.dict(os.environ, {"ORCHESTRA_CODEX_NETWORK": value}):
                 result = self.run_worker()
                 self.assertEqual(result.returncode, 0, result.stderr)
-                args = json.loads((self.root / "argv.json").read_text(encoding="utf-8"))
+                args = json.loads((self.out / "argv.json").read_text(encoding="utf-8"))
                 self.assertEqual(flag in args, expected)
 
     def test_codex_failure_reports_blocked(self):
@@ -227,7 +229,7 @@ class CodexWorkerTests(unittest.TestCase):
             with self.subTest(model=repr(model)):
                 result = self.run_worker(model=model)
                 self.assertEqual(result.returncode, 2)
-                self.assertFalse((self.root / "argv.json").exists())
+                self.assertFalse((self.out / "argv.json").exists())
 
     def test_rejects_bad_resume(self):
         # An option-like id would reach `codex exec resume` as a flag.
@@ -235,7 +237,7 @@ class CodexWorkerTests(unittest.TestCase):
             with self.subTest(thread=repr(thread)):
                 result = self.run_worker("--resume", thread)
                 self.assertEqual(result.returncode, 2)
-                self.assertFalse((self.root / "argv.json").exists())
+                self.assertFalse((self.out / "argv.json").exists())
 
     def test_non_git_dir_scope_unchecked(self):
         with tempfile.TemporaryDirectory(prefix="codex-worker-plain-") as temp:
@@ -246,16 +248,29 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.scope(result).startswith("Scope: unchecked (git: "), result.stdout)
 
+    @unittest.skipIf(os.name == "nt", "POSIX signals")
+    def test_hung_codex_is_stopped_and_blocked(self):
+        result = self.run_worker(mode="hang", ORCHESTRA_CODEX_TIMEOUT_MS="500")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("Status: BLOCKED\nUnresolved: Codex timed out after 1 s", result.stdout)
+        self.kill_quietly(int((self.out / "pid.txt").read_text(encoding="utf-8")))
+
+    def test_chatty_stream_keeps_thread_and_final_message(self):
+        result = self.run_worker(mode="chatty")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Status: DONE", result.stdout)
+        self.assertIn("Codex thread: t-123", result.stdout)
+
     @unittest.skipIf(os.name == "nt", "POSIX signals; TaskStop kills the whole tree on Windows")
     def test_sigterm_also_stops_codex(self):
         env = os.environ.copy()
-        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE="hang")
+        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_OUT=str(self.out), FAKE_MODE="hang")
         worker = subprocess.Popen([
             "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
             "--brief", str(self.brief), "--allowed", "a.txt",
         ], cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True, encoding="utf-8")
         self.addCleanup(lambda: worker.poll() is None and worker.kill())
-        pid_file = self.root / "pid.txt"
+        pid_file = self.out / "pid.txt"
         for _ in range(200):
             if pid_file.exists() and pid_file.read_text(encoding="utf-8"):
                 break
