@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { constants, homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { compare, holdsHome, repoScope, snapshot } from './scope-check.mjs';
@@ -67,6 +67,12 @@ function cachedEfforts(model) {
   }
 }
 
+// ORCHESTRA_CODEX_TIMEOUT_MS overrides the 2 hour default.
+function timeoutMs() {
+  const value = Number(process.env.ORCHESTRA_CODEX_TIMEOUT_MS);
+  return Number.isInteger(value) && value > 0 ? value : 2 * 60 * 60 * 1000;
+}
+
 function spawnCodex(args, cwd, prompt) {
   const injected = process.env.ORCHESTRA_CODEX_BIN !== undefined;
   // Windows needs a shell for codex.cmd. Every arg is validated and space-free,
@@ -82,20 +88,42 @@ function spawnCodex(args, cwd, prompt) {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let stdout = '';
+    let partial = '';
     let stderr = '';
     let error;
-    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
-    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    let timedOut = false;
+    // Only a few event types are read (parseEvents), so any other line shrinks
+    // to a marker: a long --json stream then costs no memory. It still counts
+    // as progress after an error.
+    const keep = /thread\.started|agent_message|turn\.failed|"error"/;
+    child.stdout.setEncoding('utf8').on('data', (chunk) => {
+      const lines = (partial + chunk).split('\n');
+      partial = lines.pop();
+      for (const line of lines) stdout += `${keep.test(line) ? line : '{"type":"progress"}'}\n`;
+    });
+    // Only the tail of stderr is reported.
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr = (stderr + chunk).slice(-65536); });
     // Pass a stop request on (the codex shim forwards it to the native binary),
     // so killing only this worker never leaves Codex editing files.
-    const forward = (signal) => child.kill(signal);
+    const forward = (signal) => {
+      child.kill(signal);
+      // A child that is gone or ignores the signal must not strand this worker.
+      setTimeout(() => process.exit(128 + (constants.signals[signal] ?? 0)), 5000).unref();
+    };
     const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
     for (const signal of signals) process.on(signal, forward);
+    // A hung Codex (network stall, a prompt nobody answers) must end as BLOCKED.
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+      setTimeout(() => child.kill('SIGKILL'), 5000).unref();
+    }, timeoutMs());
     child.stdin.on('error', () => {});
     child.on('error', (cause) => { error = cause; });
     child.on('close', (code, signal) => {
+      clearTimeout(timer);
       for (const name of signals) process.off(name, forward);
-      resolve({ stdout, stderr, code, signal, error });
+      resolve({ stdout: stdout + partial, stderr, code, signal, error, timedOut });
     });
     child.stdin.end(prompt);
   });
@@ -194,7 +222,9 @@ async function main() {
   const scope = await compare(repo, before, after);
 
   let reason;
-  if (run.code !== 0 || events.failed || events.message === undefined) {
+  if (run.timedOut) {
+    reason = `Codex timed out after ${Math.round(timeoutMs() / 1000)} s and was stopped`;
+  } else if (run.code !== 0 || events.failed || events.message === undefined) {
     reason = events.failure ||
       failureText(run.stderr, run.error, run.code, run.signal, events.failed, events.message !== undefined);
   } else if (!/^Status: /m.test(events.message)) {

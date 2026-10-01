@@ -2,8 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const cwd = process.cwd();
-writeFileSync(join(cwd, 'argv.json'), JSON.stringify(process.argv.slice(2)));
-writeFileSync(join(cwd, 'stdin.txt'), readFileSync(0, 'utf8'));
+const out = process.env.FAKE_OUT;
+writeFileSync(join(out, 'argv.json'), JSON.stringify(process.argv.slice(2)));
+writeFileSync(join(out, 'stdin.txt'), readFileSync(0, 'utf8'));
 
 if (process.env.FAKE_MODE === 'fail') {
   process.stderr.write('boom\n');
@@ -44,8 +45,14 @@ if (process.env.FAKE_MODE === 'fail') {
   ]) process.stdout.write(`${JSON.stringify(event)}\n`);
 } else if (process.env.FAKE_MODE === 'hang') {
   // A long run that only a signal ends.
-  writeFileSync(join(cwd, 'pid.txt'), String(process.pid));
+  writeFileSync(join(out, 'pid.txt'), String(process.pid));
   setInterval(() => {}, 1000);
+} else if (process.env.FAKE_MODE === 'chatty') {
+  // 20 MB of reasoning events around the events the worker reads.
+  process.stdout.write('{"type":"thread.started","thread_id":"t-123"}\n');
+  const noise = JSON.stringify({ type: 'item.completed', item: { type: 'reasoning', text: 'x'.repeat(100000) } });
+  for (let i = 0; i < 200; i++) process.stdout.write(`${noise}\n`);
+  process.stdout.write('{"type":"item.completed","item":{"type":"agent_message","text":"Status: DONE"}}\n');
 } else if (process.env.FAKE_MODE === 'event-fail') {
   for (const event of [
     { type: 'thread.started', thread_id: 't-123' },
