@@ -47,6 +47,9 @@ function decodeFrame(buffer) {
   let offset = 2;
 
   if (!masked) throw new Error('Client frames must be masked');
+  // Fragments are never reassembled, so a non-final frame would reach the
+  // handler as a truncated message.
+  if (!(buffer[0] & 0x80)) throw new Error('Fragmented frames are not supported');
 
   if (payloadLen === 126) {
     if (buffer.length < 4) return null;
@@ -376,7 +379,7 @@ function handleUpgrade(req, socket) {
   if (!isAuthorized(req) || !isAllowedWebSocketOrigin(req)) { socket.destroy(); return; }
 
   const key = req.headers['sec-websocket-key'];
-  if (!key) { socket.destroy(); return; }
+  if (!key || String(req.headers.upgrade).toLowerCase() !== 'websocket') { socket.destroy(); return; }
 
   const accept = computeAcceptKey(key);
   socket.write(
@@ -440,7 +443,7 @@ function handleMessage(text) {
     return;
   }
   touchActivity();
-  console.log(JSON.stringify({ source: 'user-event', ...event }));
+  console.log(JSON.stringify({ ...event, source: 'user-event' }));
   if (event && event.choice) {
     const eventsFile = path.join(STATE_DIR, 'events');
     try {
