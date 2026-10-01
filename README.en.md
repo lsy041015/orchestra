@@ -85,6 +85,56 @@ A third run on Linux with 0.4.0 ([record](docs/demo/piano/linux-run/README.md), 
 worker time. An independent check then found the two issues runs A and B had fixed: the tests fail on Node 18, and a repeated note's
 second strike is not visible.
 
+## A bigger run: a game in five days
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-01-farm.gif" alt="Morning on the farm: planting, watering and harvesting" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-02-fishing.gif" alt="Fishing: cast, bite, catch and the journal entry" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Morning on the farm: plant, water, harvest.</sub></td>
+    <td align="center"><sub>Fishing: cast, bite, catch, journal entry.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-03-board.gif" alt="The shop and the restoration board" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-04-night.gif" alt="Dusk to night and the end-of-day summary" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The shop and the restoration board.</sub></td>
+    <td align="center"><sub>Dusk to night to the end-of-day summary.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/09-sea-crossing.gif" alt="Sailing across the sea to the island" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-05-island.gif" alt="Arriving at the island village" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Sea crossing: steer the boat, pick up crates.</sub></td>
+    <td align="center"><sub>Arriving at the island village.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-06-festival.gif" alt="The spring festival" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/08-lookdev-before-after.png" alt="Island lookdev before and after the review" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The spring festival.</sub></td>
+    <td align="center"><sub>One review loop: first lookdev (top row), then after five fixes (bottom row).</sub></td>
+  </tr>
+</table>
+
+A cozy farming game (Godot 4, about 54k lines of GDScript, 182 commits, 67 headless tests) was built
+in five days with this workflow: first its predecessor relay, then Orchestra 0.4.x (the exact version
+was not recorded). In the last three feature bundles, 22 delegated units were merged, and the full
+suite passed at every merge (48, 50, 55, 58, 67 tests). The main session reviewed each unit's diff and,
+for visual work, its screenshots; the last image is one such loop, where five fixes went back to the
+same worker. In this run 17 of the 22 units went to Codex workers and 5 to Claude workers, because the
+user asked for that routing.
+
+This is one project, not a controlled comparison, and it does not show how much main-session usage
+Orchestra saved. The [independent review and the gaps it found](https://github.com/lsy041015/orchestra/issues/19#issuecomment-5930129097)
+are in issue #19. Art in the images: Cup Nooble, Sprout Lands (free pack, non-commercial use). The
+images live on the `showcase` branch, so they are not part of the plugin package.
+
 ## Install
 
 Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and for Codex
