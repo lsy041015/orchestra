@@ -573,6 +573,55 @@ Claude: Task 1 리뷰 통과 → ledger 기록
 Linux에서 0.4.0으로 한 번 더 돌린 [실행 C 기록](docs/demo/piano/linux-run/README.md)도 있습니다. 수정 라운드 없이 워커 경과 7분 2초에
 끝났지만, 독립 검증에서 A·B가 고친 두 가지(Node 18에서 테스트 실패, 반복 음의 두 번째 타건이 안 보임)가 남은 것을 확인했습니다.
 
+### 13.2 더 큰 실행: 5일 만에 만든 게임
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-01-farm.gif" alt="농장의 아침: 심고, 물 주고, 수확하는 장면" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-02-fishing.gif" alt="낚시: 던지고, 입질, 잡고, 도감 기록" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>농장의 아침: 심고, 물 주고, 수확.</sub></td>
+    <td align="center"><sub>낚시: 던지기, 입질, 잡기, 도감 기록.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-03-board.gif" alt="상점과 복구 게시판" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-04-night.gif" alt="해 질 녘에서 밤, 하루 정산" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>상점과 복구 게시판.</sub></td>
+    <td align="center"><sub>해 질 녘에서 밤, 하루 정산까지.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/09-sea-crossing.gif" alt="배를 몰아 바다를 건너는 장면" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-05-island.gif" alt="섬 마을에 도착하는 장면" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>바다 건너기: 배를 몰고 상자를 줍습니다.</sub></td>
+    <td align="center"><sub>섬 마을 도착.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/play-06-festival.gif" alt="봄 축제" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/lsy041015/orchestra/showcase/08-lookdev-before-after.png" alt="섬 룩뎁, 리뷰 전과 후" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>봄 축제.</sub></td>
+    <td align="center"><sub>리뷰 루프 한 번: 첫 룩뎁(윗줄)과 수정 5건 뒤(아랫줄).</sub></td>
+  </tr>
+</table>
+
+코지 파밍 게임(Godot 4, GDScript 약 5.4만 줄, 커밋 182개, 헤드리스 테스트 67개)을 5일 동안 이 워크플로로 만들었습니다.
+처음에는 전신인 relay로, 이후에는 오케스트라 0.4.x로 돌렸습니다(정확한 버전은 기록되지 않았습니다).
+마지막 기능 묶음 셋에서 위임 단위 22개가 합쳐졌고, 합칠 때마다 전체 테스트가 통과했습니다(48, 50, 55, 58, 67개).
+메인 세션은 단위마다 diff를 읽었고 시각 작업은 캡처도 확인했습니다. 마지막 이미지가 그 한 번으로,
+첫 룩뎁을 보고 같은 워커에게 수정 5건을 돌려보낸 뒤의 결과입니다. 이 실행에서 22개 중 17개는 Codex 워커,
+5개는 Claude 워커가 맡았는데, 사용자가 그렇게 라우팅하라고 지시했기 때문입니다.
+
+프로젝트 하나일 뿐 통제된 비교가 아니고, 메인 세션 사용량을 얼마나 줄였는지는 보여 주지 못합니다.
+[독립 리뷰와 거기서 나온 갭](https://github.com/lsy041015/orchestra/issues/19#issuecomment-5930129097)은 이슈 #19에 있습니다.
+이미지 속 그림: Cup Nooble, Sprout Lands(무료 팩, 비상업 사용). 이미지는 `showcase` 브랜치에 있어
+플러그인 패키지에는 들어가지 않습니다.
+
 ---
 
 ## 14. 포함된 스킬
