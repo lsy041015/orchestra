@@ -130,7 +130,10 @@ class ScopeCheckTests(unittest.TestCase):
     def test_repointing_a_submodule_git_file_counts(self):
         sub = self.add_submodule()
         self.check("before")
-        (sub / ".git").write_text("gitdir: ../elsewhere\n", encoding="utf-8")
+        # r+, not w: Windows refuses to truncate-open the hidden file git made.
+        with (sub / ".git").open("r+", encoding="utf-8") as gitfile:
+            gitfile.write("gitdir: ../elsewhere\n")
+            gitfile.truncate()
         result = self.check("after", allowed="keep.txt")
         self.assertIn("sub/.git", result.stdout, result.stderr)
 
