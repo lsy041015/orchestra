@@ -12,7 +12,7 @@ plan-reviewer dispatch.
 
 ## Before writing
 
-Read the approved design and relevant source. Confirm repository instructions,
+For a new project or large feature with no approved kickoff or design, run `orchestra:brainstorming` first. Read the approved design and relevant source. Confirm repository instructions,
 current branch/worktree, existing tests, and user changes. Trace callers and
 interfaces before choosing task boundaries. If the request is a one-file or
 obvious edit, keep the work inline rather than producing a ceremonial plan.

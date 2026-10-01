@@ -5,6 +5,15 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed
+- `brainstorming`: a new project, or a large feature with no spec or plan, starts with
+  one kickoff gate: ask until the deliverable, success criteria, constraints and
+  non-goals are clear, summarize them back and get approval. After it, questions
+  stay limited to missing information and consequential decisions.
+- `writing-plans` runs `brainstorming` first when no kickoff or design was approved;
+  `orchestrator` takes the kickoff approval as the plan's authorization instead of
+  an "approved plan" nothing approved.
+
 ## [0.4.5] - 2026-10-01
 
 ### Added
