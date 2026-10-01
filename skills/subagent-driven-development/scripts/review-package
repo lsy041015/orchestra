@@ -19,6 +19,9 @@ base=$2
 head=$3
 [ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
 
+# A leading dash would be read as a git option.
+case "$base" in -*) echo "bad BASE: $base" >&2; exit 2 ;; esac
+case "$head" in -*) echo "bad HEAD: $head" >&2; exit 2 ;; esac
 git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
 git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
 
@@ -43,10 +46,10 @@ fi
   git log --oneline "${base}..${head}"
   echo
   echo "## Files changed"
-  git diff --stat "${base}..${head}"
+  git diff --no-ext-diff --stat "${base}..${head}" --
   echo
   echo "## Diff"
-  git diff -U10 "${base}..${head}"
+  git diff --no-ext-diff -U10 "${base}..${head}" --
 } > "$out"
 
 commits=$(git rev-list --count "${base}..${head}")
