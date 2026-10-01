@@ -68,6 +68,10 @@ class SkillTextTests(unittest.TestCase):
         orch = (ROOT / "skills/orchestrator/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("kickoff approval", orch)
 
+    def test_finishing_keeps_the_force_push_guard(self):
+        text = (ROOT / "skills/finishing-a-development-branch/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("force-push only when", text)
+
 
 if __name__ == "__main__":
     unittest.main()

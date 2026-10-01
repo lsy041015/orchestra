@@ -135,6 +135,9 @@ tooling — its CLI if one is available, or the creation URL most forges
 print when you push — following the repo's PR template and conventions if
 present, and report the URL to your human partner.
 
+A rejected push means the remote moved: investigate, and force-push only when
+your human partner explicitly asks for it.
+
 Keep the worktree — your human partner iterates on PR feedback there.
 
 ### Option 3: Keep As-Is
@@ -243,27 +246,3 @@ Carry out the choice, then remove the worktree.
 its branch in place. If your platform provides a workspace-exit tool, use it
 only in a mode that keeps the worktree (Claude Code: `ExitWorktree` with
 `action: "keep"`; `"remove"` deletes the worktree and its branch).
-
-## Quick Reference
-
-| Option | Merge | Push | Keep Worktree | Cleanup Branch |
-|--------|-------|------|---------------|----------------|
-| 1. Merge locally | yes | - | - | yes |
-| 2. Create PR | - | yes | yes | - |
-| 3. Keep as-is | - | - | yes | - |
-| Discard (explicit request only) | - | - | - | yes (force) |
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Tests passed earlier this session" | Earlier evidence is reusable only when it meets verification-before-completion's state and coverage rules. Verify any changed integration result. |
-| "They obviously want it merged" | Integration is your human partner's decision. Present the menu and wait. |
-| "They seem done with this feature — I'll offer to discard it" | The menu is complete as written. Discard happens only when your human partner asks for it in so many words. |
-| "'Yeah, get rid of it' counts as confirmation" | Only the typed word `discard` authorizes deletion. |
-| "The PR is up, so the worktree is clutter now" | PR feedback gets fixed in that worktree. It stays until the work lands. |
-| "This other worktree looks stale — I'll clean it too" | Clean up only worktrees with a matching Orchestra ownership marker. Directory names do not prove ownership. |
-| "Removal refused — `--force` is just finishing the cleanup" | The refusal means files exist only in that worktree. `--force` destroys them permanently. Show your human partner and ask. |
-| "The merged-result failure is probably flaky" | A failing merged result stops everything. Branch and worktree stay put while you investigate. |
-| "The base branch is obviously main" | Confirm the fork point or ask. Merging into the wrong base is expensive to undo. |
-| "The push was rejected — force-push will fix it" | A rejected push means the remote moved. Investigate; force-push only on your human partner's explicit request. |
