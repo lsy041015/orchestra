@@ -13,8 +13,7 @@ import unittest
 # System32\bash.exe before Git Bash.
 BASH = shutil.which("bash") or "bash"
 
-SKILL = (Path(sys.argv.pop(1)) if len(sys.argv) > 1 else
-         Path(__file__).resolve().parents[1] / "skills/using-git-worktrees/modules/git-worktree-fallback.md").resolve()
+SKILL = Path(__file__).resolve().parents[1] / "skills/using-git-worktrees/modules/git-worktree-fallback.md"
 
 
 class WorktreeInstructionTests(unittest.TestCase):
@@ -117,4 +116,7 @@ class WorktreeInstructionTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    # Only here, and only a file: pytest flags and test names are not a skill.
+    if len(sys.argv) > 1 and Path(sys.argv[1]).is_file():
+        SKILL = Path(sys.argv.pop(1)).resolve()
     unittest.main(verbosity=2)
