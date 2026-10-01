@@ -221,6 +221,23 @@ process.stdout.write(JSON.stringify(sent));
             urllib.request.urlopen(info["url"].split("?")[0] + "files/a.txt", timeout=10)
         self.assertEqual(denied.exception.code, 403)
 
+    def test_error_lines_are_valid_json_and_symlinked_workspace_is_refused(self):
+        start = [BASH, str(SCRIPTS / "start-server.sh")]
+        bad = subprocess.run([*start, "--project-dir", 'no"such\\dir'], capture_output=True,
+                             text=True, encoding="utf-8")
+        self.assertEqual(json.loads(bad.stdout)["error"], 'No such directory: no"such\\dir')
+        project = self.temp_dir("brainstorm-link-")
+        elsewhere = self.temp_dir("brainstorm-elsewhere-")
+        try:
+            (project / ".orchestra").symlink_to(elsewhere, target_is_directory=True)
+        except OSError:
+            self.skipTest("cannot create symlinks")
+        linked = subprocess.run([*start, "--project-dir", str(project), "--foreground"],
+                                capture_output=True, text=True, encoding="utf-8", timeout=30)
+        self.assertEqual(linked.returncode, 1)
+        self.assertIn("symlink", json.loads(linked.stdout)["error"])
+        self.assertEqual(list(elsewhere.iterdir()), [])
+
     def websocket(self, info):
         import base64, socket
         host, port = info["host"] if "host" in info else "127.0.0.1", info["port"]
