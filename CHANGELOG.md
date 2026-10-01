@@ -5,6 +5,25 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added
+- `using-orchestra/references/file-map.md`: which file to read in which situation, so
+  an agent opens one file instead of a whole skill. A test requires it to name every
+  `SKILL.md` and module and every path it lists to exist.
+- Test: every markdown file under `skills/` and `agents/` is at most 300 lines.
+
+### Changed (modules)
+- `orchestrator`, `finishing-a-development-branch` and `using-git-worktrees` keep
+  the always-needed steps in `SKILL.md` and move situational text, verbatim, to
+  `modules/`: routing, Claude and Codex dispatch and review loop; merge, discard and
+  cleanup; the git worktree fallback. `SKILL.md` says when to read each. Fewer
+  bytes load when a path is not taken (a PR finish drops 4.7 KB of 9.1 KB, a native
+  worktree 4.0 KB of 8.4 KB); a run that takes every path loads 5 to 14% more, the
+  pointers.
+- `writing-skills/anthropic-best-practices.md` (1,160 lines) is split into six parts
+  under `writing-skills/best-practices/`, content unchanged.
+- `test_worktree_cleanup.py` and `test_worktree_instructions.py` read the shell blocks
+  from the modules.
+
 ### Removed
 - `Quick Reference` and `Common Rationalizations` sections from
   `finishing-a-development-branch`, `using-git-worktrees` and `systematic-debugging`

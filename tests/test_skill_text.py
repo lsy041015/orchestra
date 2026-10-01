@@ -46,7 +46,7 @@ class SkillTextTests(unittest.TestCase):
             self.assertNotIn("<ledger>/", doc.read_text(encoding="utf-8"), doc.relative_to(ROOT))
 
     def test_codex_background_run_sets_the_longest_timeout(self):
-        text = (ROOT / "skills/orchestrator/SKILL.md").read_text(encoding="utf-8")
+        text = (ROOT / "skills/orchestrator/modules/dispatch-codex.md").read_text(encoding="utf-8")
         self.assertIn("`timeout: 7200000`", text)
 
     def test_inline_task_is_marked_complete_after_its_review(self):
@@ -71,6 +71,23 @@ class SkillTextTests(unittest.TestCase):
     def test_finishing_keeps_the_force_push_guard(self):
         text = (ROOT / "skills/finishing-a-development-branch/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("force-push only when", text)
+
+    def test_every_markdown_file_stays_under_300_lines(self):
+        # Modules exist so an agent reads one situation's file, not a whole skill.
+        for doc in [*ROOT.glob("skills/**/*.md"), *ROOT.glob("agents/*.md")]:
+            lines = len(doc.read_text(encoding="utf-8").splitlines())
+            self.assertLessEqual(lines, 300, f"{doc.relative_to(ROOT)}: {lines} lines")
+
+    def test_file_map_names_every_skill_and_module_and_every_path_exists(self):
+        skills = ROOT / "skills"
+        text = (skills / "using-orchestra/references/file-map.md").read_text(encoding="utf-8")
+        for doc in [*skills.glob("*/SKILL.md"), *skills.glob("*/modules/*.md")]:
+            self.assertIn(str(doc.relative_to(skills)).replace("\\", "/"), text, doc.relative_to(skills))
+        for path in re.findall(r"`([a-z][\w./-]*\.md)`", text):
+            self.assertTrue((skills / path).exists(), path)
+        for doc in skills.glob("*/*/*.md"):
+            rel = str(doc.relative_to(skills)).replace("\\", "/")
+            self.assertTrue(rel in text or rel.rsplit("/", 1)[0] + "/" in text, f"file map misses {rel}")
 
 
 if __name__ == "__main__":

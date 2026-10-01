@@ -600,14 +600,15 @@ orchestra/
 │   └── implementer-xhigh.md   # Claude 구현자 (sonnet / xhigh)
 ├── skills/
 │   ├── orchestrator/
-│   │   ├── SKILL.md           # 지휘 규칙
+│   │   ├── SKILL.md           # 지휘 규칙 (요약·진입점)
+│   │   ├── modules/           # routing, dispatch-claude, dispatch-codex, review-loop: 해당 상황에서만 읽음
 │   │   └── scripts/ (codex-worker.mjs, scope-check.mjs)
 │   ├── subagent-driven-development/
 │   │   ├── implementer-prompt.md, re-review-prompt.md, task-reviewer-prompt.md
 │   │   └── scripts/ (sdd-workspace, task-brief, review-package)
 │   ├── writing-plans/, executing-plans/, ... (공용 스킬)
-│   └── using-orchestra/references/  # Codex·Claude Code 도구 사용법
-└── tests/
+│   └── using-orchestra/references/  # file-map.md(상황별로 읽을 파일 안내), Codex·Claude Code 도구 사용법
+└── tests/                     # 모든 마크다운 파일은 300줄 이하 (test_skill_text.py가 강제)
     ├── test_codex_worker.py + fake_codex.mjs, test_scope_check.py
     └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py, test_skill_text.py, ...
 ```

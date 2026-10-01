@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run with python3 tests/test_worktree_instructions.py [path/to/SKILL.md]."""
+"""Run with python3 tests/test_worktree_instructions.py [path/to/git-worktree-fallback.md]."""
 import os
 from pathlib import Path
 import re
@@ -14,7 +14,7 @@ import unittest
 BASH = shutil.which("bash") or "bash"
 
 SKILL = (Path(sys.argv.pop(1)) if len(sys.argv) > 1 else
-         Path(__file__).resolve().parents[1] / "skills/using-git-worktrees/SKILL.md").resolve()
+         Path(__file__).resolve().parents[1] / "skills/using-git-worktrees/modules/git-worktree-fallback.md").resolve()
 
 
 class WorktreeInstructionTests(unittest.TestCase):

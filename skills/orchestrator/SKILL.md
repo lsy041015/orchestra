@@ -34,48 +34,11 @@ so it replaces `subagent-driven-development`'s keep-inline rule here.
 
 ## 2. Model choice
 
-Before asking the user, read `~/.claude/orchestra.json` and `<project>/.orchestra.json`;
-ignore either file if it does not exist. Merge `routing` by key, with project
-values taking precedence. A project `options` array replaces the user array;
-otherwise use the user array. The values use this schema:
-
-```json
-{
-  "routing": {
-    "easy": "codex gpt-6-luna/medium",
-    "medium": "claude sonnet/high",
-    "hard": "claude opus/high",
-    "ui": "claude opus/high"
-  },
-  "options": ["codex gpt-6-luna/medium", "codex gpt-6-luna/high",
-              "claude sonnet/high", "claude opus/high"]
-}
-```
-
-Routing values have the form `<codex|claude> <model>/<effort>`.
-- Claude: `<model>` is a model alias the `Agent` tool accepts (for example
-  `sonnet`, `opus`, `haiku`). Effort `high` uses `orchestra:implementer`,
-  `medium` uses `orchestra:implementer-medium` and `xhigh` uses
-  `orchestra:implementer-xhigh`.
-- Codex: `<model>` is any model your Codex CLI account can use; `<effort>` is
-  one of `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, `ultra`.
-  Not every model supports every effort. When Codex's model cache
-  (`$CODEX_HOME/models_cache.json`, default `~/.codex`) lists the model without
-  that effort, the worker returns `Status: BLOCKED` before Codex runs; any other
-  unsupported pair comes back from Codex as a failed run.
-
-Use the `ui` key for separately routed UI tasks and `hard` for other hard
-tasks; without a `ui` value, UI tasks use `hard`. If a file is not valid JSON
-or a value does not match the form, tell the user which one and ask instead of
-guessing. If every tier in the task table has a routing value, skip questions
-and show the mapping on one line. A cloned repository can ship its own
-`.orchestra.json`, and its values spend the user's quota: when any value comes
-from the project file, show it and get one confirmation for that project
-before the first dispatch. Ask with `AskUserQuestion` only for tiers without a
-value, using the merged `options` array or the four example choices above when
-it is absent. The user may enter
-another model through `Other`. Record the final mapping in the ledger as
-`Routing: Easy=..., Medium=..., Hard=..., UI=...` when UI is a separate tier.
+Read `modules/routing.md` unless every tier already has a routing value you have
+just shown. It merges `~/.claude/orchestra.json` with the project
+`.orchestra.json` by key, asks with `AskUserQuestion` only for tiers without a
+value, requires one confirmation for values that come from the project file, and
+records `Routing: Easy=..., Medium=..., Hard=...` in the ledger.
 
 ## 3. Dispatch
 
@@ -85,73 +48,12 @@ through `SendMessage` for a later task only when that task has the same routing
 value, and record the later task's scope baseline first. A reused worker keeps
 its first label; the ledger shows its current task.
 
-**Claude worker**: use the `Agent` tool.
+Claude worker: read `modules/dispatch-claude.md` (agent per effort, scope
+baseline before and check after).
 
-| Effort | subagent_type |
-|--------|---------------|
-| high | `orchestra:implementer` |
-| medium | `orchestra:implementer-medium` |
-| xhigh | `orchestra:implementer-xhigh` |
-
-Pass `model` from the routing value. Effort comes from the agent definition;
-for another effort, tell the user it needs a new agent file.
-
-Record a scope baseline right before dispatching a Claude worker or sending it
-a new task, and check it before each review of that task, including after fix
-rounds. `<workspace>` is the directory `sdd-workspace` prints:
-
-```text
-node "<this skill's base directory>/scripts/scope-check.mjs" before --cwd "<project>" --state "<workspace>/task-N-scope.json"
-node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<project>" --state "<workspace>/task-N-scope.json" --allowed "<files>"
-```
-
-`after` prints the same `Scope:` line as a Codex worker and also counts files
-the worker committed. `--allowed` follows the Codex worker rules below.
-
-**Codex worker**: the main session calls `Bash` directly with
-`run_in_background: true` and `timeout: 7200000`, the maximum; the default
-stops a background command after 30 minutes. Set the description to
-`[Codex <model>/<effort>] Task N: <title>` and run:
-
-```text
-node "<this skill's base directory>/scripts/codex-worker.mjs" --model <model> --effort <effort> --cwd "<project>" --brief "<workspace>/task-N-codex-prompt.md" --allowed "<files>"
-```
-
-`--allowed` is a comma-separated list relative to `--cwd`; end an entry with
-`/` to allow a whole directory, for example `src/retry.ts,test/fixtures/`.
-Use the repository root as `--cwd`. The Codex sandbox writes only inside
-`--cwd`, so the brief and report in `<workspace>` must be inside it; the worker
-refuses a brief outside `--cwd`. Name subdirectory files in `--allowed`.
-When the repository root is the home directory (a dotfiles repository at
-`~`, say), the worker refuses that `--cwd` and the scope check prints
-`unchecked` for Claude workers too: ask the user to `git init` the project
-directory before the first dispatch.
-
-The sandbox blocks all network access by default, including loopback sockets.
-Only when the task's tests need sockets or downloads (for example ROS 2/DDS,
-localhost servers, package installs), prefix the command with
-`ORCHESTRA_CODEX_NETWORK=1` and record `Network: on` for that task in the
-ledger.
-
-The worker runs Codex with the user's Codex plugins disabled, so another
-workflow's skills and hooks stay out of the task; the user's `config.toml` and
-`AGENTS.md` still apply. Fill
-`orchestra:subagent-driven-development/implementer-prompt.md` for the task,
-append the following Codex rules, and save the brief as
-`<workspace>/task-N-codex-prompt.md`:
-
-```text
-Never run git commit, push, reset or checkout: the sandbox keeps .git
-read-only, and the main session commits after review. Edit only allowed
-files. Never leave long-running servers or editors running. Save full test
-output to log files next to [REPORT_FILE] and cite their paths. Keep the report
-at [REPORT_FILE] to 40 lines or fewer. Return exactly the brief's status
-block. Plugin skills are off in this run: where the brief names an
-orchestra: skill, follow the brief's own wording.
-```
-
-When the background task completes, notify the user and record its
-`Codex thread:` output in the ledger.
+Codex worker: read `modules/dispatch-codex.md` (background `codex-worker.mjs`
+run, brief rules, network opt-in, and the prerequisite check before the first
+Codex dispatch).
 
 Workers of either engine may run in parallel when their files and state do
 not overlap; tier routing is itself the exception to the one-worker default, so
@@ -164,42 +66,9 @@ worktrees avoid this overlap.
 
 ## 4. Review and fix loop
 
-Review every result from the actual diff. After each worker run, read its
-`Scope:` line (Codex worker output, or `scope-check.mjs after` for Claude):
-- Treat `Scope: outside allowed` as a review finding (see the parallel rule
-  above). The check does not see `.gitignore`d paths; review those from the
-  diff and the worker report when the task touches them.
-- `Scope: unchecked (<reason>)` means no mechanical check ran: not a git
-  repository, git refused it (for example dubious ownership), or git failed
-  after the run. Review `git status` and the whole diff yourself, and tell the
-  user why the check was skipped.
-- Codex workers never commit. When the plan asks for commits, the main session
-  commits each task after its review is clean.
-- Check for processes left running from the project directory: on Windows,
-  `Get-CimInstance Win32_Process | Where-Object CommandLine -like '*<project>*'`;
-  elsewhere, `ps -eo pid,args | grep -F "<project>"`. Ask before stopping a
-  process the user may own.
-
-For a Claude worker, send findings to that worker with `SendMessage`. For a
-Codex worker, write the follow-up fix described at the end of
-`implementer-prompt.md` (each finding with file and location, required
-behavior, covering tests, the report instruction) plus the Codex rules to
-`<workspace>/task-N-codex-fix-K.md`, then rerun the worker with the same
-`--model`, `--effort`, `--cwd` and `--allowed`, plus `--resume <thread>` and
-that fix brief. A reply without a status block comes back as
-`Status: BLOCKED` (`Codex reply has no status block`); resume the thread with
-the missing answer. After two failed fix
-rounds with the same root cause, the main session writes a `Ruling:` and
-replans or fixes inline.
-
-## Codex prerequisites
-
-Codex tasks require the Codex CLI, a ChatGPT or API login, Git for the scope
-check, and Node.js 18 or later. Before the first Codex dispatch, run
-`codex --version` and `codex login status`. If either fails, or a run returns
-`Status: BLOCKED` because the model or effort is unavailable, show the error
-and ask whether to pick another Codex model or route the tier to a Claude
-worker. Never switch models silently.
+Review every result from the actual diff and read its `Scope:` line. Read
+`modules/review-loop.md` for how to treat each `Scope:` result, leftover
+processes, the fix loop for either engine, and the two-round limit.
 
 ## User controls
 
