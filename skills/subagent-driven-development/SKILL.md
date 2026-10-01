@@ -38,7 +38,9 @@ requested independent parallel implementation.
 
 For Git repositories, use the steps below. For work outside Git, use the
 approved staging directory, brief, progress file, and before/after file
-comparison instead; the Git helpers do not apply. Do not initialize a
+comparison instead; the Git helpers do not apply. Keep that directory where
+it outlives the session, never in a session scratchpad or `/tmp`: the ledger
+is the recovery map. Do not initialize a
 repository or create commits merely to satisfy workflow bookkeeping.
 
 1. Confirm the approved plan and its Global Constraints. Use

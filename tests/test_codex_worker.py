@@ -37,11 +37,13 @@ class CodexWorkerTests(unittest.TestCase):
                         "-m", "baseline"], check=True)
 
     def run_worker(self, *extra, mode="ok", cwd=None, brief=None, model="gpt-6-luna",
-                   effort="high", allowed="a.txt"):
+                   effort="high", allowed="a.txt", home=None):
         cwd = Path(cwd or self.root)
         brief = Path(brief or self.brief)
         env = os.environ.copy()
         env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_MODE=mode, CODEX_HOME=str(self.codex_home))
+        if home:
+            env.update(HOME=str(home), USERPROFILE=str(home))
         return subprocess.run([
             "node", str(WORKER), "--model", model, "--effort", effort,
             "--cwd", str(cwd), "--brief", str(brief), "--allowed", allowed, *extra,
@@ -118,6 +120,14 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("--brief", result.stderr)
         self.assertFalse((sub / "argv.json").exists())
+
+    def test_cwd_holding_the_home_directory_is_rejected(self):
+        # The sandbox could write ~/.ssh and shell profiles from there.
+        for home in (self.root, self.root / "user"):
+            result = self.run_worker(home=home)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("--cwd", result.stderr)
+            self.assertFalse((self.root / "argv.json").exists())
 
     def test_allowed_directory_entry_covers_new_files(self):
         result = self.run_worker(mode="nested", allowed="a.txt,ou/")
