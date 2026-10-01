@@ -2,6 +2,7 @@
 """review-package writes one task's whole commit range, or refuses a bogus one."""
 from pathlib import Path
 import shutil
+import os
 import subprocess
 import tempfile
 import unittest
@@ -53,12 +54,21 @@ class ReviewPackageTests(unittest.TestCase):
         head = self.commit("a.txt", "task work")
         self.git("checkout", "-q", "-b", "other", self.base)
         sibling = self.commit("b.txt", "other branch")
-        for args, code in (((head, head), 3), ((head, sibling), 3), (("no-such-ref", head), 2)):
+        for args, code in (((head, head), 3), ((head, sibling), 3), (("no-such-ref", head), 2),
+                           (("--output=x", head), 2), ((self.base, "-x"), 2)):
             with self.subTest(args=args):
                 result = self.run_script(*args)
                 self.assertEqual(result.returncode, code, result.stdout + result.stderr)
                 self.assertEqual(result.stdout, "")
         self.assertFalse((self.root / ".orchestra").exists())
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell command")
+    def test_configured_external_diff_is_not_run(self):
+        marker = Path(self.root).parent / "ran"
+        self.git("config", "diff.external", f"touch {marker}; true")
+        head = self.commit("a.txt", "task work")
+        self.assertEqual(self.run_script(self.base, head).returncode, 0)
+        self.assertFalse(marker.exists())
 
 
 if __name__ == "__main__":
