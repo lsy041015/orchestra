@@ -20,6 +20,12 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# One JSON error line; user-supplied text may hold a quote or a backslash.
+json_error() {
+  local text=${1//\\/\\\\}
+  echo "{\"error\": \"${text//\"/\\\"}\"}"
+}
+
 # Parse arguments
 PROJECT_DIR=""
 FOREGROUND="false"
@@ -31,12 +37,12 @@ while [[ $# -gt 0 ]]; do
   # Without this check `shift 2` fails on a trailing option and the loop spins.
   case "$1" in
     --project-dir|--host|--url-host|--idle-timeout-minutes)
-      [[ $# -ge 2 ]] || { echo "{\"error\": \"Missing value for $1\"}"; exit 1; } ;;
+      [[ $# -ge 2 ]] || { json_error "Missing value for $1"; exit 1; } ;;
   esac
   case "$1" in
     --project-dir)
       # Absolute now: the script changes directory before starting the server.
-      PROJECT_DIR="$(cd "$2" 2>/dev/null && pwd)" || { echo "{\"error\": \"No such directory: $2\"}"; exit 1; }
+      PROJECT_DIR="$(cd "$2" 2>/dev/null && pwd)" || { json_error "No such directory: $2"; exit 1; }
       shift 2
       ;;
     --host)
@@ -64,7 +70,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      echo "{\"error\": \"Unknown argument: $1\"}"
+      json_error "Unknown argument: $1"
       exit 1
       ;;
   esac
@@ -72,7 +78,7 @@ done
 
 if [[ -n "$IDLE_TIMEOUT_MINUTES" ]]; then
   if ! [[ "$IDLE_TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || [[ "$IDLE_TIMEOUT_MINUTES" -lt 1 ]]; then
-    echo "{\"error\": \"--idle-timeout-minutes must be a positive integer\"}"
+    json_error "--idle-timeout-minutes must be a positive integer"
     exit 1
   fi
   export BRAINSTORM_IDLE_TIMEOUT_MS=$(( IDLE_TIMEOUT_MINUTES * 60 * 1000 ))
@@ -126,6 +132,12 @@ STATE_DIR="${SESSION_DIR}/state"
 PID_FILE="${STATE_DIR}/server.pid"
 LOG_FILE="${STATE_DIR}/server.log"
 SERVER_ID_FILE="${STATE_DIR}/server-instance-id"
+
+# A symlinked .orchestra would send session files (and the key) elsewhere.
+if [[ -n "$PROJECT_DIR" && ( -L "${PROJECT_DIR}/.orchestra" || -L "${PROJECT_DIR}/.orchestra/brainstorm" ) ]]; then
+  json_error "workspace path contains a symlink: ${PROJECT_DIR}/.orchestra"
+  exit 1
+fi
 
 # Create fresh session directory with content and state peers
 mkdir -p "${SESSION_DIR}/content" "$STATE_DIR"
@@ -192,7 +204,7 @@ for _ in {1..50}; do
       sleep 0.1
     done
     if [[ "$alive" != "true" ]]; then
-      echo "{\"error\": \"Server started but was killed. Retry in a persistent terminal with: $SCRIPT_DIR/start-server.sh${PROJECT_DIR:+ --project-dir $PROJECT_DIR} --host $BIND_HOST${URL_HOST:+ --url-host $URL_HOST} --foreground\"}"
+      json_error "Server started but was killed. Retry in a persistent terminal with: $SCRIPT_DIR/start-server.sh${PROJECT_DIR:+ --project-dir $PROJECT_DIR} --host $BIND_HOST${URL_HOST:+ --url-host $URL_HOST} --foreground"
       exit 1
     fi
     grep "server-started" "$LOG_FILE" | head -1
