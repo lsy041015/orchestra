@@ -63,9 +63,12 @@ class ReviewPackageTests(unittest.TestCase):
         self.assertFalse((self.root / ".orchestra").exists())
 
     @unittest.skipIf(os.name == "nt", "POSIX shell command")
-    def test_configured_external_diff_is_not_run(self):
+    def test_configured_external_diff_and_textconv_are_not_run(self):
         marker = Path(self.root).parent / "ran"
         self.git("config", "diff.external", f"touch {marker}; true")
+        self.git("config", "diff.evil.textconv", f"touch {marker}; cat")
+        (self.root / ".gitattributes").write_text("*.txt diff=evil\n", encoding="utf-8")
+        self.git("add", ".gitattributes")
         head = self.commit("a.txt", "task work")
         self.assertEqual(self.run_script(self.base, head).returncode, 0)
         self.assertFalse(marker.exists())
