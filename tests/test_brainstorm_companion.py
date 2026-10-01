@@ -221,6 +221,37 @@ process.stdout.write(JSON.stringify(sent));
             urllib.request.urlopen(info["url"].split("?")[0] + "files/a.txt", timeout=10)
         self.assertEqual(denied.exception.code, 403)
 
+    def websocket(self, info):
+        import base64, socket
+        host, port = info["host"] if "host" in info else "127.0.0.1", info["port"]
+        sock = socket.create_connection((host, port), timeout=5)
+        self.addCleanup(sock.close)
+        path = "/" + info["url"].split("/", 3)[3]
+        sock.sendall((f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nUpgrade: websocket\r\n"
+                      "Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n"
+                      f"Sec-WebSocket-Key: {base64.b64encode(os.urandom(16)).decode()}\r\n\r\n").encode())
+        self.assertIn(b"101", sock.recv(1024))
+        return sock
+
+    @staticmethod
+    def masked(opcode, payload, fin=True):
+        mask = os.urandom(4)
+        body = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+        return bytes([(0x80 if fin else 0) | opcode, 0x80 | len(payload)]) + mask + body
+
+    def test_fragmented_websocket_message_closes_the_connection(self):
+        tmp = self.temp_dir("brainstorm-ws-")
+        env = {**os.environ, "TMPDIR": str(tmp).replace("\\", "/")}
+        info, session = self.serve(tmp, [], env=env, info_glob=(tmp, "brainstorm-*/state/server-info"))
+        sock = self.websocket(info)
+        # A whole message is recorded; a non-final fragment is refused, not recorded half-read.
+        sock.sendall(self.masked(1, b'{"choice":"whole"}'))
+        sock.sendall(self.masked(1, b'{"choice":"half"', fin=False))
+        self.assertEqual(sock.recv(64)[:2], b"\x88\x00")
+        events = (session / "state/events").read_text(encoding="utf-8")
+        self.assertIn("whole", events)
+        self.assertNotIn("half", events)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
