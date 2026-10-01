@@ -14,7 +14,7 @@ Claude Code only. In a Codex-hosted session, use
 
 ## 1. Tiered task list
 
-Get an approved plan first, using `orchestra:writing-plans` if none exists. Then
+Get a plan first that the user's kickoff approval or an explicit request to execute covers, using `orchestra:writing-plans` if none exists. Then
 show the user one compact table:
 
 | # | Task | Tier | Files |

@@ -54,6 +54,20 @@ class SkillTextTests(unittest.TestCase):
         self.assertIn("run `task-done`\n  only after the inline review below is clean", text)
         self.assertIn("Run `task-done` after the last fix", text)
 
+    def test_new_project_starts_with_one_kickoff_gate(self):
+        # Questions up front for a new project or large feature; afterwards only gaps and consequential choices.
+        brain = (ROOT / "skills/brainstorming/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("**Kickoff.**", brain)
+        for need in ("deliverable", "success criteria", "constraints", "non-goals"):
+            self.assertIn(need, brain)
+        self.assertIn("approval", brain.split("**Kickoff.**", 1)[1].split("\n\n", 1)[0])
+        self.assertIn("After kickoff, ask only", brain)
+        self.assertIn("starting a new project", brain.split("---", 2)[1])
+        plans = (ROOT / "skills/writing-plans/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("orchestra:brainstorming", plans.split("## Plan structure", 1)[0])
+        orch = (ROOT / "skills/orchestrator/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("kickoff approval", orch)
+
 
 if __name__ == "__main__":
     unittest.main()
