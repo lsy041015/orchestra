@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
-import { constants, homedir } from 'node:os';
+import { homedir } from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { compare, holdsHome, repoScope, snapshot } from './scope-check.mjs';
 
 // cmd.exe and CreateProcess search the current directory before PATH, so a
@@ -67,10 +67,33 @@ function cachedEfforts(model) {
   }
 }
 
-// ORCHESTRA_CODEX_TIMEOUT_MS overrides the 2 hour default.
+// 110 minutes: under the 2 hour limit of the Bash background run that starts
+// this worker, so the BLOCKED report still prints. ORCHESTRA_CODEX_TIMEOUT_MS
+// overrides it; above 2^31 - 1 ms setTimeout would fire at once.
 function timeoutMs() {
   const value = Number(process.env.ORCHESTRA_CODEX_TIMEOUT_MS);
-  return Number.isInteger(value) && value > 0 ? value : 2 * 60 * 60 * 1000;
+  return Number.isInteger(value) && value > 0 ? Math.min(value, 2 ** 31 - 1) : 110 * 60 * 1000;
+}
+
+// The codex shim runs the native binary as its own child, which holds this
+// worker's stdout: killing only the shim leaves Codex running and the pipe open.
+// ponytail: without a working `ps` only the direct child is killed.
+function killTree(pid) {
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
+    return;
+  }
+  const children = new Map();
+  const ps = spawnSync('ps', ['-A', '-o', 'pid=', '-o', 'ppid='], { encoding: 'utf8' });
+  for (const line of (ps.stdout || '').split('\n')) {
+    const [child, parent] = line.trim().split(/\s+/).map(Number);
+    if (child) children.set(parent, [...(children.get(parent) ?? []), child]);
+  }
+  const tree = [pid];
+  for (let i = 0; i < tree.length; i++) tree.push(...(children.get(tree[i]) ?? []));
+  for (const each of tree) {
+    try { process.kill(each, 'SIGKILL'); } catch {}
+  }
 }
 
 function spawnCodex(args, cwd, prompt) {
@@ -103,26 +126,34 @@ function spawnCodex(args, cwd, prompt) {
     });
     // Only the tail of stderr is reported.
     child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr = (stderr + chunk).slice(-65536); });
-    // Pass a stop request on (the codex shim forwards it to the native binary),
-    // so killing only this worker never leaves Codex editing files.
-    const forward = (signal) => {
-      child.kill(signal);
-      // A child that is gone or ignores the signal must not strand this worker.
-      setTimeout(() => process.exit(128 + (constants.signals[signal] ?? 0)), 5000).unref();
+    // Pass a stop request on (the codex shim forwards it to the native binary).
+    // Five seconds later the whole tree is killed and the pipes are closed, so
+    // stopping this worker never leaves Codex editing files and a child that
+    // ignores the signal never strands the worker before its report.
+    let killer;
+    const stop = (signal) => {
+      // Windows has no signal to pass on: cmd.exe would die and leave codex.exe.
+      if (process.platform === 'win32') killTree(child.pid);
+      else child.kill(signal);
+      killer ??= setTimeout(() => {
+        killTree(child.pid);
+        child.stdout.destroy();
+        child.stderr.destroy();
+      }, 5000);
     };
     const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
-    for (const signal of signals) process.on(signal, forward);
+    for (const signal of signals) process.on(signal, stop);
     // A hung Codex (network stall, a prompt nobody answers) must end as BLOCKED.
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 5000).unref();
+      stop('SIGTERM');
     }, timeoutMs());
     child.stdin.on('error', () => {});
     child.on('error', (cause) => { error = cause; });
     child.on('close', (code, signal) => {
       clearTimeout(timer);
-      for (const name of signals) process.off(name, forward);
+      clearTimeout(killer);
+      for (const name of signals) process.off(name, stop);
       resolve({ stdout: stdout + partial, stderr, code, signal, error, timedOut });
     });
     child.stdin.end(prompt);

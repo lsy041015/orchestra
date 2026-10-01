@@ -255,6 +255,17 @@ class CodexWorkerTests(unittest.TestCase):
         self.assertIn("Status: BLOCKED\nUnresolved: Codex timed out after 1 s", result.stdout)
         self.kill_quietly(int((self.out / "pid.txt").read_text(encoding="utf-8")))
 
+    @unittest.skipIf(os.name == "nt", "POSIX signals")
+    def test_timeout_kills_a_native_child_that_ignores_sigterm(self):
+        # Killing only the shim left the native binary holding stdout open.
+        start = time.monotonic()
+        result = self.run_worker(mode="stubborn", ORCHESTRA_CODEX_TIMEOUT_MS="500")
+        native = int((self.out / "pid.txt").read_text(encoding="utf-8"))
+        self.addCleanup(self.kill_quietly, native)
+        self.assertLess(time.monotonic() - start, 20)
+        self.assertIn("Status: BLOCKED\nUnresolved: Codex timed out after 1 s", result.stdout)
+        self.assertTrue(self.gone(native))
+
     def test_chatty_stream_keeps_thread_and_final_message(self):
         result = self.run_worker(mode="chatty")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -263,25 +274,40 @@ class CodexWorkerTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX signals; TaskStop kills the whole tree on Windows")
     def test_sigterm_also_stops_codex(self):
-        env = os.environ.copy()
-        env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_OUT=str(self.out), FAKE_MODE="hang")
-        worker = subprocess.Popen([
-            "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
-            "--brief", str(self.brief), "--allowed", "a.txt",
-        ], cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True, encoding="utf-8")
-        self.addCleanup(lambda: worker.poll() is None and worker.kill())
-        pid_file = self.out / "pid.txt"
-        for _ in range(200):
-            if pid_file.exists() and pid_file.read_text(encoding="utf-8"):
-                break
+        # stubborn: the native child ignores the SIGTERM the shim passes on.
+        for mode in ("hang", "stubborn"):
+            with self.subTest(mode=mode):
+                pid_file = self.out / "pid.txt"
+                pid_file.unlink(missing_ok=True)
+                env = os.environ.copy()
+                env.update(ORCHESTRA_CODEX_BIN=str(FAKE), FAKE_OUT=str(self.out), FAKE_MODE=mode)
+                worker = subprocess.Popen([
+                    "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
+                    "--brief", str(self.brief), "--allowed", "a.txt",
+                ], cwd=ROOT, env=env, stdout=subprocess.PIPE, text=True, encoding="utf-8")
+                self.addCleanup(lambda: worker.poll() is None and worker.kill())
+                for _ in range(200):
+                    if pid_file.exists() and pid_file.read_text(encoding="utf-8"):
+                        break
+                    time.sleep(0.05)
+                codex_pid = int(pid_file.read_text(encoding="utf-8"))
+                self.addCleanup(self.kill_quietly, codex_pid)
+                worker.send_signal(signal.SIGTERM)
+                out, _ = worker.communicate(timeout=15)
+                self.assertIn("Status: BLOCKED", out)
+                self.assertIn("Scope: ok", out)
+                self.assertTrue(self.gone(codex_pid))
+
+    @staticmethod
+    def gone(pid):
+        # A killed grandchild can stay a zombie until its new parent reaps it.
+        for _ in range(40):
+            state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)],
+                                   capture_output=True, text=True).stdout.strip()
+            if not state or state.startswith("Z"):
+                return True
             time.sleep(0.05)
-        codex_pid = int(pid_file.read_text(encoding="utf-8"))
-        self.addCleanup(self.kill_quietly, codex_pid)
-        worker.send_signal(signal.SIGTERM)
-        out, _ = worker.communicate(timeout=10)
-        self.assertIn("Status: BLOCKED", out)
-        with self.assertRaises(ProcessLookupError):
-            os.kill(codex_pid, 0)
+        return False
 
     @staticmethod
     def kill_quietly(pid):

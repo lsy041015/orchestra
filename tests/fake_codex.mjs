@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { spawn } from 'node:child_process';
 
 const cwd = process.cwd();
 const out = process.env.FAKE_OUT;
@@ -47,6 +48,14 @@ if (process.env.FAKE_MODE === 'fail') {
   // A long run that only a signal ends.
   writeFileSync(join(out, 'pid.txt'), String(process.pid));
   setInterval(() => {}, 1000);
+} else if (process.env.FAKE_MODE === 'stubborn') {
+  // Like the real codex shim: the native binary inherits stdout, gets every
+  // signal passed on, and here ignores SIGTERM. It gives up after 30 s.
+  const native = spawn(process.execPath, ['-e',
+    "process.on('SIGTERM', () => {}); setTimeout(() => process.exit(0), 30000)"], { stdio: 'inherit' });
+  writeFileSync(join(out, 'pid.txt'), String(native.pid));
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => native.kill(signal));
+  native.on('exit', (code) => process.exit(code ?? 1));
 } else if (process.env.FAKE_MODE === 'chatty') {
   // 20 MB of reasoning events around the events the worker reads.
   process.stdout.write('{"type":"thread.started","thread_id":"t-123"}\n');
