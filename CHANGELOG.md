@@ -5,6 +5,8 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-10-01
+
 ### Added
 - `orchestra:implementer-xhigh` Claude agent (same contract, `sonnet` / `xhigh`), so a
   routing value such as `claude sonnet/xhigh` has an agent to dispatch. The
@@ -381,7 +383,8 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/lsy041015/orchestra/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/lsy041015/orchestra/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/lsy041015/orchestra/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/lsy041015/orchestra/compare/v0.4.1...v0.4.2
