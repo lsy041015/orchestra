@@ -1,10 +1,13 @@
 # Dispatching a Codex worker
 
 Part of `orchestra:orchestrator`. Read it before dispatching a task routed to a Codex worker (only when the user asked for Codex).
+`<this skill's base directory>` below is the directory of `orchestra:orchestrator`.
 
 **Codex worker**: the main session calls `Bash` directly with
 `run_in_background: true` and `timeout: 7200000`, the maximum; the default
-stops a background command after 30 minutes. Set the description to
+stops a background command after 30 minutes. The worker stops Codex itself
+after 110 minutes (`ORCHESTRA_CODEX_TIMEOUT_MS` overrides it) and still reports
+`Status: BLOCKED` with its `Scope:` line. Set the description to
 `[Codex <model>/<effort>] Task N: <title>` and run:
 
 ```text

@@ -172,12 +172,17 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   `Status: BLOCKED` with a one-line reason and exit 1. An `error` event alone is not a failure;
   Codex also reports recovered stream retries that way, and a recovered one never replaces the
   real reason. Bad arguments exit 2 without starting Codex.
-- The scope check ([`scope-check.mjs`](skills/orchestrator/scripts/scope-check.mjs)) hashes
-  `git status` entries and records `HEAD` before and after the run, so files you had already
-  modified are only flagged if the worker changes them, and committed files still count. It works
-  on the physical path, so a symlinked `--cwd` checks the repository git sees. It cannot see
-  `.gitignore`d paths, and parallel workers in the same checkout see each other's files; the
-  orchestrator ignores only files that belong to another running worker's allowed list.
+- The scope check ([`scope-check.mjs`](skills/orchestrator/scripts/scope-check.mjs)) records
+  size and change times of `git status` entries, ignored ones included, and `HEAD` before and
+  after the run, so files you had already modified are only flagged if the worker changes them,
+  and committed files still count. Nested repositories are listed with `git ls-files`, so a filter
+  in a worker-written `.git/config` never runs on the host. It works on the physical path, so a
+  symlinked `--cwd` checks the repository git sees. Ignored paths are labelled
+  (`build/ (ignored)`): caches the task's own commands create are expected, a `.env` is not.
+  Parallel workers in the same checkout see each other's files; the orchestrator ignores only
+  files that belong to another running worker's allowed list.
+- A Codex run that outlasts 110 minutes (`ORCHESTRA_CODEX_TIMEOUT_MS`) is stopped with its whole
+  process tree and reported as `Status: BLOCKED`, inside the 2 hour Bash background limit.
 - For a Claude worker the main session runs the same check:
   `node scope-check.mjs before --cwd <project> --state <workspace>/task-N-scope.json` before dispatch,
   and `after … --allowed <files>` before each review.

@@ -6,8 +6,12 @@ Part of `orchestra:orchestrator`. Read it when a worker result is ready to revie
 Review every result from the actual diff. After each worker run, read its
 `Scope:` line (Codex worker output, or `scope-check.mjs after` for Claude):
 - Treat `Scope: outside allowed` as a review finding (see the parallel rule
-  in `SKILL.md` §3). The check does not see `.gitignore`d paths; review those from the
-  diff and the worker report when the task touches them.
+  in `SKILL.md` §3). An entry marked `(ignored)` is a `.gitignore`d path:
+  caches and build output that the brief's own commands create
+  (`__pycache__/`, `.pytest_cache/`, `node_modules/`, `build/`) are expected;
+  any other ignored file (`.env`, a key, a local config) is a finding. Only an
+  ignored directory's direct entries are compared, so review deeper edits
+  there from the diff and the worker report.
 - `Scope: unchecked (<reason>)` means no mechanical check ran: not a git
   repository, git refused it (for example dubious ownership), or git failed
   after the run. Review `git status` and the whole diff yourself, and tell the
@@ -16,7 +20,8 @@ Review every result from the actual diff. After each worker run, read its
   commits each task after its review is clean.
 - Check for processes left running from the project directory: on Windows,
   `Get-CimInstance Win32_Process | Where-Object CommandLine -like '*<project>*'`;
-  elsewhere, `pgrep -af "<project>"` (it lists itself; ignore that line). Ask before stopping a
+  elsewhere, `ps -eo pid,args | grep -F "<project>"` (the grep line itself is
+  listed; ignore it). `pgrep -a` lists ancestors on macOS. Ask before stopping a
   process the user may own.
 
 For a Claude worker, send findings to that worker with `SendMessage`. For a

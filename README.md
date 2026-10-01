@@ -346,12 +346,15 @@ Scope: ok | outside allowed: a.txt, b.txt | unchecked (<이유>)
   복구된 뒤의 `error` 문구는 실패 이유로 쓰지 않으므로, stderr에 남은 실제 원인을 가리지 않습니다.
   API 거부는 JSON 덩어리 대신 한 줄 문장으로 보여줍니다. 예:
   `Unresolved: The 'gpt-x' model is not supported when using Codex with a ChatGPT account.`
+- Codex가 110분(`ORCHESTRA_CODEX_TIMEOUT_MS`로 변경) 안에 끝나지 않으면 프로세스 트리 전체를 멈추고
+  `Unresolved: Codex timed out after … s and was stopped`로 BLOCKED를 냅니다. Bash 백그라운드 한도(2시간)보다 짧아서 보고가 남습니다.
 - `Scope: outside allowed`는 exit 0을 유지합니다. **판단은 메인 세션의 몫**이고, 리뷰 지적으로 처리합니다.
 
 ### 8.4 범위 검사는 어떻게 하나
 Codex 워커와 Claude 워커는 같은 코드([`scope-check.mjs`](skills/orchestrator/scripts/scope-check.mjs))로 검사합니다.
 
-1. 실행 전 `git status --porcelain=v1 -z -uall`로 변경·신규 파일 목록을 얻고 각 파일의 SHA-1과 `HEAD`를 기록합니다.
+1. 실행 전 `git status --porcelain=v1 -z -uall --ignored=matching`으로 변경·신규·무시된 파일 목록을 얻고 각 파일의 크기·수정 시각과 `HEAD`를 기록합니다.
+   하위 저장소(서브모듈, 클론해 둔 저장소)는 `git ls-files`로 목록만 읽습니다. 워커가 쓸 수 있는 그 저장소의 `.git/config` 필터가 호스트에서 실행되지 않게 하기 위해서입니다.
 2. 실행 후 같은 방식으로 다시 기록합니다.
 3. 해시가 달라졌거나 한쪽에만 있는 경로, 그리고 `HEAD`가 움직였다면 그 사이 커밋이 바꾼 경로 = "바뀐 파일".
    여기서 `--allowed`를 뺀 것이 `outside`입니다.
@@ -360,7 +363,8 @@ Codex 워커와 Claude 워커는 같은 코드([`scope-check.mjs`](skills/orches
   위반은 `outside allowed: pkg/extra.txt`처럼 나옵니다.
 - 실행 **전부터** 수정돼 있던 파일은 내용이 그대로면 잡히지 않습니다. 사용자의 기존 작업을 워커 탓으로 돌리지 않습니다.
 - 이름 변경 항목은 새 경로 기준으로 봅니다. 서브모듈처럼 폴더로 보이는 항목도 실행을 멈추지 않습니다.
-- `.gitignore`된 파일은 검사 대상이 아닙니다. 그래서 ledger(`.orchestra/sdd/…`, 자동으로 무시됨)에 쓰는 리포트는 범위 위반이 아닙니다.
+- `.gitignore`된 경로도 검사하고 `outside allowed: build/ (ignored)`처럼 표시합니다. 작업 명령이 만든 캐시(`__pycache__/`, `node_modules/`)인지,
+  `.env` 같은 파일인지는 메인 세션이 판단합니다. 무시된 폴더는 폴더 자체의 항목만 비교합니다. ledger(`.orchestra/`)는 제외합니다.
 - git이 실패하면(저장소 아님, 소유자가 달라 git이 거부 등) `Scope: unchecked (git: <오류>)`, 실행 후 git이 실패하면
   `unchecked (git status failed after the run: <오류>)`로 표시합니다. 이때 메인 세션이 `git status`와 diff를 직접 확인합니다.
   Windows에서는 Codex 샌드박스가 만든 파일의 소유자가 `CodexSandboxOffline`이라 이런 거부가 생길 수 있습니다.

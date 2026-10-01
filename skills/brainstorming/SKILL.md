@@ -7,7 +7,7 @@ description: Use when starting a new project or large feature, or when a change 
 
 The main session owns design. Preserve the user's purpose, constraints and acceptance conditions. Read the relevant existing flow before choosing an approach; do not repeat questions already answered in the request.
 
-**Kickoff.** When starting a new project, or a large feature (more than three files, or no existing design) with no spec or plan yet, do not infer the goal. Ask until the deliverable, success criteria, constraints, non-goals and target user or environment are clear (skip what the request already answers), summarize them back, and get the user's approval before design or planning. This is the one intake gate; its approval covers the plan that follows. Batch the questions; after two rounds, or when the user says to proceed, record the open assumptions in the summary and continue. A dispatched worker skips this gate.
+**Kickoff.** When starting a new project, or a large feature (more than three files, or a design the codebase does not have yet) with no spec or plan yet, do not infer the goal. Ask until the deliverable, success criteria, constraints, non-goals and target user or environment are clear (skip what the request already answers), summarize them back, and get the user's approval before design or planning. This is the one intake gate; its approval covers the plan that follows. Batch the questions; after two rounds, or when the user says to proceed, record the open assumptions in the summary and continue. A dispatched worker skips this gate.
 
 Choose only the depth the task needs:
 
