@@ -329,6 +329,7 @@ class CodexWorkerTests(unittest.TestCase):
         env = {k: v for k, v in os.environ.items()
                if k.upper() not in ("NODEFAULTCURRENTDIRECTORYINEXEPATH", "ORCHESTRA_CODEX_BIN")}
         env["PATH"] = str(shim) + os.pathsep + env.get("PATH", "")
+        env["FAKE_OUT"] = str(self.out)
         result = subprocess.run([
             "node", str(WORKER), "--model", "gpt-6-luna", "--effort", "high", "--cwd", str(self.root),
             "--brief", str(self.brief), "--allowed", "a.txt",
