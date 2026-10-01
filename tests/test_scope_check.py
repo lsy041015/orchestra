@@ -98,6 +98,31 @@ class ScopeCheckTests(unittest.TestCase):
         result = self.check("after", allowed="keep.txt")
         self.assertEqual(result.stdout, "Scope: outside allowed: sub/a.c\n", result.stderr)
 
+    def test_ignored_files_count_but_the_orchestra_workspace_does_not(self):
+        (self.repo / ".gitignore").write_text(".env\ndist/\n.orchestra/\n", encoding="utf-8")
+        git(self.repo, "add", ".gitignore")
+        git(self.repo, "commit", "-q", "-m", "ignore")
+        self.check("before")
+        (self.repo / ".env").write_text("secret\n", encoding="utf-8")
+        (self.repo / "dist").mkdir()
+        (self.repo / "dist/out.js").write_text("x\n", encoding="utf-8")
+        (self.repo / ".orchestra").mkdir()
+        (self.repo / ".orchestra/ledger.md").write_text("ledger\n", encoding="utf-8")
+        result = self.check("after", allowed="keep.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: .env, dist/\n", result.stderr)
+
+    @unittest.skipIf(os.name == "nt", "POSIX shell command")
+    def test_nested_repo_config_cannot_run_a_command(self):
+        # The check runs git on a repo the worker made; core.fsmonitor would execute.
+        evil = self.repo / "evil"
+        self.nested_repo(evil)
+        marker = self.temp / "ran"
+        with (evil / ".git/config").open("a", encoding="utf-8") as config:
+            config.write(f"[core]\n\tfsmonitor = touch {marker}; echo\n")
+        self.check("before")
+        self.check("after", allowed="keep.txt")
+        self.assertFalse(marker.exists())
+
     def test_repository_holding_the_home_directory_is_unchecked(self):
         # A repository at $HOME lists every app cache as untracked: noise only.
         (self.repo / "user").mkdir()  # a real home exists, so realpath can resolve it

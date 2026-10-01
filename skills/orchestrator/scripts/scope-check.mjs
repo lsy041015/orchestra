@@ -5,7 +5,7 @@
 //   node scope-check.mjs before --cwd <project> --state <file>
 //   node scope-check.mjs after --cwd <project> --state <file> --allowed <list>
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { devNull, homedir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +19,10 @@ function git(cwd, args) {
   return new Promise((resolve) => {
     // No optional locks: a background status must not make the user's own git
     // commands fail on index.lock.
-    const child = spawn('git', ['-C', cwd, ...args],
+    // A worker can write .git/config in a nested repo it created, and this
+    // runs outside its sandbox: switch off the config keys that execute commands.
+    const child = spawn('git', ['-c', 'core.fsmonitor=false', '-c', `core.hooksPath=${devNull}`,
+      '-c', 'core.untrackedCache=false', '-C', cwd, ...args],
       { windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
     const chunks = [];
     let stderr = '';
@@ -63,13 +66,18 @@ export async function repoScope(cwd, allowed) {
 
 export async function snapshot(root) {
   // No rename detection: a rename's old path must count as a change too.
-  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames']);
+  // --ignored: a worker's .env, dist/ or node_modules/ is invisible otherwise.
+  const result = await git(root, ['status', '--porcelain=v1', '-z', '-uall', '--no-renames',
+    '--ignored=matching']);
   if (result.error) return result;
   const files = new Map();
   for (const entry of result.output.split('\0')) {
     if (entry.length < 4) continue;
     const file = entry.slice(3);
     const normalized = file.replace(/\\/g, '/');
+    // The orchestra workspace (ledger, briefs, this state file) is written by
+    // the main session, not the worker.
+    if (entry.startsWith('!!') && /^\.orchestra(\/|$)/.test(normalized)) continue;
     let hash = 'deleted';
     let stat;
     try {
@@ -83,7 +91,9 @@ export async function snapshot(root) {
       // Keep an unreadable entry instead of aborting the run.
       hash = error.code === 'ENOENT' ? 'deleted' : error.code;
     }
-    if (stat?.isDirectory()) {
+    // An ignored directory is one entry: its own mtime catches files added or
+    // removed directly in it. ponytail: edits deeper down are missed.
+    if (stat?.isDirectory() && !entry.startsWith('!!')) {
       hash = 'directory';
       // A submodule or an untracked nested repository shows up as one
       // directory, so its own status is merged in under that path, and its
