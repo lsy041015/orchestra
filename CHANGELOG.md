@@ -5,6 +5,37 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-10-01
+
+Fixes from a review of 0.4.7: the scope check could still run a command from a
+nested repository, and the Codex timeout could wait on a process it never killed.
+
+### Security
+- `scope-check`: nested repositories and submodules are listed with `git ls-files`
+  instead of `git status`. 0.4.7 switched off `core.fsmonitor` and hooks, but
+  `git status` still ran a `filter.<x>.clean` or `process` driver from a
+  worker-written `.git/config` and `.gitattributes` when a file's mtime moved, so
+  the 0.4.7 note that this hole was closed was wrong.
+- `review-package`: `--no-textconv`, so a textconv driver never runs.
+
+### Fixed
+- `codex-worker`: a timeout or a stop signal kills the whole Codex process tree
+  five seconds after the polite signal (`taskkill /t` on Windows) and closes the
+  pipes. Before, SIGKILL reached only the `codex` shim; a native binary that
+  ignored SIGTERM kept running and the worker waited for it. A stopped worker now
+  prints its BLOCKED report and `Scope:` line instead of exiting after 5 s.
+- `codex-worker`: the default timeout is 110 min, inside the 2 h Bash background
+  limit that killed the worker first, and `ORCHESTRA_CODEX_TIMEOUT_MS` is clamped
+  to setTimeout's maximum.
+- `scope-check`: ignored entries are labelled, e.g. `build/ (ignored)`;
+  `review-loop` says which are expected (caches the brief's commands create) and
+  no longer claims ignored paths are invisible.
+- `brainstorm`: JSON error lines also escape line breaks and tabs.
+- Skills: the process check is `ps -eo pid,args | grep -F` again (`pgrep -a`
+  lists ancestors on macOS); the kickoff "large feature" test no longer reads as
+  "no spec"; both dispatch modules use one script placeholder.
+- Tests run under `pytest` too.
+
 ## [0.4.7] - 2026-10-01
 
 Fixes from a review of 0.4.6: one command-execution hole in the scope check, a
@@ -459,7 +490,9 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.6...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.8...HEAD
+[0.4.8]: https://github.com/lsy041015/orchestra/compare/v0.4.7...v0.4.8
+[0.4.7]: https://github.com/lsy041015/orchestra/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/lsy041015/orchestra/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/lsy041015/orchestra/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/lsy041015/orchestra/compare/v0.4.3...v0.4.4
