@@ -86,8 +86,8 @@ unresolved consequential decision. Otherwise the existing task authorization
 permits execution; creating a plan does not add a new approval requirement. Use `orchestra:subagent-driven-development`
 for bounded delegated work or `orchestra:executing-plans` for
 inline execution. In Claude Code, also offer `orchestra:orchestrator`, which
-routes each difficulty tier to a Claude subagent or a Codex CLI worker with
-the model and effort the user picks.
+routes each difficulty tier to a Claude subagent (a Codex CLI worker only when the
+user asks for Codex).
 
 ## Execution handoff
 

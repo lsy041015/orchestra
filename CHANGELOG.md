@@ -5,6 +5,15 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed (routing)
+- `orchestrator` dispatches Claude workers by default, with no question: Easy
+  `claude sonnet/medium`, Medium `claude sonnet/high`, Hard and UI
+  `claude sonnet/xhigh`. A Codex worker is used only when the user named Codex in the
+  conversation; a `codex` value in `orchestra.json` stays inert until then, and Codex is
+  never offered in a question unprompted. `routing.md` and the Codex dispatch module are
+  read only when a config file exists or Codex was named. The default Hard and UI tier
+  uses `orchestra:implementer-xhigh`, which has not yet been dispatched in a real run.
+
 ### Added
 - `using-orchestra/references/file-map.md`: which file to read in which situation, so
   an agent opens one file instead of a whole skill. A test requires it to name every

@@ -9,8 +9,8 @@
 # 오케스트라 (Orchestra)
 
 > **지휘는 비싼 모델이, 연주는 알맞은 모델이.**
-> Claude Code 메인 세션이 계획과 리뷰를 맡고, 범위가 정해진 구현은 난이도에 맞춰 고른
-> **Claude 서브에이전트** 또는 **Codex CLI(GPT)** 워커에게 맡기는 스킬 플러그인입니다.
+> Claude Code 메인 세션이 계획과 리뷰를 맡고, 범위가 정해진 구현은 난이도에 맞춰
+> **Claude 서브에이전트**에게 맡기는 스킬 플러그인입니다. **Codex CLI(GPT)** 워커는 사용자가 Codex를 언급할 때만 씁니다.
 
 [Jesse Vincent의 Superpowers](https://github.com/obra/superpowers) 6.4.1을 기반으로 한 개인 포크입니다.
 공식 OpenAI·Anthropic·Superpowers 배포판이 아닙니다. Claude·Codex 같은 이름은 연동 대상을 가리킬 때만 쓰며,
@@ -150,7 +150,7 @@
     │
     ▼
  ④ 모델 선택 ── ~/.claude/orchestra.json + <project>/.orchestra.json 병합
-    │            빠진 티어만 AskUserQuestion으로 질문
+    │            기본은 Claude 워커, Codex는 사용자가 언급할 때만
     ▼
  ⑤ 배정 ────── Claude 워커: Agent(orchestra:implementer[-medium], model=...)
     │            Codex 워커: node codex-worker.mjs ... (백그라운드 Bash)
@@ -208,23 +208,25 @@
 
 - `routing`은 **키 단위로 병합**하고 프로젝트 값이 이깁니다.
 - `options`는 프로젝트에 있으면 **통째로 대체**하고, 없으면 사용자 값을 씁니다.
-- 두 파일 모두 없으면 기본 4개 선택지로 질문합니다.
+- 두 파일 모두 없으면 질문 없이 기본값(Claude 워커만)을 씁니다: easy=`claude sonnet/medium`, medium=`claude sonnet/high`, hard·ui=`claude sonnet/xhigh`.
+- **Codex는 옵트인입니다.** 설정의 `codex` 값과 선택지는 사용자가 이 대화에서 Codex를 언급했을 때만 적용합니다. 언급하지 않으면 그 티어는 기본값을 씁니다.
 
 ### 6.2 스키마
 
 ```json
 {
   "routing": {
-    "easy":   "codex gpt-6-luna/medium",
+    "easy":   "claude sonnet/medium",
     "medium": "claude sonnet/high",
-    "hard":   "claude opus/high",
-    "ui":     "claude opus/high"
+    "hard":   "claude sonnet/xhigh",
+    "ui":     "claude sonnet/xhigh"
   },
   "options": [
-    "codex gpt-6-luna/medium",
-    "codex gpt-6-luna/high",
     "claude sonnet/high",
-    "claude opus/high"
+    "claude sonnet/xhigh",
+    "claude opus/high",
+    "codex gpt-6-luna/medium",
+    "codex gpt-6-luna/high"
   ]
 }
 ```
@@ -242,10 +244,10 @@
 - `ui` 키는 UI 작업을 따로 라우팅하고 싶을 때만 씁니다. 없으면 UI 작업도 `hard`를 따릅니다.
 
 ### 6.3 질문을 건너뛰는 조건
-작업 표에 나온 **모든 티어에 routing 값이 있으면** 질문 없이 매핑을 한 줄로 보여주고 바로 배정합니다.
+매핑을 한 줄로 보여주고 질문 없이 바로 배정합니다. 값이 없는 티어는 기본값(Claude)을 씁니다.
 단, 값 하나라도 프로젝트 `.orchestra.json`에서 왔으면 첫 배정 전에 그 매핑을 보여주고 한 번 확인을 받습니다.
 클론한 저장소의 설정이 사용자의 모델 한도를 쓰기 때문입니다.
-값이 없는 티어만 `AskUserQuestion`으로 묻습니다. 사용자는 "Other"로 목록에 없는 모델도 입력할 수 있습니다.
+`AskUserQuestion`은 사용자가 Codex로 보내라고 한 티어에 codex 값이 없을 때, 또는 설정 파일이 잘못됐을 때만 씁니다. 사용자가 언급하지 않았다면 Codex를 선택지로 내놓지 않습니다. 사용자는 "Other"로 목록에 없는 모델도 입력할 수 있습니다.
 최종 매핑은 ledger에 `Routing: Easy=..., Medium=..., Hard=...` 형태로 남습니다.
 
 ### 6.4 작업 단위 덮어쓰기

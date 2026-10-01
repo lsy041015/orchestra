@@ -10,7 +10,7 @@
 
 > **The conductor plans. The right model plays.**
 > Your Claude Code main session plans and reviews; each bounded implementation task goes to a
-> **Claude subagent** or a **Codex CLI (GPT)** worker picked per difficulty tier.
+> **Claude subagent** by difficulty tier. A **Codex CLI (GPT)** worker is used only when you ask for Codex.
 
 A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by Jesse Vincent.
 Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude and Codex only indicate
@@ -40,7 +40,7 @@ spends each subscription where it fits:
 ```text
 request → plan (orchestra:writing-plans)
         → tier table   | # | Task | Tier | Files |
-        → routing      ~/.claude/orchestra.json + <project>/.orchestra.json, ask only for missing tiers
+        → routing      ~/.claude/orchestra.json + <project>/.orchestra.json, Claude by default, Codex only on request
         → dispatch     Claude: Agent(orchestra:implementer, model=…)
                        Codex:  node codex-worker.mjs … (background Bash)
         → review       diff + tests + Scope line → fix loop (same worker / --resume <thread>)
@@ -115,13 +115,13 @@ Do not enable the original Superpowers plugin or the earlier `relay` plugin at t
 ```json
 {
   "routing": {
-    "easy":   "codex gpt-6-luna/medium",
+    "easy":   "claude sonnet/medium",
     "medium": "claude sonnet/high",
-    "hard":   "claude opus/high",
-    "ui":     "claude opus/high"
+    "hard":   "claude sonnet/xhigh",
+    "ui":     "claude sonnet/xhigh"
   },
-  "options": ["codex gpt-6-luna/medium", "codex gpt-6-luna/high",
-              "claude sonnet/high", "claude opus/high"]
+  "options": ["claude sonnet/high", "claude sonnet/xhigh", "claude opus/high",
+              "codex gpt-6-luna/medium", "codex gpt-6-luna/high"]
 }
 ```
 
@@ -136,8 +136,9 @@ Do not enable the original Superpowers plugin or the earlier `relay` plugin at t
     (`$CODEX_HOME/models_cache.json`, default `~/.codex`) lists the model without that effort, the worker stops with
     `Status: BLOCKED` before Codex runs; any other unsupported pair comes back as `Status: BLOCKED`
     with Codex's own message.
-- If every tier in the table has a value, Orchestra shows the mapping and starts. Otherwise it asks
-  only for the missing tiers. When any value comes from a project `.orchestra.json`, it shows the
+- Orchestra shows the mapping and starts; a tier without a value uses the Claude default above.
+  `codex` values and options apply only when you named Codex in the conversation, and Codex is never
+  offered otherwise. It asks only when you routed a tier to Codex that has no codex value. When any value comes from a project `.orchestra.json`, it shows the
   mapping and asks once before the first dispatch, because a cloned repository's file spends your
   quota.
 
