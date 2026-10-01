@@ -65,7 +65,8 @@ not overlap; tier routing is itself the exception to the one-worker default, so
 it needs no separate parallel request. The scope check compares the whole
 checkout, so a file changed by another worker running at the same time also
 appears in `Scope: outside allowed`. Ignore a listed file only when it belongs
-to a concurrent worker's allowed list; otherwise treat it as a finding. For the
+to a concurrent worker's allowed list or is an expected `(ignored)` cache (see
+`modules/review-loop.md`); otherwise treat it as a finding. For the
 same reason, do not edit a checkout while a worker runs in it. Separate
 worktrees avoid this overlap.
 

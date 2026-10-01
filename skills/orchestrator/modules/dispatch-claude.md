@@ -1,6 +1,7 @@
 # Dispatching a Claude worker
 
 Part of `orchestra:orchestrator`. Read it before dispatching a task routed to a Claude worker.
+`<this skill's base directory>` below is the directory of `orchestra:orchestrator`.
 
 **Claude worker**: use the `Agent` tool.
 
@@ -18,8 +19,8 @@ a new task, and check it before each review of that task, including after fix
 rounds. `<workspace>` is the directory `sdd-workspace` prints:
 
 ```text
-node "<plugin root>/skills/orchestrator/scripts/scope-check.mjs" before --cwd "<project>" --state "<workspace>/task-N-scope.json"
-node "<plugin root>/skills/orchestrator/scripts/scope-check.mjs" after --cwd "<project>" --state "<workspace>/task-N-scope.json" --allowed "<files>"
+node "<this skill's base directory>/scripts/scope-check.mjs" before --cwd "<project>" --state "<workspace>/task-N-scope.json"
+node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<project>" --state "<workspace>/task-N-scope.json" --allowed "<files>"
 ```
 
 `after` prints the same `Scope:` line as a Codex worker and also counts files
