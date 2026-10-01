@@ -89,6 +89,20 @@ class SkillTextTests(unittest.TestCase):
             rel = str(doc.relative_to(skills)).replace("\\", "/")
             self.assertTrue(rel in text or rel.rsplit("/", 1)[0] + "/" in text, f"file map misses {rel}")
 
+    def test_claude_is_the_default_worker_and_codex_needs_a_request(self):
+        # Prose wraps, so compare with whitespace collapsed.
+        read = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())
+        orch, routing = read("skills/orchestrator/SKILL.md"), read("skills/orchestrator/modules/routing.md")
+        for default in ("claude sonnet/medium", "claude sonnet/high", "claude sonnet/xhigh"):
+            self.assertIn(default, orch)
+        for text in (orch, routing):
+            self.assertIn("only when the user named Codex", text)
+        self.assertIn("only when the user asks for Codex", orch.split("---", 2)[1])
+        schema = routing.split("```json", 1)[1].split('"options"', 1)[0]
+        self.assertNotIn("codex", schema.lower())
+        self.assertIn("never offer codex", routing.lower())
+
+
 
 if __name__ == "__main__":
     unittest.main()

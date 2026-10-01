@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Use in Claude Code when an approved plan should be split into difficulty tiers and each tier delegated to a Claude subagent or a Codex CLI worker with a user-chosen model and effort. Not for Codex-hosted sessions.
+description: Use in Claude Code when an approved plan should be split into difficulty tiers and each tier delegated to a Claude subagent, or to a Codex CLI worker only when the user asks for Codex. Not for Codex-hosted sessions.
 ---
 
 # Orchestra Orchestrator
@@ -34,11 +34,16 @@ so it replaces `subagent-driven-development`'s keep-inline rule here.
 
 ## 2. Model choice
 
-Read `modules/routing.md` unless every tier already has a routing value you have
-just shown. It merges `~/.claude/orchestra.json` with the project
-`.orchestra.json` by key, asks with `AskUserQuestion` only for tiers without a
-value, requires one confirmation for values that come from the project file, and
-records `Routing: Easy=..., Medium=..., Hard=...` in the ledger.
+Workers are Claude by default: Easy `claude sonnet/medium`, Medium
+`claude sonnet/high`, Hard and UI `claude sonnet/xhigh`. Use a Codex worker only
+when the user named Codex in this conversation. Show the mapping on one line and
+dispatch; the defaults need no question.
+
+Read `modules/routing.md` when `~/.claude/orchestra.json` or a project
+`.orchestra.json` exists, or when the user named Codex. It merges the files by
+key, applies Codex values only on request, requires one confirmation for values
+that come from the project file, and says when to ask. Record
+`Routing: Easy=..., Medium=..., Hard=...` in the ledger.
 
 ## 3. Dispatch
 
@@ -51,8 +56,8 @@ its first label; the ledger shows its current task.
 Claude worker: read `modules/dispatch-claude.md` (agent per effort, scope
 baseline before and check after).
 
-Codex worker: read `modules/dispatch-codex.md` (background `codex-worker.mjs`
-run, brief rules, network opt-in, and the prerequisite check before the first
+Codex worker (only when a task routes to Codex at the user's request): read
+`modules/dispatch-codex.md` (background `codex-worker.mjs` run, brief rules, network opt-in, and the prerequisite check before the first
 Codex dispatch).
 
 Workers of either engine may run in parallel when their files and state do

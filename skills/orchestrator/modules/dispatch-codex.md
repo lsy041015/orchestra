@@ -1,6 +1,6 @@
 # Dispatching a Codex worker
 
-Part of `orchestra:orchestrator`. Read it before dispatching a task routed to a Codex worker.
+Part of `orchestra:orchestrator`. Read it before dispatching a task routed to a Codex worker (only when the user asked for Codex).
 
 **Codex worker**: the main session calls `Bash` directly with
 `run_in_background: true` and `timeout: 7200000`, the maximum; the default
