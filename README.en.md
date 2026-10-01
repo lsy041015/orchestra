@@ -9,8 +9,9 @@
 # Orchestra
 
 > **The conductor plans. The right model plays.**
-> Your Claude Code main session plans and reviews; each bounded implementation task goes to a
-> **Claude subagent** by difficulty tier. A **Codex CLI (GPT)** worker is used only when you ask for Codex.
+> Your Claude Code main session asks questions to pin down intent and the deliverable, writes the plan,
+> and hands each bounded implementation task to a **Claude subagent** by difficulty tier, so the main
+> session spends fewer tokens. A **Codex CLI (GPT)** worker is used only when you ask for Codex.
 
 A personal fork of [Superpowers](https://github.com/obra/superpowers) 6.4.1 by Jesse Vincent.
 Not an official OpenAI, Anthropic or Superpowers release. Names such as Claude and Codex only indicate
@@ -21,19 +22,37 @@ the tools this plugin works with; the marks belong to their owners.
 
 ## Why
 
-If you pay for both Claude and ChatGPT (Codex), one quota tends to run out while the other goes unused,
-and the most expensive model ends up doing mechanical edits. Orchestra keeps judgment in one place and
-spends each subscription where it fits:
+Coding agents fail in the same ways: they act on a vague request and deliver something other than what you
+meant, and the main model does simple implementation itself, so its context and token use keep growing.
+Orchestra answers with operating rules and small scripts, for three reasons:
 
-1. **The main session owns judgment.** Planning, review, diagnosis and integration never leave it, and
-   the plugin never changes its model or reasoning effort.
-2. **Workers only implement**, one bounded task each, inside an explicit list of allowed files.
-   Claude workers cannot start subagents (`disallowedTools: Agent`); for Codex workers that is a brief
-   rule, because Codex 0.156 keeps its agent tools even with `features.multi_agent=false`. Codex
-   workers never commit; the main session commits after review.
-3. **Every result is checked against evidence**: the real diff, real test output, and a mechanical
-   scope check (run by the Codex worker itself, and by the main session around a Claude worker with
-   `scope-check.mjs`).
+1. **Ask first, then plan.** For a new project or a large feature with no spec or plan, `brainstorming`
+   runs a kickoff: it asks until the deliverable, success criteria, constraints and non-goals are clear,
+   summarizes them and waits for your approval before writing the plan. After that it asks only for
+   missing information and decisions it cannot infer. Small, settled changes get no kickoff questions.
+2. **The AI divides the work.** The main session splits the plan into tasks and sets each task's difficulty
+   tier, allowed files and brief. You do not pick a model per task: workers are Claude by default, and
+   routing config changes that. Only implementation is delegated; planning, review, diagnosis and
+   integration stay in the main session.
+3. **Fewer main-session tokens.** A worker gets a small brief with no conversation history. Skills are split
+   into `SKILL.md` plus situational `modules/`, with a [file map](skills/using-orchestra/references/file-map.md)
+   that names the one file each situation needs; every skill and agent markdown file is at most 300 lines. What is measured:
+   the skill text read in a typical flow shrank by about 15 to 21% from v0.4.5 to v0.4.6 (bytes, a flow that
+   finishes with a PR, depending on routing). The tokens the main session actually spends are not measured yet; see
+   [Verification and limits](#verification-and-limits).
+
+Delegation brings its own risks, and the rules guard against them:
+
+- **Subagent sprawl:** workers only implement and never start another agent; there are no separate reviewer
+  or planner agents. Claude workers cannot start subagents (`disallowedTools: Agent`); for Codex workers that is
+  a brief rule, because Codex 0.156 keeps its agent tools even with `features.multi_agent=false`.
+- **Unchecked "done":** every result is checked against the real diff, real test output, and a mechanical
+  scope check (run by the Codex worker itself, and by the main session around a Claude worker with
+  `scope-check.mjs`). Codex workers never commit; the main session commits after review.
+- **Endless fix loops:** after two failed fixes for the same root cause, work stops and the main session
+  records a ruling.
+- **Claude plus Codex:** if you pay for both, name Codex to send easy tasks to a Codex worker. That spreads
+  quota across the two subscriptions; it is optional and not the default.
 
 ## How it works
 
