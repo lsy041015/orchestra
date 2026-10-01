@@ -5,6 +5,37 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-10-01
+
+Fixes from a review of 0.4.6: one command-execution hole in the scope check, a
+blind spot for ignored files, and smaller script and wording fixes (#15, #16).
+
+### Security
+- `scope-check`: git runs with `core.fsmonitor`, `core.hooksPath` and
+  `core.untrackedCache` off, so a nested repository a worker created can no longer
+  run a command on the host through its `.git/config`.
+- `review-package`: refs that start with `-` are refused, and `diff.external` never runs.
+- `brainstorm`: `start-server.sh` refuses a symlinked `.orchestra`; the logged event
+  `source` is set by the server, not the client.
+
+### Fixed
+- `scope-check` counts gitignored files (`.env`, `dist/`); `.orchestra/` stays excluded.
+  A worker that writes an ignored file now shows as `outside allowed`.
+- `task-brief`: a same-level section (`### Verification`) ends the task instead of
+  joining its brief.
+- `codex-worker`: `ORCHESTRA_CODEX_TIMEOUT_MS` (default 2 h) stops a hung Codex and
+  reports BLOCKED; output memory is bounded; a signal arms a 5 s exit.
+- `brainstorm`: fragmented WebSocket frames are refused; JSON error lines are escaped.
+- `sdd-workspace`: the plan marker is claimed atomically.
+- Skills: `file-map` reads `routing.md` only when a config file exists or Codex is
+  named; the kickoff gate has a two-round cap and a proceed exit; "approved plan"
+  accepts kickoff approval; `using-orchestra` has a narrower trigger; the ledger
+  `Routing:` line includes UI; `review-loop` uses `pgrep`.
+
+### Not changed
+- Windows `codex.cmd` lookup, the brainstorm owner-PID heuristic and the duplicated
+  worker preset text were left for later.
+
 ## [0.4.6] - 2026-10-01
 
 Kickoff questions, Claude workers by default, and modular skills that load only
