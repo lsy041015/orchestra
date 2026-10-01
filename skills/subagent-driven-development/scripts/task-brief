@@ -3,7 +3,7 @@
 # implementer reads in one call, so the task text never has to be pasted
 # through the controller's context. Sections headed "Global constraints" or
 # "Interfaces..." above the tasks bind every task and go into every brief; a
-# heading above the task level (Verification, say) ends the task.
+# heading at or above the task level (Verification, say) ends the task.
 #
 # Usage: task-brief PLAN_FILE TASK_NUMBER [OUTFILE]
 # Default OUTFILE: <repo-root>/.orchestra/sdd/<plan-basename>/task-<N>-brief.md
@@ -161,7 +161,7 @@ if ! awk -v BINMODE=3 -v target="$n" -v error_file="$err" '
     }
 
     if (is_heading) {
-      if (intask && hashes < task_level) intask = 0
+      if (intask && hashes <= task_level) intask = 0
       if (shared && hashes <= shared_level) shared = 0
       if (!intask && (task_level == 0 || hashes < task_level)) {
         title = tolower(heading_tail)

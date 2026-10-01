@@ -81,6 +81,12 @@ class TaskBriefTests(unittest.TestCase):
                 text = heading + "\n공통 목표\n\n" + task + "### Task 2: 다음\nNEXT\n"
                 self.assert_success(text, task)
 
+    def test_same_level_section_ends_the_task(self):
+        task = "### Task 1: first\nDo A.\n#### detail\nkept\n\n"
+        text = task + "### Verification\nrun everything\n### Task 2: last\nDo B.\n### Notes\ntrailing\n"
+        self.assert_success(text, task)
+        self.assert_success(text, "### Task 2: last\nDo B.\n", "2")
+
     def test_line_endings_preserve_original_bytes(self):
         for fence in ("```", "~~~"):
             for newline in ("\n", "\r\n"):
