@@ -87,6 +87,19 @@ class WorktreeCleanupTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout)
         self.assertFalse((repo / "tests-ran").exists())
 
+    def test_merge_leaves_a_dirty_main_checkout_alone(self):
+        # The checkout would switch the user's branch and merge with their edits in place.
+        repo = self.repo_with_feature(self.temp_dir("finish-merge-"))
+        (repo / "mine.txt").write_text("v1\n", encoding="utf-8")
+        git(repo, "add", "mine.txt")
+        git(repo, "commit", "-q", "-m", "mine")
+        git(repo, "checkout", "-q", "-b", "mywork")
+        (repo / "mine.txt").write_text("v2 uncommitted\n", encoding="utf-8")
+        result = self.merge_block(repo)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(git(repo, "branch", "--show-current").stdout.strip(), "mywork")
+        self.assertEqual((repo / "mine.txt").read_text(encoding="utf-8"), "v2 uncommitted\n")
+
     def test_merge_from_bare_repository_worktree_does_not_merge_in_place(self):
         # A bare repository has no main worktree to change into.
         temp = self.temp_dir("finish-bare-")
@@ -138,6 +151,19 @@ class WorktreeCleanupTests(unittest.TestCase):
         result = self.cleanup_block(repo, worktree)
         self.assertTrue((worktree / ".env").exists())
         self.assertIn(".env", result.stdout)
+
+    def test_cleanup_keeps_orchestra_records_when_the_worktree_stays(self):
+        # The records were moved before the ignored-files check: a kept worktree lost its ledger.
+        repo, worktree = self.owned_worktree(owned=True, ignored_file=True)
+        plan = worktree / ".orchestra/sdd/plan"
+        plan.mkdir(parents=True)
+        (worktree / ".orchestra/sdd/.gitignore").write_text("*\n", encoding="utf-8")
+        (plan / "progress.md").write_text("Task 1: complete\n", encoding="utf-8")
+        result = self.cleanup_block(repo, worktree)
+        self.assertTrue((worktree / ".env").exists())
+        self.assertTrue((plan / "progress.md").exists(), result.stdout)
+        self.assertNotIn(".orchestra/", result.stdout.split("Ignored files would be deleted")[-1])
+        self.assertFalse((repo / ".orchestra/archive").exists())
 
     def test_cleanup_moves_orchestra_records_to_main_checkout(self):
         # The self-ignored ledger would otherwise block cleanup or vanish with the worktree.

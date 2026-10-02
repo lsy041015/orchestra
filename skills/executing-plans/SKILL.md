@@ -21,7 +21,7 @@ repository or commits just for workflow bookkeeping.
    isolation is required; never erase unrelated edits.
 2. Resolve the plan workspace with
    `orchestra:subagent-driven-development`'s
-   `scripts/sdd-workspace PLAN_FILE` and resume its ledger only when it names
+   `scripts/sdd-workspace PLAN_FILE` (at `<this skill's base directory>/../subagent-driven-development/scripts/sdd-workspace`) and resume its ledger only when it names
    this plan. Record a fresh ledger identity otherwise.
 3. Read the plan and spec once, scan shared interfaces and task consistency,
    and record every plan ruling before changing code.

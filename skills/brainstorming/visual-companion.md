@@ -32,6 +32,8 @@ The server watches a directory for HTML files and serves the newest one to the b
 
 ## Starting a Session
 
+`scripts/` below is this skill's `scripts/` directory (`<this skill's base directory>/scripts`); run the commands with that path, from any directory.
+
 ```bash
 # Start AFTER the user approves the companion. --open auto-opens their browser on
 # the first screen; --project-dir persists mockups and enables same-port restart.

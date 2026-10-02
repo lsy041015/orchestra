@@ -60,7 +60,7 @@ the ledger shows which task it is on.
 Each brief holds one task plus the plan's `Global constraints` and `Interfaces` sections; the
 sections after the tasks (verification, review focus) stay with the main session.
 
-Skills are called `orchestra:<skill>`: 16 skills plus the two Claude implementer agents. Start with
+Skills are called `orchestra:<skill>`: 16 skills plus the three Claude implementer agents. Start with
 `orchestra:using-orchestra`; `orchestra:orchestrator` does the tiering and dispatch (Claude Code
 only) and `orchestra:diagnosing-orchestra` investigates a past run. Plans are saved under
 `docs/orchestra/plans/`; each plan's ledger, briefs and reports live in `.orchestra/sdd/<plan>/`.
@@ -137,8 +137,8 @@ images live on the `showcase` branch, so they are not part of the plugin package
 
 ## Install
 
-Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and for Codex
-workers Node.js 18+ and a logged-in Codex CLI (`codex --version`, `codex login status`).
+Requirements: Claude Code, Git + Bash (Git Bash on Windows), Python 3 for the tests, and Node.js 18+ for the scope check of every worker
+(Codex workers also need a logged-in Codex CLI: `codex --version`, `codex login status`).
 Claude Code's Bash tool uses Git Bash on Windows. In PowerShell a bare `bash` may be the WSL
 launcher, which fails without a distribution, so run scripts there as
 `& 'C:\Program Files\Git\bin\bash.exe' <script>`.
@@ -277,7 +277,7 @@ python3 tests/test_skill_text.py
 python3 tests/test_release_manifests.py
 python3 tests/test_find_polluter.py
 (cd examples/piano && node --test)
-claude plugin validate .
+claude plugin validate --strict .
 ```
 
 Issues and PRs: <https://github.com/lsy041015/orchestra/issues>. Reports from real orchestrator use on

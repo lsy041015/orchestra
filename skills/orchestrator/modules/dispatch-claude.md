@@ -24,4 +24,13 @@ node "<this skill's base directory>/scripts/scope-check.mjs" after --cwd "<proje
 ```
 
 `after` prints the same `Scope:` line as a Codex worker and also counts files
-the worker committed. `--allowed` follows the Codex worker rules in `dispatch-codex.md`.
+the worker committed. `--allowed` is a comma-separated list relative to `--cwd`;
+end an entry with `/` to allow a whole directory (`src/retry.ts,test/fixtures/`).
+An entry that names the repository root is rejected (exit code 2). `--cwd` is the
+repository root.
+
+The check needs `node` and `git`. When either is missing, count the check as
+`unchecked`, review `git status` and the whole diff yourself, and say why.
+Caches the task's own commands write (`__pycache__/`, `node_modules/`) show as
+`outside allowed` without `(ignored)` when the project has no ignore rule for
+them: add the rule to `.git/info/exclude` before the first baseline.

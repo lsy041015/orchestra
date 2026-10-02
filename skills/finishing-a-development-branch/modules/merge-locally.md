@@ -12,14 +12,17 @@ MAIN_ROOT=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
 # land on the current branch; after a failed merge, tests would pass on the
 # unmerged base and the block would still exit 0.
 [ -n "$MAIN_ROOT" ] && cd "$MAIN_ROOT" &&
+  [ -z "$(git status --porcelain --untracked-files=no)" ] &&
   git checkout <base-branch> &&
   if git rev-parse --verify --quiet '@{upstream}' >/dev/null; then git pull --ff-only; fi &&
   git merge <feature-branch> &&
   <test command>
 ```
 
-If checkout, pull, or merge fails, stop and report it; never run the merge from
-another branch. If tests fail on the merged result: stop, leave the worktree
+If the main checkout has uncommitted changes to tracked files, the block stops
+before the checkout: it would switch the user's branch and merge with their
+work in place. Report it and ask. If checkout, pull, or merge fails, stop and
+report it; never run the merge from another branch. If tests fail on the merged result: stop, leave the worktree
 and branch in place, and investigate — nothing has been pushed, so the merge
 is local and recoverable.
 
