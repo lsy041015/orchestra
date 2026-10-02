@@ -56,6 +56,13 @@ class SkillTextTests(unittest.TestCase):
         body = lambda name: (ROOT / "agents" / name).read_text(encoding="utf-8").split("\n---\n", 1)[1]
         for other in ("implementer-medium.md", "implementer-xhigh.md"):
             self.assertEqual(body("implementer.md"), body(other), other)
+        # Claude workers have no sandbox; the scope check only reports afterwards.
+        self.assertIn("Never run git push, reset", " ".join(body("implementer.md").split()))
+
+    def test_orchestrator_always_reads_routing(self):
+        # A conditional read was skipped in the 2026-10-02 e2e run although the config existed.
+        read = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())
+        self.assertIn("Read `modules/routing.md` before the first dispatch", read("skills/orchestrator/SKILL.md"))
 
     def test_state_paths_name_the_plan_workspace(self):
         # The ledger is progress.md, a file; briefs and scope states live in its directory.

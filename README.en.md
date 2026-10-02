@@ -229,7 +229,9 @@ node skills/orchestrator/scripts/codex-worker.mjs \
   in a worker-written `.git/config` never runs on the host. It works on the physical path, so a
   symlinked `--cwd` checks the repository git sees. Ignored paths are labelled
   (`build/ (ignored)`): caches the task's own commands create are expected, a `.env` is not.
-  Parallel workers in the same checkout see each other's files; the orchestrator ignores only
+  It also stamps the git directory's `config`, `hooks/`, `info/exclude` and `info/attributes`,
+  which `git status` never lists: a hook or alias planted there runs on your next git command
+  (a nested repository's git directory is not covered). Parallel workers in the same checkout see each other's files; the orchestrator ignores only
   files that belong to another running worker's allowed list.
 - A Codex run that outlasts 110 minutes (`ORCHESTRA_CODEX_TIMEOUT_MS`) is stopped with its whole
   process tree and reported as `Status: BLOCKED`, inside the 2 hour Bash background limit.

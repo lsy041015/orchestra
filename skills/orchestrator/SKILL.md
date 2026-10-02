@@ -43,10 +43,10 @@ when the user named Codex (or a Codex model) in this conversation, and only for
 the tiers `modules/routing.md` assigns to it. Show the mapping on one line and
 dispatch; the defaults need no question.
 
-Read `modules/routing.md` when `~/.claude/orchestra.json` or a project
-`.orchestra.json` exists, or when the user named Codex. It merges the files by
-key, applies Codex values only on request, requires one confirmation for values
-that come from the project file, and says when to ask. Record
+Read `modules/routing.md` before the first dispatch, whether or not
+`~/.claude/orchestra.json` or a project `.orchestra.json` exists. It merges the
+files by key, applies Codex values only on request, requires one confirmation
+for values that come from the project file, and says when to ask. Record
 `Routing: Easy=..., Medium=..., Hard=..., UI=...` in the ledger.
 
 ## 3. Dispatch
