@@ -18,7 +18,7 @@
 #   --foreground          Run server in the current terminal (no backgrounding).
 #   --background          Force background mode (overrides Codex auto-foreground).
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 # One JSON error line; user-supplied text may hold a quote, a backslash or a
 # line break. ponytail: other control characters pass through unescaped.
@@ -47,7 +47,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --project-dir)
       # Absolute now: the script changes directory before starting the server.
-      PROJECT_DIR="$(cd "$2" 2>/dev/null && pwd)" || { json_error "No such directory: $2"; exit 1; }
+      PROJECT_DIR="$(CDPATH= cd -- "$2" 2>/dev/null && pwd)" || { json_error "No such directory: $2"; exit 1; }
       shift 2
       ;;
     --host)

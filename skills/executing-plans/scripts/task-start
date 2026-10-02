@@ -18,7 +18,7 @@ fi
 
 plan=$1
 n=$2
-sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
+sdd="$(CDPATH= cd -- "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
 
 # Invoke via bash: some extractors strip exec bits from packaged scripts (#2040).
 out=$("${BASH:-bash}" "$sdd/task-brief" "$plan" "$n")

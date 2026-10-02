@@ -59,7 +59,9 @@ export async function repoScope(cwd, allowed) {
   for (const item of allowed) {
     const rel = path.relative(root, path.resolve(cwd, item.replace(/[\\/]/g, path.sep)))
       .replace(/\\/g, '/');
-    if (/[\\/]$/.test(item)) dirs.push(rel ? `${rel}/` : '');
+    // `./` or `src/..//` is the whole repository: every path would be allowed.
+    if (!rel) throw new Error(`Invalid --allowed: ${item} is the repository root; list files or subdirectories`);
+    if (/[\\/]$/.test(item)) dirs.push(`${rel}/`);
     else files.add(rel);
   }
   // The slash lets `sub/` also cover the entry `sub` itself (a submodule).
@@ -160,8 +162,12 @@ export async function snapshot(root, nested = false) {
       // HEAD stands for the directory to catch commits made inside it.
       const dir = path.resolve(root, file);
       const top = await git(dir, ['rev-parse', '--show-cdup']);
-      const inner = !top.error && !top.output.trim() && await snapshot(dir, true);
-      if (inner && !inner.error) {
+      // Not readable (dubious ownership, a .git file pointing nowhere): its
+      // files are unseen, so the run is unchecked rather than ok.
+      if (top.error) return { error: `nested repository ${normalized}: ${top.error}` };
+      if (!top.output.trim()) {
+        const inner = await snapshot(dir, true);
+        if (inner.error) return { error: `nested repository ${normalized}: ${inner.error}` };
         hash = `HEAD ${inner.head}`;
         const prefix = normalized.replace(/\/?$/, '/');
         for (const [name, value] of inner.files) files.set(prefix + name, value);
@@ -174,6 +180,13 @@ export async function snapshot(root, nested = false) {
   const head = await git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']);
   return { head: head.error ? null : head.output.trim(), files };
 }
+
+// File names are the worker's, and the Scope line is the one the reader trusts:
+// a line break or other control character in a name could start a forged
+// `Scope: ok` line, and thousands of names would make one huge line.
+const NOT_PLAIN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ufeff]/g;
+const escaped = (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`;
+const MAX_LISTED = 50;
 
 // The text after "Scope: ".
 export async function compare(repo, before, after) {
@@ -193,8 +206,10 @@ export async function compare(repo, before, after) {
   const ignored = (file) => [before.files.get(file), after.files.get(file)]
     .some((hash) => hash?.startsWith('!! '));
   const outside = [...changed].filter((file) => !repo.allows(file)).sort()
-    .map((file) => (ignored(file) ? `${file} (ignored)` : file));
-  return outside.length ? `outside allowed: ${outside.join(', ')}` : 'ok';
+    .map((file) => (ignored(file) ? `${file} (ignored)` : file).replace(NOT_PLAIN, escaped));
+  if (!outside.length) return 'ok';
+  const more = outside.length - MAX_LISTED;
+  return `outside allowed: ${outside.slice(0, MAX_LISTED).join(', ')}${more > 0 ? `, and ${more} more` : ''}`;
 }
 
 async function cli(args) {

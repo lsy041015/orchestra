@@ -135,7 +135,10 @@ class ScopeCheckTests(unittest.TestCase):
             gitfile.write("gitdir: ../elsewhere\n")
             gitfile.truncate()
         result = self.check("after", allowed="keep.txt")
-        self.assertIn("sub/.git", result.stdout, result.stderr)
+        # git cannot read the submodule any more, so the run is unchecked, never ok.
+        self.assertTrue(result.stdout.startswith(
+            "Scope: unchecked (git status failed after the run: nested repository sub:"), result.stdout)
+        self.assertEqual(result.returncode, 1)
 
     @unittest.skipIf(os.name == "nt", "POSIX shell command")
     def test_submodule_filter_driver_cannot_run_a_command(self):
@@ -241,6 +244,55 @@ class ScopeCheckTests(unittest.TestCase):
             result = self.check("before", home=home)
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertIn("holds the home directory", result.stdout)
+
+    def test_file_name_with_a_line_break_cannot_forge_a_scope_line(self):
+        self.check("before")
+        try:
+            (self.repo / "b\nScope: ok").write_text("b\n", encoding="utf-8")
+        except OSError as error:
+            self.skipTest(f"cannot create the file name: {error}")
+        result = self.check("after", allowed="a.txt")
+        self.assertEqual(result.stdout, "Scope: outside allowed: b\\u000aScope: ok\n", result.stderr)
+
+    def test_long_outside_list_is_cut(self):
+        self.check("before")
+        for i in range(60):
+            (self.repo / f"f{i:02}.txt").write_text("x\n", encoding="utf-8")
+        result = self.check("after", allowed="a.txt")
+        self.assertEqual(result.stdout.count("\n"), 1)
+        self.assertTrue(result.stdout.endswith("f49.txt, and 10 more\n"), result.stdout)
+
+    def test_allowed_that_names_the_repository_root_is_rejected(self):
+        # `./` would allow every path, so the check could never fail.
+        (self.repo / "src").mkdir()
+        self.check("before")
+        (self.repo / "anything.txt").write_text("x\n", encoding="utf-8")
+        for item in ("./", ".", "src/..//"):
+            result = self.check("after", allowed=item)
+            self.assertEqual((result.returncode, result.stdout), (2, ""), item)
+            self.assertIn("Invalid --allowed", result.stderr)
+
+    @unittest.skipIf(os.name == "nt", "ownership check differs on Windows")
+    def test_unreadable_nested_repo_is_unchecked_not_ok(self):
+        # A nested repo owned by someone else (a root-made clone, a sandbox user):
+        # git refuses it, so edits inside it would otherwise read as `Scope: ok`.
+        driver = self.repo / "src/driver"
+        self.nested_repo(driver)
+        trust = self.temp / "gitconfig"
+        trust.write_text(f"[safe]\n\tdirectory = {self.repo}\n", encoding="utf-8")
+        env = {"GIT_TEST_ASSUME_DIFFERENT_OWNER": "1", "GIT_CONFIG_GLOBAL": str(trust)}
+        probe = subprocess.run(["git", "-C", str(driver), "rev-parse"], capture_output=True,
+                               env={**os.environ, **env})
+        if probe.returncode == 0:
+            self.skipTest("this git has no ownership check to simulate")
+        old = {key: os.environ.get(key) for key in env}
+        os.environ.update(env)
+        self.addCleanup(lambda: [os.environ.pop(k) if v is None else os.environ.__setitem__(k, v)
+                                 for k, v in old.items()])
+        result = self.check("before")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertTrue(result.stdout.startswith("Scope: unchecked (git: nested repository src/driver"),
+                        result.stdout)
 
     def test_baseline_from_another_checkout_is_unchecked(self):
         other = self.temp / "other"

@@ -15,6 +15,7 @@ BASH = shutil.which("bash") or "bash"
 ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE = ROOT / "skills/subagent-driven-development/scripts/sdd-workspace"
 TASK_DONE = ROOT / "skills/executing-plans/scripts/task-done"
+REVIEW_PACKAGE = ROOT / "skills/subagent-driven-development/scripts/review-package"
 
 
 class SddSafetyTests(unittest.TestCase):
@@ -132,6 +133,49 @@ class SddSafetyTests(unittest.TestCase):
         self.assertTrue(last.startswith("Task 1: failed"), last)
         logs = list((self.root / ".orchestra/sdd/plan").glob("task-1-tests*.log"))
         self.assertEqual(len(logs), 2, logs)
+
+    def symlink(self, link, target):
+        try:
+            link.symlink_to(target)
+        except OSError as error:  # Windows without Developer Mode
+            self.skipTest(f"cannot create symlinks: {error}")
+
+    def test_task_done_does_not_write_through_a_symlinked_ledger(self):
+        sha = self.baseline()
+        self.assertEqual(self.run_script(TASK_DONE, self.plan, 1, sha, "--", "true").returncode, 0)
+        victim = Path(self.temp.name) / "victim.txt"
+        victim.write_text("keep\n", encoding="utf-8")
+        ledger = self.root / ".orchestra/sdd/plan/progress.md"
+        ledger.unlink()
+        self.symlink(ledger, victim)
+        result = self.run_script(TASK_DONE, self.plan, 2, sha, "--", "true")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(victim.read_text(encoding="utf-8"), "keep\n")
+
+    def test_review_package_does_not_write_through_a_symlinked_output(self):
+        sha = self.baseline()
+        subprocess.run(["git", "-C", str(self.root), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit", "-q", "--allow-empty",
+                        "-m", "work"], check=True)
+        victim = Path(self.temp.name) / "victim.txt"
+        victim.write_text("keep\n", encoding="utf-8")
+        out = self.root / "package.diff"
+        self.symlink(out, victim)
+        result = self.run_script(REVIEW_PACKAGE, self.plan, sha, "HEAD", out)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(victim.read_text(encoding="utf-8"), "keep\n")
+
+    def test_scripts_work_when_cdpath_is_set(self):
+        # With CDPATH set, a bare `cd` prints the directory and breaks $(...) captures.
+        for name in ("executing-plans", "subagent-driven-development"):
+            shutil.copytree(ROOT / "skills" / name / "scripts", self.root / "skills" / name / "scripts")
+        self.baseline()
+        self.plan.write_text("# Plan\n\n### Task 1: first\n\nDo A.\n", encoding="utf-8")
+        result = subprocess.run([BASH, "skills/executing-plans/scripts/task-start", "plan.md", "1"],
+                                cwd=self.root, capture_output=True, text=True, encoding="utf-8",
+                                env={**os.environ, "CDPATH": "."})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("brief: ", result.stdout)
 
 
 if __name__ == "__main__":
