@@ -5,6 +5,11 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.10] - 2026-10-02
+
+Fixes from an independent review of 0.4.9 (three reviewers; no high-severity finding)
+and the first recorded end-to-end run of the Claude-worker defaults.
+
 ### Security
 - `scope-check`: file names are escaped (control characters, line and paragraph
   separators) and the `outside allowed` list stops at 50 names, `, and N more`.
