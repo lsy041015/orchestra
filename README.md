@@ -116,7 +116,7 @@
 
 ### 3.5 끝나는 수정 루프
 - 리뷰에서 나온 구체적 지적만 같은 워커에게 다시 보냅니다.
-- **같은 원인으로 수정이 두 번 실패하면 멈춥니다.** 메인 세션이 `Ruling:`(결정 기록)을 남기고
+- **같은 원인으로 수정이 두 번 실패하거나 한 작업에서 수정이 세 번 돌면 멈춥니다.** 메인 세션이 `Ruling:`(결정 기록)을 남기고
   계획을 바꾸거나 직접 고칩니다. 더 비싼 모델로 무작정 재시도하지 않습니다.
 
 ### 3.6 사용자 결정권
@@ -152,7 +152,7 @@
  ④ 모델 선택 ── ~/.claude/orchestra.json + <project>/.orchestra.json 병합
     │            기본은 Claude 워커, Codex는 사용자가 언급할 때만
     ▼
- ⑤ 배정 ────── Claude 워커: Agent(orchestra:implementer[-medium], model=...)
+ ⑤ 배정 ────── Claude 워커: Agent(orchestra:implementer[-medium|-xhigh], model=...)
     │            Codex 워커: node codex-worker.mjs ... (백그라운드 Bash)
     │            파일이 겹치지 않는 작업은 병렬
     ▼
@@ -411,7 +411,7 @@ orchestra: skill, follow the brief's own wording.
    - Claude 워커: `SendMessage`로 같은 워커에게.
    - Codex 워커: 지적을 `task-N-codex-fix-K.md`로 쓰고, 같은 `--model/--effort/--cwd/--allowed`에 `--resume <thread>`를 붙여 재실행.
 5. 메인 세션은 **지적 사항과 수정 diff만** 다시 봅니다. 건드리지 않은 코드를 처음부터 다시 리뷰하지 않습니다.
-6. 같은 원인으로 두 번 실패하면 멈추고 `Ruling:`을 남긴 뒤 재계획하거나 직접 고칩니다.
+6. 같은 원인으로 두 번 실패하거나 수정 라운드가 세 번에 이르면 멈추고 `Ruling:`을 남긴 뒤 재계획하거나 직접 고칩니다.
 7. 문서 한 줄처럼 작은 지적은 메인 세션이 직접 고치고 그 결정을 `Ruling:`으로 기록할 수 있습니다.
 
 ---
@@ -486,7 +486,7 @@ orchestra orchestrator-distribution  done 1/3  |  Codex gpt-6-luna/max x2 11m
 | Claude Code | 항상 | `claude --version` |
 | Git, Bash | 계획·worktree·ledger 스크립트 | `git --version` |
 | Python 3 | 테스트 실행 | `python3 --version` |
-| Node.js 18+ | Codex 워커 | `node --version` |
+| Node.js 18+ | 범위 검사(Claude·Codex 워커 모두), Codex 워커 | `node --version` |
 | Codex CLI + 로그인 | Codex 워커 | `codex --version`, `codex login status` (로그인은 `codex login`) |
 
 Codex CLI가 없거나 로그인되지 않았으면 오케스트레이터는 **Codex 티어를 Claude로 돌릴지 사용자에게 묻습니다.** 임의로 다른 모델로 바꾸지 않습니다.
@@ -541,7 +541,7 @@ Claude: (방향 확인 질문 → 계획 작성 → 난이도 표)
         | # | 작업            | 티어   | 파일                               |
         | 1 | 재시도 유틸     | Medium | src/retry.ts, test/retry.test.ts   |
         | 2 | 로그인에 적용   | Easy   | src/login.ts                       |
-        라우팅: Easy=codex gpt-6-luna/medium, Medium=claude sonnet/high (~/.claude/orchestra.json)
+        라우팅: Easy=claude sonnet/medium, Medium=claude sonnet/high
 
         [Claude sonnet/high]      Task 1: 재시도 유틸   ← 실행 중
         (Task 2는 Task 1 결과를 쓰므로 대기)
@@ -626,7 +626,7 @@ Linux에서 0.4.0으로 한 번 더 돌린 [실행 C 기록](docs/demo/piano/lin
 
 ## 14. 포함된 스킬
 
-플러그인 이름은 `orchestra`이고, 스킬은 `orchestra:<skill>`로 부릅니다. 총 **16개 스킬**과 **Claude 구현자 에이전트 2개**입니다.
+플러그인 이름은 `orchestra`이고, 스킬은 `orchestra:<skill>`로 부릅니다. 총 **16개 스킬**과 **Claude 구현자 에이전트 3개**입니다.
 
 | 용도 | 스킬 |
 |---|---|
@@ -663,7 +663,7 @@ orchestra/
 │   │   └── scripts/ (sdd-workspace, task-brief, review-package)
 │   ├── writing-plans/, executing-plans/, ... (공용 스킬)
 │   └── using-orchestra/references/  # file-map.md(상황별로 읽을 파일 안내), Codex·Claude Code 도구 사용법
-└── tests/                     # 모든 마크다운 파일은 300줄 이하 (test_skill_text.py가 강제)
+└── tests/                     # skills/·agents/의 마크다운 파일은 300줄 이하 (test_skill_text.py가 강제)
     ├── test_codex_worker.py + fake_codex.mjs, test_scope_check.py
     └── test_task_brief.py, test_sdd_safety.py, test_worktree_*.py, test_brainstorm_companion.py, test_skill_text.py, ...
 ```
@@ -721,7 +721,7 @@ orchestra/
 
 알려진 한계:
 - 오케스트레이터는 **스킬이 에이전트에게 요청하는 운영 규칙**입니다. 호스트 모델이 규칙을 어기는 것을 기술적으로 막지는 못합니다. 범위 검사와 메인 세션 리뷰가 그 빈틈을 줄입니다.
-- 범위 검사는 `.gitignore`된 파일의 변경을 보지 못합니다. 그런 경로를 다루는 작업은 diff와 리포트로 확인합니다.
+- 범위 검사는 `.gitignore`된 폴더의 안쪽 깊은 곳(폴더 바로 아래 항목 이후)의 변경을 보지 못합니다. 그런 경로를 다루는 작업은 diff와 리포트로 확인합니다.
 - Claude 워커의 범위 검사는 메인 세션이 `scope-check.mjs`를 불러야 돕니다(스킬 규칙). Codex 워커처럼 실행 스크립트가 강제하지는 않습니다.
 - 같은 체크아웃에서 병렬로 도는 워커끼리는 서로의 변경이 `Scope`에 보입니다([8.5](#85-thread-id로-재개) 참고). 같은 이유로 워커가 도는 동안 메인 세션은 그 체크아웃을 수정하지 않습니다.
 - Claude 워커는 `sonnet` 별칭을 써서 새 Sonnet을 자동으로 따릅니다. Codex 모델 이름(`gpt-6-luna` 등)은 라우팅 설정에서 바꿉니다.
@@ -783,7 +783,7 @@ python3 tests/test_skill_text.py
 python3 tests/test_release_manifests.py
 python3 tests/test_find_polluter.py
 (cd examples/piano && node --test)
-claude plugin validate .
+claude plugin validate --strict .
 ```
 
 ---

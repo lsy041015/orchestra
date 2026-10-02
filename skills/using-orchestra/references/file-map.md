@@ -5,7 +5,7 @@ Which file to read in which situation. Paths are relative to `skills/` (script p
 Rules:
 - Read the `SKILL.md` of the skill that fires, nothing else of that skill, until
   one of its rows below applies. Never read a whole skill directory.
-- Every markdown file is at most 300 lines; a test enforces it.
+- Every markdown file under `skills/` and `agents/` is at most 300 lines; a test enforces it.
 - Files under `scripts/` are run, not read. Read one only to debug it.
 
 ## Entry

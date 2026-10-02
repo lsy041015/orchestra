@@ -11,9 +11,9 @@ The main session owns design. Preserve the user's purpose, constraints and accep
 
 Choose only the depth the task needs:
 
-- **Bounded change:** requirements and implementation boundary are clear. State the approach briefly when useful, then implement within the existing authorization. No mandatory spec file, plan file or separate approval turn.
+- **Bounded change:** requirements and implementation boundary are clear, and the change is within the kickoff's size line (three files or fewer, no design the codebase lacks). State the approach briefly when useful, then implement within the existing authorization. No mandatory spec file, plan file or separate approval turn.
 - **Feasibility spike:** identify the concrete question and cheapest adequate probe. Read-only checks can proceed. Keep throwaway experiments isolated and label their limits; retaining prototype code requires production verification.
-- **Architectural change:** new subsystem, cross-component interface, migration or meaningful unresolved tradeoff. Read [architecture decisions](references/architecture.md), record the design and acceptance conditions, and use `orchestra:writing-plans` when a multi-step implementation plan helps execution.
+- **Architectural change:** new subsystem, cross-component interface, migration or meaningful unresolved tradeoff. Read [architecture decisions](references/architecture.md), record the design and acceptance conditions, and use `orchestra:writing-plans` when a multi-step implementation plan helps execution. A large feature that passed the kickoff always gets a plan this way; do not implement it inline from the kickoff summary.
 
 After kickoff, ask only for missing information or a consequential decision that cannot reasonably be inferred. Existing authorization persists. Honor an explicit request to stop for design or plan approval; otherwise do not turn routine document creation into a new permission gate. Host rules govern destructive or external actions. Record newly discovered scope or risk and reassess only the affected decision.
 

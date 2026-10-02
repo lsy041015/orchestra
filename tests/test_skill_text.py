@@ -119,6 +119,20 @@ class SkillTextTests(unittest.TestCase):
         self.assertNotIn("codex", schema.lower())
         self.assertIn("never offer codex", routing.lower())
 
+    def test_claude_only_runs_never_depend_on_the_codex_module(self):
+        read = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())
+        claude = read("skills/orchestrator/modules/dispatch-claude.md")
+        self.assertNotIn("dispatch-codex", claude)
+        for need in ("An entry that names the repository root is rejected", "needs `node` and `git`",
+                     ".git/info/exclude"):
+            self.assertIn(need, claude)
+        self.assertIn("home directory", read("skills/subagent-driven-development/SKILL.md"))
+
+    def test_a_large_feature_that_passed_kickoff_gets_a_plan(self):
+        brain = " ".join((ROOT / "skills/brainstorming/SKILL.md").read_text(encoding="utf-8").split())
+        self.assertIn("A large feature that passed the kickoff always gets a plan", brain)
+        self.assertIn("within the kickoff's size line", brain)
+
 
 
 if __name__ == "__main__":

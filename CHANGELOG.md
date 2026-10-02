@@ -23,6 +23,33 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 - The scripts that run `cd "$(dirname "$0")"` (`task-brief`, `review-package`,
   `task-done`, `task-start`, `start-server.sh`, `stop-server.sh`) work when
   `CDPATH` is set; a bare `cd` prints the directory then and broke the capture.
+- `finishing-a-development-branch`: the cleanup block decides on other ignored
+  files first and moves `.orchestra/` to the archive only when it then removes the
+  worktree (and keeps the worktree if the archive fails); before, a kept worktree
+  had already lost its ledger. The merge block stops when the main checkout has
+  uncommitted changes to tracked files; before, it switched the user's branch and
+  merged with their work in place.
+- `systematic-debugging`: the `find-polluter.sh` example used `.git` as the file to
+  look for, which made the script tell the reader to delete the repository's `.git`.
+
+### Changed
+- `brainstorming`: a large feature that passed the kickoff always gets a plan from
+  `writing-plans`; the bounded-change path is for changes within the kickoff size
+  line (three files or fewer, no new design). Before, such a feature could be
+  implemented inline from the kickoff summary.
+- `subagent-driven-development` stops and asks for `git init` when the repository
+  root is the home directory (before, only the Codex module said so, and a
+  Claude-only run left its ledger in `~/.orchestra/`). `dispatch-claude.md` now
+  holds the `--allowed` rules itself, so a Claude-only run no longer reads the Codex
+  module, and it names `node` and `git` as requirements and tells the reader to add
+  `__pycache__/`-style cache rules to `.git/info/exclude` before the first baseline.
+- `scripts/` paths in `subagent-driven-development`, `executing-plans` and
+  `visual-companion`, and the `find-polluter.sh` call, say they are relative to the
+  skill's base directory. `writing-plans` says when to choose `executing-plans`.
+- READMEs: Node.js is needed for every worker's scope check, three implementer
+  agents, the three-fix-round limit, the ignored-folders limit, `--strict` in the
+  validate command, a routing example that does not assume Codex, and the 300-line
+  rule covers `skills/` and `agents/`.
 
 ### Verified
 - The Claude-worker defaults ran end to end for the first time, on 0.4.9: Easy

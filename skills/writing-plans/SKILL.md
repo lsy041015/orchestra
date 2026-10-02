@@ -88,7 +88,7 @@ delegated work, continue with `orchestra:orchestrator` in Claude Code (it routes
 each difficulty tier to a Claude subagent, a Codex CLI worker only when the user
 asks for Codex, on top of `orchestra:subagent-driven-development`), or with
 `orchestra:subagent-driven-development` in a Codex-hosted session. Use
-`orchestra:executing-plans` for inline execution.
+`orchestra:executing-plans` for inline execution only when the user chose inline work, the change is tiny, or no worker tool is available (the rule in `orchestra:subagent-driven-development`); otherwise delegate.
 
 ## Execution handoff
 

@@ -35,6 +35,12 @@ requested independent parallel implementation.
 
 ## Setup and recovery
 
+Paths like `scripts/task-brief` in this skill are relative to this skill's base
+directory, not to the project. If the repository root is the home directory (a
+dotfiles repository at `~`), stop and ask the user to `git init` the project
+directory first: the ledger would land in `~/.orchestra/` and the scope check
+cannot run there.
+
 For Git repositories, use the steps below. For work outside Git, use the
 approved staging directory, brief, progress file, and before/after file
 comparison instead; the Git helpers do not apply. Keep that directory where

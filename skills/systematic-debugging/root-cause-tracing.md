@@ -101,7 +101,10 @@ If something appears during tests but you don't know which test:
 Use the bisection script `find-polluter.sh` in this directory:
 
 ```bash
-bash ./find-polluter.sh '.git' 'src/**/*.test.ts'
+# From the project root, with this skill's base directory in front of the script.
+# The first argument is the file or directory the polluting test leaves behind
+# (here `tmp-output`); it must not exist yet.
+bash "<this skill's base directory>/find-polluter.sh" 'tmp-output' 'src/**/*.test.ts'
 ```
 
 Runs tests one-by-one, stops at first polluter. See script for usage.
