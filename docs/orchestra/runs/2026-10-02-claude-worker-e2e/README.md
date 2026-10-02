@@ -68,9 +68,12 @@ It does not show that xhigh did better work than high on this task.
 
 ## Not covered
 
-The Codex worker path, parallel workers, a real (non-toy) codebase, UI-tier
-dispatch (it routes to the same agent as Hard), the fix-round limit, Windows and
-macOS, and any comparison of worker quality across tiers.
+Parallel workers, a real (non-toy) codebase, UI-tier dispatch (it routes to the
+same agent as Hard), the fix-round limit, and any comparison of worker quality
+across tiers. Platforms: this run was Linux only. The maintainer tested Windows
+by hand without problems; macOS has only the CI unit tests (`macos-latest`) and no
+real run. The Codex worker path was not run, and the maintainer does not plan to
+use Codex.
 
 ## Repeat it
 
