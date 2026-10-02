@@ -5,6 +5,8 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-10-02
+
 Fixes from an independent review of 0.4.10 (three reviewers; no high-severity finding).
 
 ### Security
@@ -607,7 +609,10 @@ Fixes from a pre-release review. Each item below was reproduced before the fix.
   thread resume, and a before/after scope check.
 - `orchestra:implementer` and `orchestra:implementer-medium` Claude agents.
 
-[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.8...HEAD
+[Unreleased]: https://github.com/lsy041015/orchestra/compare/v0.4.11...HEAD
+[0.4.11]: https://github.com/lsy041015/orchestra/compare/v0.4.10...v0.4.11
+[0.4.10]: https://github.com/lsy041015/orchestra/compare/v0.4.9...v0.4.10
+[0.4.9]: https://github.com/lsy041015/orchestra/compare/v0.4.8...v0.4.9
 [0.4.8]: https://github.com/lsy041015/orchestra/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/lsy041015/orchestra/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/lsy041015/orchestra/compare/v0.4.5...v0.4.6
