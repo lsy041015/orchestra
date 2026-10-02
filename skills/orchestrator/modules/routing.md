@@ -1,6 +1,6 @@
 # Model choice and routing
 
-Part of `orchestra:orchestrator`. Read it when a config file exists or the user named Codex.
+Part of `orchestra:orchestrator`. Read it before the first dispatch of every run.
 
 **Default: Claude workers only.** A tier without a usable value uses `easy` →
 `claude sonnet/medium`, `medium` → `claude sonnet/high`, `hard` and `ui` →

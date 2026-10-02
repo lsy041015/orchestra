@@ -28,7 +28,7 @@ Rules:
 | Situation | Read |
 |---|---|
 | Claude Code, plan split into difficulty tiers | `orchestrator/SKILL.md` |
-| A routing config file exists or the user named Codex | `orchestrator/modules/routing.md` |
+| Orchestrator run, before the first dispatch | `orchestrator/modules/routing.md` |
 | Dispatching a task to a Claude worker | `orchestrator/modules/dispatch-claude.md` |
 | Dispatching a task to a Codex worker | `orchestrator/modules/dispatch-codex.md` |
 | A worker result is ready to review or fix | `orchestrator/modules/review-loop.md` |

@@ -176,20 +176,46 @@ export async function snapshot(root, nested = false) {
     // The mark lets compare() label the entry for the reviewer.
     files.set(normalized, ignored ? `!! ${hash}` : hash);
   }
+  // git status never lists the git directory, but a hook, or an alias or
+  // core.sshCommand in its config, runs on the user's next git command.
+  // ponytail: a nested repository's own git directory is not covered.
+  if (!nested) {
+    const dirs = await git(root, ['rev-parse', '--git-dir', '--git-common-dir']);
+    if (dirs.error) return dirs;
+    const [own, common] = dirs.output.trim().split(/\r?\n/).map((dir) => path.resolve(root, dir));
+    // Not all of info/: git gc writes info/refs there.
+    for (const [target, slash] of [[path.join(common, 'config'), ''], [path.join(own, 'config.worktree'), ''],
+      [path.join(common, 'hooks'), '/'], [path.join(common, 'info/attributes'), ''],
+      [path.join(common, 'info/exclude'), '']]) {
+      let hash;
+      try {
+        const stat = lstatSync(target);
+        hash = stat.isDirectory() ? listing(target) : `${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+      } catch (error) {
+        hash = error.code === 'ENOENT' ? 'deleted' : error.code;
+      }
+      files.set(path.relative(root, target).replace(/\\/g, '/') + slash, hash);
+    }
+  }
   // A file committed during the run is clean again, so HEAD is recorded too.
   const head = await git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']);
   return { head: head.error ? null : head.output.trim(), files };
 }
 
-// File names are the worker's, and the Scope line is the one the reader trusts:
-// a line break or other control character in a name could start a forged
-// `Scope: ok` line, and thousands of names would make one huge line.
+// File names, and the nested repository an unchecked reason names, are the
+// worker's, and the Scope line is the one the reader trusts: a line break or
+// other control character could start a forged `Scope: ok` line, and
+// thousands of names would make one huge line.
 const NOT_PLAIN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ufeff]/g;
-const escaped = (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`;
+const plain = (text) => text.replace(NOT_PLAIN, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 const MAX_LISTED = 50;
 
 // The text after "Scope: ".
 export async function compare(repo, before, after) {
+  return plain(await describe(repo, before, after));
+}
+
+async function describe(repo, before, after) {
   if (before.error) return `unchecked (git: ${before.error})`;
   if (after.error) return `unchecked (git status failed after the run: ${after.error})`;
   const changed = new Set([...before.files.keys(), ...after.files.keys()]
@@ -206,7 +232,7 @@ export async function compare(repo, before, after) {
   const ignored = (file) => [before.files.get(file), after.files.get(file)]
     .some((hash) => hash?.startsWith('!! '));
   const outside = [...changed].filter((file) => !repo.allows(file)).sort()
-    .map((file) => (ignored(file) ? `${file} (ignored)` : file).replace(NOT_PLAIN, escaped));
+    .map((file) => (ignored(file) ? `${file} (ignored)` : file));
   if (!outside.length) return 'ok';
   const more = outside.length - MAX_LISTED;
   return `outside allowed: ${outside.slice(0, MAX_LISTED).join(', ')}${more > 0 ? `, and ${more} more` : ''}`;
@@ -237,14 +263,14 @@ async function cli(args) {
     const base = repo.error ? repo : await snapshot(repo.root);
     writeFileSync(values['--state'], JSON.stringify(base.error ? { error: base.error }
       : { root: repo.root, head: base.head, files: Object.fromEntries(base.files) }));
-    process.stdout.write(base.error ? `Scope: unchecked (git: ${base.error})\n` : 'Scope: baseline recorded\n');
+    process.stdout.write(base.error ? `Scope: unchecked (git: ${plain(base.error)})\n` : 'Scope: baseline recorded\n');
     return base.error ? 1 : 0;
   }
 
   const saved = JSON.parse(readFileSync(values['--state'], 'utf8'));
   let scope;
   if (!saved.error && !repo.error && saved.root !== repo.root) {
-    scope = `unchecked (the baseline is for ${saved.root})`;
+    scope = plain(`unchecked (the baseline is for ${saved.root})`);
   } else {
     const before = saved.error ? saved : repo.error ? repo
       : { head: saved.head, files: new Map(Object.entries(saved.files)) };

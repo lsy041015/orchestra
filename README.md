@@ -365,6 +365,8 @@ Codex 워커와 Claude 워커는 같은 코드([`scope-check.mjs`](skills/orches
 - 이름 변경 항목은 새 경로 기준으로 봅니다. 서브모듈처럼 폴더로 보이는 항목도 실행을 멈추지 않습니다.
 - `.gitignore`된 경로도 검사하고 `outside allowed: build/ (ignored)`처럼 표시합니다. 작업 명령이 만든 캐시(`__pycache__/`, `node_modules/`)인지,
   `.env` 같은 파일인지는 메인 세션이 판단합니다. 무시된 폴더는 폴더 자체의 항목만 비교합니다. ledger(`.orchestra/`)는 제외합니다.
+- `git status`에 나오지 않는 git 디렉터리의 `config`, `hooks/`, `info/exclude`, `info/attributes`도 비교합니다.
+  여기 심은 훅이나 alias는 사용자의 다음 git 명령에서 실행되기 때문입니다. 하위 저장소의 git 디렉터리는 보지 않습니다.
 - git이 실패하면(저장소 아님, 소유자가 달라 git이 거부 등) `Scope: unchecked (git: <오류>)`, 실행 후 git이 실패하면
   `unchecked (git status failed after the run: <오류>)`로 표시합니다. 이때 메인 세션이 `git status`와 diff를 직접 확인합니다.
   Windows에서는 Codex 샌드박스가 만든 파일의 소유자가 `CodexSandboxOffline`이라 이런 거부가 생길 수 있습니다.
