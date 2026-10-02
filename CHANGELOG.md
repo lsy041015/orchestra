@@ -5,6 +5,15 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Verified
+- The Claude-worker defaults ran end to end for the first time, on 0.4.9: Easy
+  `orchestra:implementer-medium`, Medium `orchestra:implementer`, Hard
+  `orchestra:implementer-xhigh`, plus one fix round through `SendMessage`. Each
+  worker's transcript shows `claude-sonnet-5-5` at its tier's effort on every turn,
+  so `sonnet` accepts `xhigh` and nothing was substituted. This replaces the 0.4.6
+  note that `implementer-xhigh` had not been dispatched in a real run. Record,
+  plan and ledger: `docs/orchestra/runs/2026-10-02-claude-worker-e2e/`.
+
 ## [0.4.9] - 2026-10-01
 
 Fixes from a second review of 0.4.8: the scope check took git's word for what
