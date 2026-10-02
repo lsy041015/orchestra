@@ -35,9 +35,13 @@ if [ $# -eq 4 ]; then
 else
   # Invoke via bash rather than direct exec: some extractors (Python zipfile)
   # strip Unix exec bits when unpacking marketplace packages (#2040).
-  dir=$("${BASH:-bash}" "$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  dir=$("${BASH:-bash}" "$(CDPATH= cd -- "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
   out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
 fi
+
+# A symlink here (a worker can plant one) would make the redirect below write
+# through it to another file.
+[ ! -L "$out" ] || { echo "output path is a symlink: $out" >&2; exit 2; }
 
 {
   echo "# Review package: ${base}..${head}"

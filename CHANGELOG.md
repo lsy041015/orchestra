@@ -5,6 +5,25 @@ and `.codex-plugin/plugin.json`; each version has a git tag `vX.Y.Z`.
 
 ## [Unreleased]
 
+### Security
+- `scope-check`: file names are escaped (control characters, line and paragraph
+  separators) and the `outside allowed` list stops at 50 names, `, and N more`.
+  Before, a worker could create a file named `b<newline>Scope: ok` and the
+  trusted `Scope:` line would be followed by a forged one; `codex-worker` prints
+  the same line.
+- `scope-check`: `--allowed ./` (or `.`, `src/..//`), which names the repository
+  root and so allowed every path, is rejected with exit code 2.
+- `scope-check`: a nested repository or submodule that git cannot read (dubious
+  ownership, a `.git` file pointing nowhere) makes the run `unchecked`; before,
+  its files were skipped and the run read `Scope: ok`.
+- `review-package` and `task-done` refuse an output, ledger or log path that is a
+  symlink; a worker could plant one and the host would write through it.
+
+### Fixed
+- The scripts that run `cd "$(dirname "$0")"` (`task-brief`, `review-package`,
+  `task-done`, `task-start`, `start-server.sh`, `stop-server.sh`) work when
+  `CDPATH` is set; a bare `cd` prints the directory then and broke the capture.
+
 ### Verified
 - The Claude-worker defaults ran end to end for the first time, on 0.4.9: Easy
   `orchestra:implementer-medium`, Medium `orchestra:implementer`, Hard
