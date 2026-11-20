@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/orchestra-banner.png" alt="Orchestra — Claude × Codex" width="100%">
+  <img src="assets/orchestra-banner.png" alt="Orchestra — Claude × Codex" width="560">
 </p>
 
 <p align="center"><a href="README.md">한국어</a> · <b>English</b></p>
